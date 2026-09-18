@@ -1,116 +1,72 @@
-<div align="center">
+# 🌐 上帝之眼 God's Eye View（繁體中文版）
 
-# 🌐 God's Eye View
+> 本文件為原專案 `README.md` 的繁體中文翻譯整理，原英文版已備份為 `README.en.md`。
+> 原專案：https://github.com/bilawalsidhu/gods-eye-view
+> 原作者：Bilawal Sidhu、Sameh Khamis（Halfpixel），授權：MIT
+> 同步日期：2026-09-18（shallow clone 去除歷史後複製）
 
-[![CI](https://github.com/bilawalsidhu/gods-eye-view/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bilawalsidhu/gods-eye-view/actions/workflows/ci.yml)
+### 瀏覽器中的間諜衛星模擬器 —— 然後你發現資料來源都是公開的，而且是真的。
 
-### A spy-satellite simulator in your browser — then you realize the sources are public and the data is real.
+照片級寫實 3D 地球儀。即時飛機、船舶、衛星、地震、交通與公共攝影機。免持語音控制，由即時 AI 代理驅動。
 
-Photorealistic 3D globe. Live aircraft, ships, satellites, earthquakes, traffic, and public cameras. Hands-free voice control powered by a realtime AI agent.
+_沒有被遺落的角落。_
 
-_No place left behind._
+▶️ **來自病毒式傳播 God's Eye View 系列背後的專案**（前身 WorldView）—— YouTube 500 萬+、全社群 2500 萬+
 
-![Orbital HUD, a tracked live globe, FLIR terrain — then OPEN SOURCED](docs/media/hero-open-source-reveal.gif)
+🏆 **2026 年 8 月登上 GitHub Trending 日榜、週榜第一**
 
-<a href="https://www.youtube.com/@bilawalsidhu">
-  <img src="docs/media/youtube-popular-videos.png" alt="The God's Eye View video series on YouTube" width="100%">
-</a>
-
-▶️ **From the project behind the viral God's Eye View series** _(formerly WorldView)_ — [5M+ on YouTube](https://youtube.com/playlist?list=PL6qSg2I-7_koPbDnSMo0QeeHX_RknA2uv&si=nBGYMoHWQw41v93Q) · [25M+ across socials](https://www.google.com/search?q=god%27s+eye+view)
-
-[![Reached #1 on GitHub Trending](https://img.shields.io/badge/%231_GitHub_Trending-thank_you!-F0A63C?style=flat-square&logo=github)](https://x.com/bilawalsidhu/status/2093798887815348521)
-
-🏆 **Reached #1 on GitHub Trending, daily and weekly · August 2026**
-
-**[#8 Product of the Day](https://www.producthunt.com/products/god-s-eye-view?launch=god-s-eye-view)** · Hunted by Chris Messina, creator of the hashtag
-
-_“pretty cool”_ — [Brendan Eich](https://x.com/BrendanEich/status/2094592096401490266), creator of JavaScript and co-founder of Mozilla and Brave · Featured on **[Pinokio](https://pinokio.co/posts/01m1m4p9xxm3qw7dnnpj2wr93g)**
-
-⚡ **Start without API keys.** Install with [Pinokio](https://pinokio.co/apps/github-com-bilawalsidhu-gods-eye-view) or run locally from the terminal. Add optional keys inside the app. **[→ Quick Start](#-quick-start)**
-
-</div>
+⚡ **免 API Key 即可啟動。** 用 [Pinokio](https://pinokio.co/apps/github-com-bilawalsidhu-gods-eye-view) 一鍵安裝，或從終端機本地執行。需要時再在 App 內加入選用 Key。**[→ 快速開始](#-快速開始)**
 
 ---
 
-<div align="center">
+## 🌍 為什麼有這個專案
 
-**[Quick Start](#-quick-start) · [First Five Minutes](#-the-first-five-minutes) · [Talk to It](#-talk-to-it) · [What's Live](#-whats-on-the-globe) · [Under the Hood](#-under-the-hood) · [Keys & Costs](#-api-keys)**
+上帝之眼把公開訊號收進同一顆可探索的地球儀。追蹤全世界、跟它說話、拆解它、擴充它。
 
-</div>
+航班電文、船舶 beacon、軌道根數、地震儀、公共攝影機，本來就告訴我們很多事。上帝之眼把它們放在同一個地方，讓你可以在全球視角與單一飛機、船舶、街道之間切換。它跑在你本機瀏覽器，原始碼可檢視、可擴充。
 
----
+> 一半魔法是它長得像禁區駕駛艙。另一半是每一行程式都看得到。
 
-## 🌍 Why This Exists
+多數圖層是即時或定期更新。車流是沿真實道路、用聚合定位資料模擬的。CCTV 相機位姿與火箭發射軌跡是粗略估計。
 
-God's Eye View brings public signals into one explorable globe. Track the world live. Talk to it. Break it. Extend it.
-
-Flight transponders, ship beacons, orbital elements, seismographs, and public cameras already tell us a lot about the world. God's Eye View puts them in the same place, so you can move between a global picture and an individual aircraft, ship, or street. It runs locally in your browser, with source code you can inspect and extend.
-
-> Half the magic is that it looks like a forbidden cockpit. The other half is that every line of code is inspectable.
-
-Most feeds are live or regularly refreshed. Traffic is simulated along real
-roads using aggregate location data. CCTV camera poses and rocket launch
-trajectories are coarse estimates.
-
-Start with the included data sources, then add your own. Each layer is a separate module.
+先用內附資料來源開始，再加你自己的。每個圖層都是獨立模組。
 
 ---
 
-## 🎛️ What This Thing Does
+## 🎛️ 它能做什麼
 
-- **🛩️ Cockpit view:** Ride inside a tracked flight — the camera holds the terrain under you all the way down.
-- **📡 Contacts:** A 250 km roster of everything near your target — step through live aircraft and drop into any cockpit.
-- **🎯 Click-to-track anything:** Camera locks on, draws a fading trail, surfaces full metadata — and a tracked fire or vessel hands you off to the nearest live camera in one click.
-- **🖊️ Voice whiteboard:** Speak annotations onto the world — real boundary polygons, marks, and routes.
-- **🛫 3D hangar:** Real per-class aircraft models — 787, ATR-72, Citation, Bell 206, MQ-9 — and a tracked contact swaps from glyph to 3D model as you close in.
-- **🎨 Reskin reality:** GLSL sensor looks over the normal globe — CRT, NVG, FLIR/thermal, Noir, Snow.
-- **🟩 Detection overlay:** Screen-space bounding boxes and IDs on everything in view.
-- **🎖️ Military HUD:** Tactical heads-up display with intelligence-style telemetry.
-- **🌐 Global Context:** Stage the full situational picture with one switch — and get your exact view back when you leave.
-- **🎥 Scene director:** Capture cinematic camera tours for clips and demos.
-- **🔗 Share Links:** Camera, style, layers, and even one tracked target serialize into a URL — a live target is a handoff, not a bookmark.
-- **🏠 Reset Globe:** One control — or one sentence — back to the full Earth.
+- **🛩️ 駕駛艙視角：** 坐進被追蹤的航班裡 —— 相機一路壓著地形帶你下降。
+- **📡 周邊聯繫：** 目標周邊 250 公里內的一切，列出可逐步切換的即時飛機，隨點隨進駕駛艙。
+- **🎯 點選追蹤：** 相機鎖定、畫出漸隱軌跡、浮出完整詮釋資料 —— 追蹤中的火點或船隻可一鍵交接給最近的即時攝影機。
+- **🖊️ 語音白板：** 用說的在世界上做註記 —— 真實邊界多邊形、標記、路線。
+- **🛫 3D 機庫：** 依機種的真實模型 —— 787、ATR-72、Citation、Bell 206、MQ-9 —— 靠近後自動從圖示切成 3D 模型。
+- **🎨 現實換膚：** 全域 GLSL 感測器外觀 —— CRT、夜視鏡、FLIR/熱顯像、黑白、雪地。
+- **🟩 偵測疊加：** 視野內所有目標的螢幕空間框與編號。
+- **🎖️ 軍用 HUD：** 戰術抬頭顯示器與情報風格遙測。
+- **🌐 全球脈絡：** 一鍵展開完整態勢圖，離開時完整還原你的視角。
+- **🎥 場景導演：** 錄製電影級運鏡巡禮，方便剪片、Demo。
+- **🔗 分享連結：** 相機、風格、圖層、甚至單一追蹤目標都可序列化成 URL —— 即時目標是交接，不是書籤。
+- **🏠 重置地球：** 一鍵 —— 或一句話 —— 回到完整地球。
 
 ---
 
-<div align="center">
+## ⚡ 快速開始
 
-[![YouTube video about the God's Eye View open source release](https://img.youtube.com/vi/GRJaKcXZS94/maxresdefault.jpg)](https://www.youtube.com/watch?v=GRJaKcXZS94)
+**免帳號、免 API Key 即可開始。** 兩種路徑開的是同一個 App，內含 Esri 衛星影像與免 Key 地形。Esri 連不上時自動切 OSM。航班、軍機、衛星、地震、公共攝影機、廣播、發射，都免 Key 可用。
 
-▶️ **[The full walkthrough of everything below, on YouTube](https://www.youtube.com/watch?v=GRJaKcXZS94)**
+要照片級寫實 3D，請加 **Cesium ion token**（符合資格的個人、非商業用途），或 **Google Maps key**（直接、計量制路線與 App 內地點搜尋）。各家條款與配額另計。在 App 的 **POWER UP** 面板加 Key。
 
-</div>
+### 路徑一 — 一鍵、免終端機
 
-## ⚡ Quick Start
+1. 安裝或更新 [Pinokio](https://desktop.pinokio.co/) 到 **8.2 以上**。
+2. 打開 [Pinokio 上的 God's Eye View](https://pinokio.co/apps/github-com-bilawalsidhu-gods-eye-view)。
+3. 按 **Install**，再按 **Start**。
 
-**Start without an account or API keys.** Both paths open the same app with
-Esri satellite imagery and keyless terrain. OSM is the fallback if Esri is
-unreachable. Flights, military traffic, satellites, earthquakes, public
-cameras, radio, and launches are available without keys.
+支援 **Windows、macOS、Linux**。啟動器會裝好鎖定版依賴、找空閒本地埠、打開 App。
 
-For photorealistic 3D, add a **Cesium ion token** for eligible personal,
-non-commercial use, or a **Google Maps key** for the direct, metered route and
-in-app place search. Provider terms and quotas apply. Add keys through the
-app's **POWER UP** panel; [Keys & Costs](#-api-keys) explains the options.
+### 路徑二 — 終端機 / Coding Agent
 
-### Path 1 — One click, no terminal
-
-1. Install or update [Pinokio](https://desktop.pinokio.co/) to **8.2 or later**.
-2. Open [God's Eye View in Pinokio](https://pinokio.co/apps/github-com-bilawalsidhu-gods-eye-view).
-3. Click **Install**, then **Start**.
-
-Available on **Windows, macOS, and Linux**. The Pinokio maintainer reports
-cross-platform testing of the fixed installer. The launcher installs the
-locked dependencies, finds a free local port, and opens the app.
-
-**Tried before and installation failed?** Update Pinokio and try again.
-Version 8.2 fixes the launcher installation issue;
-[details from the Pinokio maintainer](https://pinokio.co/posts/01m1m4p9xxm3qw7dnnpj2wr93g).
-
-### Path 2 — Terminal / coding agent
-
-Use **Node.js 24.x (24.14.0 or later) or 26.x**. The setup doctor warns about
-Node 25, which is end-of-life.
+需 **Node.js 24.x（24.14.0 以上）或 26.x**，不建議 Node 25（已 EOL）。
 
 ```bash
 git clone https://github.com/bilawalsidhu/gods-eye-view.git
@@ -120,402 +76,191 @@ npm run doctor
 npm run dev
 ```
 
-Open **`http://localhost:4173`**. Choose **Live Contacts**, **Space Missions**,
-**Environmental**, or **Explore Manually** from the first-run panel.
+打開 **`http://localhost:4173`**。首次啟動選 **Live Contacts**、**Space Missions**、**Environmental** 或 **Explore Manually**。
 
-<details>
-<summary>Startup performance</summary>
+### 在 App 內強化 —— 不用改檔案
 
-A point-in-time M5/Chrome capture measured a median 1.86-second cold start.
-This is a comparison baseline, not a guarantee for your machine or connection.
-See [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
+Key 是升級，不是門票。想要再加就好，點右下角 **POWER UP**：Provider Settings 列出每種 Key、開什麼功能、去哪申請。貼上、按 **SAVE KEYS**，App 自動重啟啟用。全部設好後會顯示 **POWERED UP**。
 
-</details>
+- **Key 存哪：** Pinokio → App 內忽略版 `pinokio/ENVIRONMENT`；終端機 clone → 倉庫根目錄 `.env`。寫入前都會先設成僅擁有者可讀，都是本地明文，Git 會忽略，App 用你的 Key 去連原廠。
+- **先拿什麼：** 免費 [Cesium ion](https://cesium.com/ion) token（照片級寫實 3D + 全球地形，個人非商業資格內）；Google Maps key 只走計費、計量制路線 + 地點搜尋；OpenAI 則是為了跟世界說話。
 
-**macOS shortcut:** `./scripts/dev-fresh.sh` clears the Vite cache and pulls any
-configured keys straight from the Keychain. It starts keyless too.
-
-### Then power it up — in the app, not in a file
-
-Keys are upgrades, not prerequisites. When you want one, click the **POWER UP**
-chip in the bottom-right corner: Provider Settings lists every supported key,
-what it switches on, and where to get it. Paste, hit **SAVE KEYS**, and the app
-restarts itself with the new capability on. Once everything is configured the
-chip reads **POWERED UP** — and if a compact layout hides it, `?setup=1`
-reopens the same panel.
-
-- **Where keys land:** Pinokio → the app's ignored `pinokio/ENVIRONMENT`; a
-  terminal clone → the repo-root `.env`. Either file is made owner-only
-  _before_ a secret is written into it. These are local plaintext files,
-  excluded from Git; the app uses your keys to contact the providers.
-- **Keys you already have stay yours:** values from your shell or the macOS
-  Keychain show as _configured externally_ and are read-only to the panel.
-- **What to get first:** the free [Cesium ion](https://cesium.com/ion) token
-  (eligible personal, non-commercial use; current terms and quotas apply) for
-  photorealistic 3D and world terrain; a Google Maps key only for the
-  billing-enabled, metered route + place search; OpenAI when you want to talk
-  to the world. Full map, costs included, in [Keys & Costs](#-api-keys).
-
-<details>
-<summary>Older Pinokio versions and credential storage</summary>
-
-Do not enter credentials in Pinokio 8.0.40's native **Configure** panel: that
-release does not save this nested app file correctly, and it logs submitted
-values. Use **POWER UP → Provider Settings** inside GEV instead. The Pinokio
-8.2 announcement fixes installation; it does not establish that this separate
-Configure issue is resolved. On macOS, the Keychain via
-`./scripts/dev-fresh.sh` remains the stronger storage option.
-
-</details>
-
-The server binds to **localhost** on both paths, and Provider Settings answers
-requests only from your machine. Browser-side keys (Google Maps, Cesium ion)
-must be restricted at their providers — [SECURITY.md](SECURITY.md) shows how,
-and it carries the LAN-sharing rules alongside [Keys & Costs](#-api-keys).
+伺服器預設只綁 **localhost**，Provider Settings 只回應本機請求。瀏覽器端 Key（Google Maps、Cesium ion）務必在原廠設限制，詳見 `SECURITY.md`。
 
 ---
 
-## 🕐 The First Five Minutes
+## 🕐 前五分鐘
 
-Choose a first-run mission, or try these in order. The GIFs show Google Photorealistic 3D; your starting basemap depends on the keys you've added.
+1. **點亮天空。** 選 **Live Contacts** 任務（或自己開 **Flights**）—— 數千架即時飛機、真實遙測滑行、偵測網已讀場。點一架：相機鎖定、拖出尾跡、浮出即時遙測卡。
+2. **進駕駛艙。** 被追蹤飛機按 **COCKPIT** 跟著下降，中途可切感測器：NVG 夜視、Ironbow 熱顯像。
+3. **降落繁忙機場。** 搜尋機場、打開 3D 飛機降到滑行道：地面機、滑行尾跡、整個停機坪即時運作。
+4. **看公共攝影機。** 打開 **CCTV**（Austin、London、California、Finland 等）。不是嵌 webcam —— 是投影進 3D 城市。切到 **VIEWSHED**，每支攝影機畫出估計覆蓋體 —— 照得到哪、盲區在哪。
+5. **追軌道上的東西。** 開 **Satellites**、點 ISS —— 在軌道高度跟著飛，軌道環俱在。
+6. **換光學。** 按 `1`–`7` —— CRT、NVG、FLIR —— 整顆即時地球即時重渲染。
+7. **跟它說話**（需 OpenAI key）：「帶我去 LAX，選最近的空中飛機。」
+8. **回家。** 按 **Reset Globe** —— 或說「zoom out to a globe view」。
 
-1. **Light up the sky.** Take the **Live Contacts** mission (or turn on **Flights** yourself) — thousands of live aircraft, gliding on real telemetry, detection mesh already reading the scene. Click one: the camera locks on, a trail draws behind it, and its live telemetry card comes up.
-2. **Take the controls.** Hit **COCKPIT** on your tracked plane and ride it down, switching sensors mid-flight: NVG into Ironbow FLIR.
-
-![Riding with a live aircraft in cockpit view while switching sensor modes](docs/media/06-cockpit-ar.gif)
-
-3. **Drop into a busy airport.** Search one and descend to the taxiways with **3D** aircraft on — grounded contacts, taxi trails, the whole apron working in real time.
-
-![Moving from a full airport overhead down to close taxiway inspection with 3D flight models](docs/media/start-here/airport-ground-traffic-google-3d.gif)
-
-4. **Look through a public camera.** Turn on **CCTV** over Austin, London, California, or Finland. The feeds aren't webcam embeds — they project _into_ the 3D city. Cycle coverage to **VIEWSHED** and every camera draws its estimated coverage volume — where it reaches, and where it goes blind.
-
-![Diving into an Austin intersection with a live public camera projected into the 3D scene](docs/media/03-austin-cctv.gif)
-
-5. **Track something in orbit.** Turn on **Satellites** and click the ISS — you ride along at orbital distance, orbit ring and all.
-
-![Tracking the ISS along its orbital path as it crosses over Ukraine](docs/media/14-iss-over-ukraine.gif)
-
-6. **Switch the optics.** Tap `1`–`7` — CRT, NVG, FLIR — and the whole live planet re-renders through a different sensor.
-
-![Cycling a dense live globe through CRT, FLIR, and NVG in one continuous view](docs/media/01-style-sweep.gif)
-
-7. **Talk to it** _(needs an OpenAI key)_: _"Take me to LAX and select the nearest airborne aircraft."_
-8. **Come home.** Hit **Reset Globe** — or just say _"zoom out to a globe view."_
-
-**Keyboard:** `1`–`7` visual styles · `H` HUD · `D` detection · `C` cockpit · `Esc` out.
+**鍵盤：** `1`–`7` 風格 · `H` HUD · `D` 偵測 · `C` 駕駛艙 · `Esc` 脫離。
 
 ---
 
-## 🛩️ The Cockpit
+## 🎙️ 跟它說話
 
-> Every plane should let you do this.
+> 語音需 **OpenAI key**。沒有也能跑全 App，只是麥克風會提示語音不可用。同一個 Key 也驅動 **AI HUD 摘要**：隨視角重生的五字情報風格短評。
 
-Real-time cockpit mode, built from live flight data: the camera rides your contact with real terrain holding underneath, all the way down — sensor styles come along for the ride, and **Contacts** keeps the 250 km roster one click away: jump plane to plane and fall straight into the next cockpit.
+按 **GEV MIC**、授權麥克風，直接講。不是遙控器：
 
-![Jumping between live aircraft and falling straight into a cockpit view](docs/media/12-switch-aircraft-cockpit.gif)
+- **🧠 它知道在看哪。** 回答前先抓即時場景脈絡 —— 座標、街名、開啟圖層、視角尺度。飛到一半問「這是哪個城市？」它知道。
+- **🎯 實體問答。** 點任何飛機、船舶、資料中心問「這是什麼？」它用即時遙測回答。
+- **👁️ 視覺接地。** 街道級會讀視窗截圖辨認招牌、建築名，並被指示絕不幻覺造名。
+- **🎬 電影運鏡。** 「Show me the planes overhead」會拉開、壓角、像導演一樣框住即時交通。
+- **🔒 誠實安全。** 只確認真正成功的動作。`OPENAI_API_KEY` 不進瀏覽器，前端只拿短效 session token。
 
-The cockpit even carries its own briefing strip: nearby live signals, regional headlines, and real local weather — with an opt-in **WX** mode that renders volumetric clouds from actual observations around your aircraft.
+常用語音（摘自原廠語音測試集）：
 
-![A live military contact ridden through Normal, NVG, and Ironbow FLIR with dense detection](docs/media/start-here/military-cockpit-dense-google-3d.gif)
+**🎥 導演它**：「Take me to Tokyo.」「Orbit around this area slowly.」「Draw the walking route from the Capitol to Zilker Park. → Fly the route we just drew.」「Zoom out to a globe view.」
 
-_Why cockpit mode exists: you're riding a real aircraft over real terrain — and you get to pick which sensor you see the world through._
+**🖊️ 註記它**：「Outline the state of Texas.」「Annotate the Texas State Capitol and its grounds」「How far is the Eiffel Tower from the Louvre?」講完出現連接箭頭並報距離。直到你說「clear the map」都保留。
 
----
+也可用手畫：DISPLAY ▸ **Draw**，選 Area / Line / Pin，在真實世界上點頂點，雙擊收尾、上標籤。
 
-## 🎙️ Talk to It
+**🔎 審問它**：「How many flights are over Texas right now?」「Which ships are headed to Oakland?」「What is the biggest fire near Los Angeles?」「Is anything flying above forty thousand feet?」「When does the ISS pass over next?」
 
-> Voice needs an **OpenAI key**. Without one the entire app still runs — the mic button just reports voice is unavailable. The same key drives the **AI HUD summary**: a terse, five-word intelligence-style readout of the current view that regenerates as you move.
-
-Click **GEV MIC**, grant the microphone, and just talk. This is more than a voice-controlled remote:
-
-- **🧠 It knows what it's looking at.** The agent pulls live scene context before answering — including coordinates, street names, active layers, and view scale. Ask _"what city is this?"_ mid-flight and it knows.
-- **🎯 Entity Q&A.** Click any plane, ship, or datacenter and ask _"what's this?"_ It answers using the object's live telemetry.
-- **👁️ Visual grounding.** At street level, it reads a viewport screenshot to identify legible signage and building names, and is instructed never to hallucinate labels.
-- **🎬 Cinematic framing.** _"Show me the planes overhead"_ pulls the camera back, angles it, and frames the live traffic like a director.
-- **🔒 Honest and secure.** The agent only confirms actions that succeeded. Your `OPENAI_API_KEY` never touches the browser; the client only gets a short-lived session token.
-
-Twenty-eight tools, four jobs — the commands below come straight from the product's voice test suite and tool playbook:
-
-**🎥 Direct it** — drone-operator camera verbs:
-
-> 🗣️ _"Take me to Tokyo."_ · _"Orbit around this area slowly."_ · _"Draw the walking route from the Capitol to Zilker Park."_ → _"Fly the route we just drew."_ · _"Zoom out to a globe view."_
-
-**🖊️ Annotate it** — a whiteboard over the real world:
-
-> 🗣️ _"Outline the state of Texas."_ · _"Annotate the Texas State Capitol and its grounds"_ — it draws the **actual enclosing boundary**, not a circle. · _"How far is the Eiffel Tower from the Louvre?"_ — a connector arrow appears and it speaks the distance. Everything persists until you say _"clear the map."_
-
-**✍️ Or draw it yourself** — DISPLAY ▸ **Draw**: pick Area, Line or Pin, click the vertices on the real world, double-click to finish, label it. Same whiteboard, same persistence, no microphone needed.
-
-![Zilker Park and Lady Bird Lake drawing onto the 3D city as persistent vector annotations, by voice](docs/media/01-voice-annotate-zilker.gif)
-
-![A spoken distance measurement spanning an airport, inspected from orbit](docs/media/04-airport-distance.gif)
-
-**🔎 Interrogate it** — analyst queries against the live layers:
-
-> 🗣️ _"How many flights are over Texas right now?"_ · _"Which ships are headed to Oakland?"_ · _"What is the biggest fire near Los Angeles?"_ · _"Is anything flying above forty thousand feet?"_ · _"When does the ISS pass over next?"_
-
-**🎛️ Operate it** — the whole console, hands-free:
-
-> 🗣️ _"Switch to night vision and turn on the flights layer."_ · _"Turn on the camera viewsheds."_ · _"Play a news radio station near Austin."_ · _"Track that plane."_ → _"Enter Cockpit."_
-
-**And the rapid-fire tier** — one sentence each:
-
-> 🗣️ _"Show me global infrastructure."_ (stages the layers and pulls back to the globe) · _"Play Orbital Watch."_ (a full cinematic scene) · _"Set detection density to fifty percent."_ · _"Next contact — helicopters only."_ (mid-cockpit) · _"Show me space missions."_ · _"Switch to OSM."_ · _"Sharpen the image a touch."_ · _"Switch to the tactical layout."_ · _"What's turned on right now?"_
-
-![The globe populating with the world's radio stations as another live layer](docs/media/15-global-radio-layer.gif)
-
-_Ask for radio near anywhere and the globe starts broadcasting — every station is a real place you can fly to._
+**🎛️ 操作它**：「Switch to night vision and turn on the flights layer.」「Turn on the camera viewsheds.」「Play a news radio station near Austin.」「Track that plane. → Enter Cockpit.」
 
 ---
 
-## 🛰️ What's on the Globe
+## 🛰️ 地球上有什麼
 
-Fifteen layers and map sources. **Thirteen have a keyless path.** Some offer additional capabilities with a provider key. (🟢 no key · 🟡 free key · 🔴 metered.)
+15 種圖層與底圖。**13 種有免 Key 路徑。**（🟢 免 Key · 🟡 免費 Key · 🔴 計量制）
 
-| Layer                       | What you get                                                                                                                                                                                                                                                                                                                                                                        | Source                                  | Auth                                                                                                |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| 🗺️ **Map Stack**            | Esri satellite imagery, Google Photorealistic 3D, OSM, plus additional ion-hosted stacks                                                                                                                                                                                                                                                                                            | Esri / Google / Ion / OSM               | 🟢 Esri satellite + OSM · 🟡 ion-hosted Google 3D + world terrain · 🔴 direct Google + place search |
-| ✈️ **Live Flights**         | 11,000+ live aircraft + route history                                                                                                                                                                                                                                                                                                                                               | OpenSky + adsb.lol                      | 🟢 (🟡 optional for more polling credits)                                                           |
-| 🎖️ **Military Flights**     | ADS-B military traffic in amber                                                                                                                                                                                                                                                                                                                                                     | adsb.lol                                | 🟢                                                                                                  |
-| 🚢 **Live Vessels**         | Thousands of ships worldwide                                                                                                                                                                                                                                                                                                                                                        | AISStream                               | 🟡                                                                                                  |
-| 🛰️ **Satellites**           | 838-object catalog, color-coded by class with a live legend — the **DENSE** chip drops in the whole Starlink shell                                                                                                                                                                                                                                                                  | CelesTrak                               | 🟢                                                                                                  |
-| 🌍 **Earthquakes**          | Global seismic activity, last 24h                                                                                                                                                                                                                                                                                                                                                   | USGS                                    | 🟢                                                                                                  |
-| 🚗 **Traffic**              | Simulated vehicles on OSM roads. With TomTom, live flow speeds drive the simulation and congestion colors below ~8 km; individual vehicle positions are not live observations                                                                                                                                                                                                       | TomTom + OSM                            | 🟢 simulation · 🟡 live flow speeds                                                                 |
-| 📹 **CCTV Mesh**            | ~3,600 public cameras projected _into_ the 3D space — Austin · Texas (TxDOT) · California (Caltrans) · London (TfL) · Ontario (511) · Finland (Fintraffic) · British Columbia (DriveBC) · Estonia (Tallinn, Tarktee) · New South Wales (Live Traffic NSW) · Calgary. Positions are published; poses are estimated priors **you calibrate by dragging a gizmo on the camera itself** | City APIs                               | 🟢                                                                                                  |
-| 📻 **Radio**                | Geolocated world radio with an **analog tuner** — drag the needle across up to 750 stations and the globe flies to each broadcaster                                                                                                                                                                                                                                                 | Radio Browser / broadcasters            | 🟢                                                                                                  |
-| 🚌 **Transit**              | Live buses, trams, metros, trains and ferries with delayed playback between reports, selected-vehicle trails, and mode-coloured DETECT labels — Boston, Austin, Minneapolis, Helsinki, the Netherlands, Norway, South East Queensland                                                                                                                                               | Operator GTFS-Realtime feeds            | 🟢                                                                                                  |
-| 🚲 **Bikeshare**            | Live station availability                                                                                                                                                                                                                                                                                                                                                           | GBFS                                    | 🟢                                                                                                  |
-| 🧭 **Directions**           | Click A and B on the globe for a street-following drive, walk or cycle route draped on the terrain with turn-by-turn steps — then FLY the camera along it. No key, no geocoder, no mic                                                                                                                                                                                              | OSRM on FOSSGIS servers (OpenStreetMap) | 🟢                                                                                                  |
-| 🔥 **Active Fires**         | Live NASA FIRMS detections, trailing 24h                                                                                                                                                                                                                                                                                                                                            | NASA FIRMS                              | 🟡                                                                                                  |
-| 🚀 **Space Missions**       | Rolling 30-day launches with payload, stage, and recovery detail                                                                                                                                                                                                                                                                                                                    | Launch Library 2                        | 🟢 (🟡 optional token raises the allowance)                                                         |
-| 🎖️ **Mapped Installations** | Viewport-bounded military-site context from community mapping — incomplete by nature, and labeled that way                                                                                                                                                                                                                                                                          | OpenStreetMap                           | 🟢                                                                                                  |
+| 圖層 | 內容 | 來源 | 驗證 |
+|------|------|------|------|
+| 🗺️ **底圖堆疊** | Esri 衛星、Google 照片級寫實 3D、OSM、ion 代管堆疊 | Esri / Google / Ion / OSM | 🟢 Esri + OSM · 🟡 ion 版 Google 3D + 全球地形 · 🔴 直連 Google + 地點搜尋 |
+| ✈️ **即時航班** | 11,000+ 即時飛機 + 航路歷史 | OpenSky + adsb.lol | 🟢（🟡 選配拿更多 polling 額度） |
+| 🎖️ **軍機** | 琥珀色 ADS-B 軍機 | adsb.lol | 🟢 |
+| 🚢 **即時船舶** | 全球數千艘船 | AISStream | 🟡 |
+| 🛰️ **衛星** | 838 物件目錄，依類別著色，DENSE 直接載入 Starlink 殼 | CelesTrak | 🟢 |
+| 🌍 **地震** | 過去 24 小時全球地震 | USGS | 🟢 |
+| 🚗 **交通** | OSM 路網模擬車流；加 TomTom 即時流速驅動模擬、8 公里以下依壅塞著色，單車位置非即時觀測 | TomTom + OSM | 🟢 模擬 · 🟡 即時流速 |
+| 📹 **CCTV 網** | 約 3,600 支公共攝影機投影進 3D —— Austin、Texas（TxDOT）、California（Caltrans）、London（TfL）、Ontario（511）、Finland、BC、Estonia、NSW、Calgary。位置為公告值，位姿為估計先驗，可拖 gizmo 校正 | 各城市 API | 🟢 |
+| 📻 **廣播** | 地理定位全球廣播 + 類比調諧器 —— 拖指針掃 750 台，地球飛到播音者 | Radio Browser | 🟢 |
+| 🚌 **大眾運輸** | 公車、路面電車、地鐵、火車、渡輪即時報位，選車尾跡、運具著色 DETECT 標籤 | 各營運商 GTFS-Realtime | 🟢 |
+| 🚲 **共享單車** | 站點即時可借還 | GBFS | 🟢 |
+| 🧭 **路徑** | 在地球上點 A、B，沿街駕駛/步行/單車路線貼地形展開，附轉彎提示，可 FLY 飛一遍。免 Key、免 geocoder、免麥 | OSRM（FOSSGIS + OSM） | 🟢 |
+| 🔥 **活火** | NASA FIRMS 過去 24 小時偵測 | NASA FIRMS | 🟡 |
+| 🚀 **太空任務** | 滾動 30 天發射，載荷、節、回收細節 | Launch Library 2 | 🟢（🟡 選配 token 拉高額度） |
+| 🎖️ **標定設施** | 視窗內軍事設施社群標註，本質不完整並如實標示 | OSM | 🟢 |
 
-**The basemap ladder — what each tier buys you:**
+**底圖階梯：**
 
-| You have                   | The globe you get                                                                                                                                                            |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🟢 Nothing                 | Esri World Imagery satellite basemap + keyless terrain, in 2D. OSM takes over automatically if Esri is unreachable; if terrain is unavailable the globe continues without it |
-| 🟡 A free Cesium ion token | **Google Photorealistic 3D cities** and world terrain — eligible personal, non-commercial use; current ion terms and quotas apply                                            |
-| 🔴 A Google Maps key       | The same 3D direct from Google, plus in-app place search — the billing-enabled, metered route                                                                                |
+| 你有什麼 | 你看到的地球 |
+|----------|--------------|
+| 🟢 什麼都沒有 | Esri 衛星底圖 + 免 Key 地形，2D。Esri 不通自動切 OSM，地形沒有就繼續轉 |
+| 🟡 免費 Cesium ion token | **Google 照片級寫實 3D 城市** + 全球地形 —— 個人非商業資格內，依現行 ion 條款配額 |
+| 🔴 Google Maps key | 同樣 3D 直連 Google，外加 App 內地點搜尋 —— 計費、計量制路線 |
 
-![A reconstructed Falcon 9 ascent climbing and curving into its projected orbit](docs/media/08-falcon9-replay.gif)
+另有：鄰里疊加、駕駛艙 WX 雲效。內建靜態基建：資料中心 4,351、壩 704、海纜 712。
 
-_The Space Missions layer replaying a Falcon 9 ascent — labeled `RECONSTRUCTED ESTIMATE`, scrubbable 0.25×–4×._
-
-**Also on the globe:** neighborhood overlays · an optional cockpit WX cloud effect. **Bundled static infrastructure:** Datacenters (4,351), Dams (704), and Submarine Cables (712).
-
-![Diving into the Bahamas and revealing labeled submarine cable routes beneath the globe](docs/media/09-undersea-cables.gif)
-
-**Missing a layer you want?** Open an issue — or add it and send the PR.
+缺你想要的圖層？開 issue —— 或自己加上送 PR。
 
 ---
 
-## 🎖️ Field Missions
+## 🔑 API Key 一覽
 
-Once the basics click, run these:
+🟢 **免 Key** · 🟡 **免費 Key** · 🔴 **計量制**，一律走 **POWER UP → Provider Settings** 加。都不加也能啟動。
 
-| Mission                             | How                                                                                                                                                                                                       |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **🚁 Ask the planet**               | _"Why are all these military helicopters flying in circles?"_ Select a military track — it silently backfills ~24 h of real trace history — and see what it's been doing, resolved as stacked 3D loops.   |
-| **✈️ Final approach**               | Click-track an airliner lining up for a runway, hop into the **cockpit**, and ride it down.                                                                                                               |
-| **🌃 Night watch**                  | Fly to your own city, switch to **NVG**, and let the detection mesh and HUD read the scene.                                                                                                               |
-| **🚢 Port call**                    | Vessels on over the Port of Long Beach. Click a tanker for its tactical card and wake trail — then hit **NEAREST** in the CCTV panel and look at the same water through a public camera.                  |
-| **📻 Tokyo FM**                     | Orbit Shibuya with the **Radio** layer on — then drag the analog tuner needle: every position snaps to a real station and the globe flies to whoever's broadcasting.                                      |
-| **🔥 Fire line**                    | FIRMS over California. Click a detection — the camera dives to it — read the intensity, then hit **NEAREST** in the CCTV panel for a ground view.                                                         |
-| **🚶 Ask for a walking route** _🎙️_ | Tell the world where you want to go and watch a real street-following route trace itself through the 3D city — then _"fly it"_: banked turns, eased ends, a camera that leads the path like a drone shot. |
-| **📏 Measure LAX to DFW** _🎙️_      | _"How far is LAX from DFW?"_ — an arrow spans the country, the distance lands in the caption, and the endpoints stay pinned to the real world as you orbit.                                               |
-| **🚀 Launch replay**                | Open **Space Missions**, pick a launch from the last 30 days, and ride the T-minus countdown through ascent to orbit — scrub it at 0.25×–4×. Labeled `RECONSTRUCTED ESTIMATE`, because it is one.         |
-| **🪦 Walk the boneyard**            | Fly from regional context down into dense, fully resolved rows of retired aircraft.                                                                                                                       |
-| **🏗️ Orbit Three Gorges**           | Sweep the dam and its terrain at a glance — then flip on the **Dams** layer and find 703 more.                                                                                                            |
+| | Key | 開什麼 | 去哪拿 |
+|---|---|--------|--------|
+| 🟡 | **Cesium ion** | Google 照片級寫實 3D、全球地形、ion 代管影像堆疊。免費 Community 限符合資格個人非商業，有配額 | [cesium.com/ion](https://cesium.com/ion)，用 `assets:read` 公開 token，並看現行計價/資格 |
+| 🔴 | **Google Maps** | 直連 Google 照片級寫實 3D + Google 地點搜尋（Map Tiles API） | [Google Cloud Console](https://console.cloud.google.com/)，記得限 URL |
+| 🔴 | **OpenAI** | 語音體驗 + AI HUD 摘要，mini 可用，標準版聰明很多 | [platform.openai.com](https://platform.openai.com)，計量制 |
+| 🟡 | **AISStream** | 全球即時船舶 | [aisstream.io](https://aisstream.io) 免費註冊 |
+| 🟡 | **NASA FIRMS** | 即時活火 | [firms.modaps.eosdis.nasa.gov](https://firms.modaps.eosdis.nasa.gov/api/map_key/) 免費 |
+| 🟡 | **TomTom** | 模擬交通的即時流速與壅塞色 | [developer.tomtom.com](https://developer.tomtom.com) 免費層 |
 
-_🎙️ = voice missions — they need an OpenAI key._
+加分：OpenSky（更多航班 polling 額度，匿名也行）、Launch Library 2（更高發射查詢額度）。
 
-![Resolving a selected aircraft's recent flight path into stacked 3D loops above the terrain](docs/media/07-helicopter-loops.gif)
+### 💸 實際花費（2026 年中概估，以原廠定價頁為準）
 
-_Ask the planet: a military contact's last ~24 hours of real trace history, resolved as stacked 3D loops._
+- **🟢 多數圖層：$0 免註冊。** OpenSky 匿名、USGS、CelesTrak、adsb.lol、城市 CCTV、Radio Browser、GBFS、Launch Library 2、內建資料。
+- **🟡 免費 Key 層：$0 註冊拿。** AISStream、FIRMS、TomTom、OpenSky，外加資格內 Cesium ion。仍受配額資格限制。
+- **🗺️ Google 3D：資格內走 Cesium ion Community 免費額度內；直連 Google 走計量。** 直連才有地點搜尋與商業部署，啟用計費務必設限額、預算告警。
+- **🔴 OpenAI 語音：唯一真花錢的 —— App 會幫你計表。** Realtime 語音每活躍分鐘幾分錢，重度一晚個位數美元。麥克風旁有即時花費表，STD/MINI 切換，$2 告警、**$5 硬停**。語音上下文刻意收短。
 
-![Asking for a walking route and flying the generated path through the 3D city](docs/media/10-walking-route-flythrough.gif)
-
-_"Draw the walking route… now fly it" — banked turns, eased ends, the camera leading the path like a drone shot._
-
-![Descending from regional context into dense rows of retired aircraft at the boneyard](docs/media/08-boneyard.gif)
-
-_Walk the boneyard: rows of retired airframes, fully resolved in 3D._
+預設綁 localhost，不分享。要分享 LAN 請顯式 opt-in，但注意 ⚠️ **LAN 可見的伺服器會把你設好的 API Key 轉代理給連得上的人。** 先設原廠配額、用量上限、帳單告警。完整威脅模型見 `SECURITY.md`。
 
 ---
 
-## 🔧 Under the Hood
+## 📋 負責任與開放
 
-How the globe handles live data:
+上帝之眼跑在**公開資料、清楚來源、本機優先**。無秘密、無私有資料集、無神秘爬蟲 —— 碰私鑰的一律走 hardened server-side proxy（SSRF 防護、回應上限、錯誤脫敏）。瀏覽器只見 Google Maps 與 Cesium ion（兩者都要在原廠限額）。
 
-- **World-stable icons.** Aircraft and ships point along their _true real-world heading_ at every camera angle — tracked or not, looking straight down or across the horizon — via per-frame screen-space course projection. No spinning, no viewport-locking.
-- **Smooth motion from choppy data.** Live feeds arrive every 15–30s; the globe renders one interval behind real time and interpolates between known fixes. Dead reckoning fills the gaps.
-- **Honest satellites.** SGP4 propagation with orbit rings that stay locked to their satellites via GMST realignment — no drift, no per-second flicker.
-- **Sits on the real ground.** Entity heights are aligned to work with Google 3D tiles, so aircraft park on aprons and cameras stand on street corners instead of floating.
-- **Caching and request budgets.** An OpenSky credit governor, a TomTom daily tile budget, and disk-cached TLEs reduce repeated requests. These controls do not replace provider quotas or billing controls.
-- **Server-side credentials.** Every API that touches a private key (OpenAI, AISStream, OpenSky OAuth, camera frames) is brokered through a hardened server-side proxy with SSRF protection, response caps, and sanitized errors. The only keys the browser sees are Google Maps and Cesium ion (restrict both at the provider).
-- **No framework.** Vanilla JavaScript, **CesiumJS**, and **Vite** — plus **Google Photorealistic 3D Tiles** for the planet and the **OpenAI Realtime API** for voice. Fast to read, fast to hack on.
+**界線。** 本專案建模**事件、資產、基建、系統** —— 飛機、船舶、衛星、火、攝影機、城市。不做指名找人、人臉辨識、跟蹤個人，跨線 PR 不合併。人不是查詢型別。
 
-```
-src/
-├── main.js                 # Bootstrap: Google 3D tiles, layer registration
-├── ui.js                   # Runtime UI — panels, HUD, styles, control facade
-├── hud.js                  # Intelligence HUD + AI scene summary
-├── keySetup.js             # POWER UP panel — in-app provider keys (dev server only)
-├── mapStackController.js   # Basemap switching — Google 3D / Esri / OSM / ion stacks
-├── voice/                  # OpenAI Realtime session + 28 voice tools
-├── data/                   # One module per layer + orchestration + context store
-│   ├── iconOrientation.js  # Screen-projected headings + horizon cull
-│   └── local_data/         # Bundled datasets (per-folder provenance)
-└── scenes/                 # Cinematic scene director
-```
-
-See [`docs/CURRENT-STATE.md`](docs/CURRENT-STATE.md) for the authoritative runtime reference.
-
----
-
-## 🔑 API Keys
-
-🟢 **No key** · 🟡 **Free key** · 🔴 **Metered**
-
-Use **POWER UP → Provider Settings** to add keys. The tables below explain what
-each provider enables; none is required to start. See the
-[setup instructions](#then-power-it-up--in-the-app-not-in-a-file) for storage
-and configuration details.
-
-### Choose the capabilities you want
-
-Six keys. Four have a free tier, and the two 🔴 ones are metered:
-
-|     | Key             | Why                                                                                                                                                                                  | Get it                                                                                                                                                               |
-| --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🟡  | **Cesium ion**  | 🗺️ Google Photorealistic 3D, world terrain, and additional ion-hosted imagery stacks. The free Community plan is for eligible individual, personal/non-commercial use and has quotas | [cesium.com/ion](https://cesium.com/ion) — use a public `assets:read` token and check current [pricing/eligibility](https://cesium.com/platform/cesium-ion/pricing/) |
-| 🔴  | **Google Maps** | Direct Google Photorealistic 3D + Google place search ([Map Tiles API](https://developers.google.com/maps/documentation/tile))                                                       | [Google Cloud Console](https://console.cloud.google.com/) — URL-restrict it                                                                                          |
-| 🔴  | **OpenAI**      | 🎙️ The voice experience + AI HUD summary. The mini model works; the standard model is noticeably smarter. Want Gemini or another provider behind the mic? PRs welcome                | [platform.openai.com](https://platform.openai.com) — metered, see costs below                                                                                        |
-| 🟡  | **AISStream**   | 🚢 Live global ships                                                                                                                                                                 | [aisstream.io](https://aisstream.io) — free signup                                                                                                                   |
-| 🟡  | **NASA FIRMS**  | 🔥 Live active fires                                                                                                                                                                 | [firms.modaps.eosdis.nasa.gov](https://firms.modaps.eosdis.nasa.gov/api/map_key/) — free                                                                             |
-| 🟡  | **TomTom**      | 🚦 Live flow speeds and congestion colors for the simulated traffic layer                                                                                                            | [developer.tomtom.com](https://developer.tomtom.com) — free tier available                                                                                           |
-
-![Diving from city-scale live congestion straight into an intersection's public camera](docs/media/05-traffic-to-cctv.gif)
-
-_What the TomTom key buys you: rush-hour density painted on the city — then dive from the jam straight into the camera watching it._
-
-### Cherry on top
-
-|     | Key                  | Why                                                           | Get it                                             |
-| --- | -------------------- | ------------------------------------------------------------- | -------------------------------------------------- |
-| 🟡  | **OpenSky**          | ✈️ More flight-polling credits (🟢 anonymous works without)   | [opensky-network.org](https://opensky-network.org) |
-| 🟡  | **Launch Library 2** | 🚀 Higher space-missions request allowance (🟢 works without) | [thespacedevs.com](https://thespacedevs.com)       |
-
-Add these if you need higher polling allowances.
-
-`npm run doctor` reports Node/npm readiness, the primary provider routes, and
-where each configured provider was found without printing credential values.
-On macOS its Keychain-aware result previews `./scripts/dev-fresh.sh`; plain
-`npm run dev` reads only explicit environment and Vite dotenv values. The
-OpenSky summary reports only OAuth client-pair presence, not the resolved
-runtime mode or credential validity; Basic and credentials-file modes remain
-advanced `dev-fresh.sh` configuration.
-
-<details>
-<summary>Advanced setup: environment variables and macOS Keychain</summary>
-
-For headless machines, coding agents, or scripted setups:
-
-```bash
-# Put keys in .env (see .env.example), or pass them as env vars:
-OPENAI_API_KEY="…" AISSTREAM_API_KEY="…" npm run dev -- --host localhost --port 4173
-
-# On macOS, store any of them in the Keychain and dev-fresh.sh pulls them in:
-security add-generic-password -U -s "google-maps-api" -a "api-key" -w
-security add-generic-password -U -s "openai-api"      -a "api-key" -w
-security add-generic-password -U -s "aisstream-api"   -a "api-key" -w
-security add-generic-password -U -s "firms-map"       -a "map-key" -w
-security add-generic-password -U -s "cesium-ion"      -a "token"   -w
-```
-
-OpenSky can run fully anonymous (`OPENSKY_AUTH_MODE=anon`), or import OAuth credentials with `./scripts/opensky-import-client.sh /path/to/credentials.json`.
-
-</details>
-
-### 💸 What it actually costs
-
-Honest numbers, roughly, as of mid-2026 — always check the provider pricing pages:
-
-|                          | Cost reality                                                                                                                                                                                                                                                                                                                                                                |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **🟢 Most layers**       | **$0, no signup.** OpenSky anon, USGS, CelesTrak, adsb.lol, city CCTV, Radio Browser, GBFS, Launch Library 2, bundled datasets.                                                                                                                                                                                                                                             |
-| **🟡 The free-key tier** | **$0 with a signup.** AISStream, FIRMS, TomTom, OpenSky, plus Cesium ion for eligible personal/non-commercial use. Provider quotas and eligibility still apply.                                                                                                                                                                                                             |
-| **🗺️ Google 3D tiles**   | **Free through an eligible Cesium ion Community account within its quota; metered through a direct Google key.** Use the direct route for GEV place search or commercial deployment, verify current provider terms, and set budget alerts where billing is enabled.                                                                                                         |
-| **🔴 OpenAI voice**      | **The one that costs real money — so the app meters it for you.** Realtime audio runs a few cents per active minute; an evening of heavy use is single-digit dollars. A live session-spend readout sits next to the mic, with an STD/MINI model toggle, a $2 warning, and a **$5 hard cap that ends the session**. The voice context window is kept deliberately short too. |
-
-Google's direct 3D route is surprisingly generous: the first 1,000 Photorealistic
-3D Tiles sessions each month are currently free, and one root request supports
-roughly three hours of rendering. A solo user exploring sparingly can
-realistically stay inside the free usage cap. Billing must still be enabled, so
-restrict the key and set a quota or budget alert. Check Google's
-[current pricing](https://developers.google.com/maps/billing-and-pricing/pricing)
-before relying on these figures.
-
-### 🧗 The floor is low on purpose
-
-Everything above is the deliberately cheap baseline — enough to get a real taste of geospatial intelligence, GEOINT, and OSINT without ever talking to a sales team. You'll also notice the ceiling: terrestrial AIS goes quiet mid-ocean and satellite AIS costs real money; premium imagery, SAR, and the deeper commercial feeds live behind enterprise contracts. That's not a limit of the architecture — every layer here is a pattern you can point at your own data sources. This repo hands you the foundation; what you fuse into it is up to you.
-
-### 🔒 Sharing an instance
-
-By default nobody else can reach your server — it binds to localhost. To share on your LAN, opt in explicitly (`npm run dev -- --host 0.0.0.0 --port 4173`, or `HOST=0.0.0.0 ./scripts/dev-fresh.sh` on macOS/Linux) — but know that ⚠️ **a LAN-visible server brokers your configured API keys to anyone who can reach it.** Set the per-IP throttles (`GEV_RATELIMIT_OPENAI_PER_MIN`, `GEV_RATELIMIT_GOOGLE_PER_MIN` — see `.env.example`) and, before anything else, **configure provider quotas, usage limits, and billing alerts**: app-level throttles are not billing caps, and a budget alert alone does not stop spending. Full threat model in [SECURITY.md](SECURITY.md).
-
-Provider Settings is disabled when the server is shared, so remote users cannot
-access the key-entry panel.
-
-**Pinokio LAN and Cloudflare sharing remain disabled for this launcher.** Use
-a separately reviewed authentication proxy if remote access is required.
-[SECURITY.md](SECURITY.md) explains the restrictions and threat model.
-
----
-
-## 📋 Responsible & Open
-
-God's Eye View runs on **public data, clear sources, and local-first execution.** No secrets, no private datasets, no mystery scraping — anything involving a private key is brokered server-side. It has the visual grammar of a classified ops room, built entirely from open signals and inspectable code.
-
-**The line.** This project models **events, assets, infrastructure, and systems** — aircraft, vessels, satellites, fires, cameras, cities. It does not build features for named-person search, face recognition, or tracking individuals, and pull requests that cross that line won't be merged. People are not a query type here.
-
-**Come build it.** This is the canonical live 3D client from the project that kicked off the recent wave of spatial-intelligence tools — and it's a canvas: the layers here are the signals one person could find and fuse. Add a city pack, a data source, a style, a voice tool. It's the window through which you see the world; bring that window to others.
-
-**Status:** An evolving open-source client for exploration and learning — a fast, hackable foundation, not a hardened production service. Released under the **[MIT License](LICENSE)**. Bundled and live datasets carry their own terms — see **[DATA_SOURCES.md](DATA_SOURCES.md)**. Security model: **[SECURITY.md](SECURITY.md)**. Want to contribute? **[CONTRIBUTING.md](CONTRIBUTING.md)**.
-
-**Maintainers:** [Bilawal Sidhu](https://github.com/bilawalsidhu) and [Sameh Khamis](https://github.com/samehkhamis) at [Halfpixel](https://halfpixel.ai).
-
-<sub>Media note: the capture GIFs on this page show Google Photorealistic 3D Tiles and live data layers, used promotionally with in-frame attribution; they aren't licensed for standalone reuse. See [media provenance and permissions](docs/media/README.md); full source terms in [DATA_SOURCES.md](DATA_SOURCES.md).</sub>
+**來一起做。** 這是引爆近期空間情報工具潮的那個正典即時 3D 客戶端 —— 也是畫布：這裡的圖層只是一個人找得到、融得起來的訊號。加城市包、資料源、風格、語音工具。授權 **[MIT](LICENSE)**。內建與即時資料各有條款 —— 見 **[DATA_SOURCES.md](DATA_SOURCES.md)**。安全模型：**[SECURITY.md](SECURITY.md)**。想貢獻：**[CONTRIBUTING.md](CONTRIBUTING.md)**。
 
 > [!IMPORTANT]
-> God's Eye View is an exploratory visualization of public and third-party data.
-> Data may be delayed, incomplete, modeled, inferred, or wrong. Do not use it
-> for flight or maritime navigation, emergency response, medical or health
-> decisions, investment decisions, or other safety-critical or operational
-> purposes. Verify important information with authoritative sources.
+> 上帝之眼是公開與第三方資料的探索式視覺化。資料可能延遲、不完整、建模、推估或錯誤。勿用於飛航 maritime 導航、緊急應變、醫療健康、投資或其他安全關鍵、作業用途。重要資訊請以權威來源核實。
 
 ---
 
-## 🧭 What's Next
+## 🧭 下一步
 
-First — thank you. To everyone who watched the God-view demos and went off to build their own, and to everyone who kept asking for the code: I'm grateful. And when I polled whether this should go open source, you weren't subtle about it:
+先謝謝大家。看完 God-view Demo 跑去自己做的、一直敲碗要 code 的，感謝。這倉庫是基線，保持開放，重點就是讓你拆、讓你加我們沒想到的圖層。
 
-<img src="docs/media/open-source-survey.png" alt="Community survey on open-sourcing God's Eye View" width="460">
+先提醒：在這領域做一週就會學到**現在式最便宜**。一旦想回放過去 —— 任何解析度下 tiling、serving、scrubbing 發生了什麼、變了什麼 —— 資料變貴、算力變殘暴。那是長期戰。
 
-So here it is. Step inside the spy-thriller cockpit — except the data is real — and let's turn this into our shared sandbox for making sense of the world, and have fun doing it. This repo is the baseline, it stays open, and the whole point is for you to break things and bolt on layers we haven't thought of yet.
+**更新 —— 託管版將至。** 原本打算倉庫保持開源客戶端、另做專業產品。發佈後最大聲的不是要功能，是「給我連結」。所以官方託管版在 [Halfpixel](https://halfpixel.ai) 施工中：免安裝，瀏覽器打開即用。更多消息稍候。
 
-One heads-up from the inside: build in this space for a week and you learn that **the present is the cheap part**. The moment you try to go back in time — tiling, serving, and scrubbing _what happened_ and _what changed_ at any real resolution — the data gets expensive and the compute gets brutal. That's the long game.
+▶️ [God's Eye View 系列](https://youtube.com/playlist?list=PL6qSg2I-7_koPbDnSMo0QeeHX_RknA2uv&si=nBGYMoHWQw41v93Q) · 📬 [Map the World](https://maptheworld.ai/)
 
-**Update — a hosted version is coming.** We originally planned to keep this repository as the open-source client and build a separate professional product. Then the launch happened, and the loudest request wasn't another feature — it was _"just give me a link."_ So we're building an official hosted God's Eye View at [Halfpixel](https://halfpixel.ai): no installation, just open it in your browser. The hosted version is the easiest way into this open-source project. More soon.
+**🌐 God's Eye View. 沒有被遺落的角落。**
 
 ---
 
-<div align="center">
+# 附錄：安裝 God's Eye View（上帝之眼）App 並啟用 3D 圖資的完整步驟（使用者實作筆記）
 
-▶️ [Watch the God's Eye View series](https://youtube.com/playlist?list=PL6qSg2I-7_koPbDnSMo0QeeHX_RknA2uv&si=nBGYMoHWQw41v93Q) · 📬 [Map the World](https://maptheworld.ai/) — the newsletter behind the project
+## 第一階段：從頭開始安裝上帝之眼 App
 
-**🌐 God's Eye View. No place left behind.**
+1. **取得專案網址：** 前往 God's Eye View 在 GitHub 的專案頁面，並複製該專案的網址。
+   https://github.com/bilawalsidhu/gods-eye-view
+2. **建立工作資料夾：** 在電腦中的任意位置點擊右鍵建立一個新資料夾，隨意取一個您記得住的名字。
+3. **設定 AI 助理工作區：** 打開您習慣使用的 AI 助理（如 ChatGPT 或 Claude），將專案指定到剛建立的新資料夾，點擊「打開」並按下「信任此工作區」。
+4. **交由 AI 安裝與打包：**
+   - 將複製好的 GitHub 專案網址貼到 AI 助理的輸入欄，請 AI 幫忙進行安裝。
+   - 由於原版軟體沒有中文介面，您可以同時請 AI 製作中文外掛，並將其打包成一個可以雙擊啟動的 App。
 
-</div>
+**完成與啟動：** 安裝完成後，依照 AI 提示前往存放位置，將做好的 App 拖曳到電腦的「應用程式」資料夾。之後對著 App 雙擊滑鼠左鍵即可啟動。（第一次啟動若跳出歡迎視窗，可按下鍵盤 ESC 關閉）。
+
+**提示詞：**
+
+```text
+https://github.com/bilawalsidhu/gods-eye-view
+請你幫我在本機安裝這個專案：
+- 安裝好後請幫我做個外掛，將它的主要介面改成繁體中文。
+- 請將它做成一個可以雙擊啟動的 App 以方便我使用。
+如有需要確認的地方請詢問我。
+```
+
+## 第二階段：設定 Cesium Ion 啟用 3D 擬真圖資
+
+預設的街道與建築物是扁平的，若要顯示擬真的 3D 模型，請依照以下步驟設定：
+
+1. **開啟強化功能：** 在 App 畫面右下角點擊「強化功能」。
+2. **取得 Cesium Ion 金鑰：** 找到 Cesium Ion 區塊（提供 3D 圖資的平台），點擊「Get Key（取得金鑰）」前往其官網。
+3. **註冊並複製 API 金鑰：** 在官網註冊一個免費帳號並成功登入後，於頁面右側找到一組很長的金鑰並複製下來。
+4. **貼上並儲存：** 回到 App 中將金鑰貼上（Ctrl + V）並點擊「儲存」。
+5. **重啟生效：** 儲存後 App 會自動重新啟動，再次開啟即可在畫面上看到細緻逼真的 3D 街道與建築模型。
+
+**微調視角技巧：** 按住滑鼠拖曳可移動畫面；滾動滾輪可放大縮小；按住 Ctrl 鍵不放並拖曳滑鼠即可轉動 3D 視角。
+
+## 其他可能提示詞
+
+1. 桌面上的 ICON 我想替換成很酷炫的眼睛圖片，你用生圖技能製作並幫我替換
+2. 另程式中部分介面沒轉換為繁體中文，請幫我全部製作中文外掛
+3. 另我發現很多圖資及設定無法開啟（包括我已輸入 APIKEY 的 TOMTOM），請協助解決
+4. 另我發現 CCTV 圖層打開時都是靜態圖片，請把它們都改接上實地的影片
+5. 希望開啟本 APP 的瀏覽器改為 Chrome
+6. 請幫我把台灣高速公路的攝影機接到這個 APP
+7. 啟用地球資料部分請擴充串接 Gemini 3.8 Live 語音模型作為 AI 語音助理，並有引導至 GOOGLE AI STUDIO 申請 FREE API KEY 的按鈕
