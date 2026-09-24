@@ -1,0 +1,141 @@
+# Template used by the GeoLibre Analysis skill.
+# Before copying to a user's repo, replace __DEFAULT_BRANCH__ if necessary.
+name: Bootstrap / update GeoLibre and deploy Pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [__DEFAULT_BRANCH__]
+    paths:
+      - ".geolibre/skill-profile.json"
+      - ".github/workflows/geolibre-bootstrap-pages.yml"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: geolibre-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_path: ${{ steps.profile.outputs.artifact_path }}
+    steps:
+      - name: Checkout user repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Read GeoLibre profile
+        id: profile
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          p = json.loads(Path(".geolibre/skill-profile.json").read_text(encoding="utf-8"))
+          source_path = p.get("source_path", ".").strip() or "."
+          upstream_repo = p.get("upstream_repo", "opengeos/GeoLibre")
+          upstream_ref = p.get("upstream_ref", "main")
+          base = p.get("pages_base_path")
+          if not base:
+              repo = os.environ["GITHUB_REPOSITORY"].split("/", 1)[1]
+              owner = os.environ["GITHUB_REPOSITORY_OWNER"]
+              base = "/" if repo.lower() == f"{owner.lower()}.github.io" else f"/{repo}/"
+          artifact = str((Path(source_path) / "apps/geolibre-desktop/dist").as_posix())
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write(f"source_path={source_path}\n")
+              f.write(f"upstream_repo={upstream_repo}\n")
+              f.write(f"upstream_ref={upstream_ref}\n")
+              f.write(f"app_base={base}\n")
+              f.write(f"artifact_path={artifact}\n")
+          PY
+
+      - name: Fetch latest selected official GeoLibre source
+        shell: bash
+        run: |
+          set -euo pipefail
+          TMP="${RUNNER_TEMP}/geolibre-upstream"
+          rm -rf "${TMP}"
+          git clone --depth 1 --branch "${{ steps.profile.outputs.upstream_ref }}"             "https://github.com/${{ steps.profile.outputs.upstream_repo }}.git" "${TMP}"
+
+          DEST="${{ steps.profile.outputs.source_path }}"
+          if [ "${DEST}" = "." ]; then
+            rsync -a --delete               --exclude ".git"               --exclude ".github"               --exclude ".geolibre"               --exclude "GeoLibre-Web"               --exclude "scripts/geolibre_tasks"               "${TMP}/" "./"
+          else
+            mkdir -p "${DEST}"
+            rsync -a --delete               --exclude ".git"               --exclude ".geolibre"               --exclude "GeoLibre-Web"               --exclude "scripts/geolibre_tasks"               "${TMP}/" "${DEST}/"
+          fi
+
+      - name: Record official upstream commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          TMP="${RUNNER_TEMP}/geolibre-upstream"
+          SHA="$(git -C "${TMP}" rev-parse HEAD)"
+          python - "${SHA}" <<'PY'
+          import json, sys
+          from datetime import datetime, timezone
+          from pathlib import Path
+          path = Path(".geolibre/skill-profile.json")
+          p = json.loads(path.read_text(encoding="utf-8"))
+          p["upstream_commit"] = sys.argv[1]
+          p["last_verified_at"] = datetime.now(timezone.utc).isoformat()
+          path.write_text(json.dumps(p, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          cd "${{ steps.profile.outputs.source_path }}"
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+      - name: Build GeoLibre web
+        shell: bash
+        env:
+          GEOLIBRE_APP_BASE: ${{ steps.profile.outputs.app_base }}
+        run: |
+          cd "${{ steps.profile.outputs.source_path }}"
+          npm run build
+
+      - name: Commit synchronized source/profile
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No source update to commit."
+          else
+            git commit -m "chore(geolibre): sync official source"
+            git push
+          fi
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ steps.profile.outputs.artifact_path }}
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
