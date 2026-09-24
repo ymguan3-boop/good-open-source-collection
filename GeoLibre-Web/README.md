@@ -14,6 +14,21 @@ Whitebox 數百個工具名稱需另行匯入語言包（同目錄 `geolibre-whi
 2. 用 Import 功能選擇 `geolibre-whitebox-zh-TW-pack.json`
 3. Whitebox 工具箱即顯示繁體中文
 
+## 臺灣地質敏感區圖層
+
+已新增由經濟部地質調查及礦業管理中心公開 WMS 建立的四個顯示圖層：
+
+- 活動斷層地質敏感區
+- 地下水補注地質敏感區
+- 地質遺跡地質敏感區
+- 山崩與地滑地質敏感區
+
+- 直接開啟圖層專案：[臺灣地質敏感區 GeoLibre 專案](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Ftaiwan-geological-sensitive-areas.geolibre.json)
+- 專案檔：[taiwan-geological-sensitive-areas.geolibre.json](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/taiwan-geological-sensitive-areas.geolibre.json)
+- 官方服務：[地質資料整合查詢服務](https://geomap.gsmma.gov.tw/gsb108-1/list_service.cfm)
+
+目前為全臺官方 WMS 影像顯示層，使用 EPSG:4326、2048×2048 全域影像覆蓋，因此縮放時不會重新切換圖磚解析度。圖層標記為 DISPLAY_ONLY，僅供圖資套疊與初步查詢，不取代現地調查、鑽探試驗、法定程序或專業簽證。
+
 ## 版本資訊
 
 - 基於 opengeos/GeoLibre（MIT），2026-09-24 同步，自建 `GEOLIBRE_APP_BASE=/good-open-source-collection/GeoLibre-Web/`
