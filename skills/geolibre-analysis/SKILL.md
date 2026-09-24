@@ -26,10 +26,11 @@ Resolution order:
 1. Read the local cache at `$CODEX_HOME/geolibre-profile.json` (fallback `~/.codex/geolibre-profile.json`) when accessible.
 2. If the current repository contains `.geolibre/skill-profile.json`, read it.
 3. If GitHub is connected, search repositories accessible to the authenticated user for the marker `geolibre_skill_profile_version`.
-4. If exactly one valid profile is found, use it and refresh the local cache.
-5. If multiple profiles exist, show their repo + Pages URL and ask which one to use; remember the selection.
-6. If none exists, start first-use onboarding.
-7. If the user directly supplies a GitHub repository URL/path, validate it and bind it.
+4. **Do not rely on code-search indexing.** If marker search returns nothing or seems stale, list accessible repositories and directly probe the canonical path `.geolibre/skill-profile.json` in candidate repositories. Stop once all accessible repos in scope have been checked or valid profiles are found.
+5. If exactly one valid profile is found, use it and refresh the local cache.
+6. If multiple profiles exist, show their repo + Pages URL and ask which one to use; remember the selection.
+7. If none exists, start first-use onboarding.
+8. If the user directly supplies a GitHub repository URL/path, validate it and bind it.
 
 Do **not** ask for the GitHub path again when a valid saved profile exists.
 
