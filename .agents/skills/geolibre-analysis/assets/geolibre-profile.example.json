@@ -15,5 +15,7 @@
   "upstream_commit": null,
   "installed_at": "2026-09-25T00:00:00Z",
   "last_verified_at": "2026-09-25T00:00:00Z",
-  "notes": []
+  "notes": [],
+  "web_root": "GeoLibre-Web",
+  "task_manifest_path": "GeoLibre-Web/tasks/current-task.json"
 }
