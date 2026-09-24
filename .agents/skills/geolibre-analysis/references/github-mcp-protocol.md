@@ -13,8 +13,10 @@ Resolve from the canonical profile:
 - `repo_full_name`
 - `default_branch`
 - `source_path`
+- `web_root`
 - `analysis_root`
 - `task_script_root`
+- `task_manifest_path`
 - `pages_url`
 
 Use the connected GitHub MCP/tooling for repository metadata, file reads/writes, commits, and workflow/log inspection.
@@ -28,8 +30,9 @@ Task script:
 `<task_script_root>/<task_id>.py`
 
 Trigger manifest:
-`<source_path>/GeoLibre-Web/tasks/current-task.json`
-(when `source_path="."`, normalize to `GeoLibre-Web/tasks/current-task.json`)
+`<task_manifest_path>`
+
+If older profiles omit `task_manifest_path`, derive it from `web_root` as `<web_root>/tasks/current-task.json`. Only if `web_root` is also absent may you fall back to the legacy `<source_path>/GeoLibre-Web/tasks/current-task.json`.
 
 Output directory:
 `<analysis_root>/<task_id>/`
