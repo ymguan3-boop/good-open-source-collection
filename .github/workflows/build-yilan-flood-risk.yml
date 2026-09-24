@@ -1,0 +1,51 @@
+name: Build Yilan flood-risk map
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build_yilan_flood_risk.py"
+      - ".github/workflows/build-yilan-flood-risk.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: yilan-flood-risk-map
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install numpy pandas requests pillow pyproj shapely
+
+      - name: Build analyzed GeoLibre map
+        run: python scripts/build_yilan_flood_risk.py
+
+      - name: Commit generated map artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add             GeoLibre-Web/yilan-flood-risk.geolibre.json             GeoLibre-Web/yilan-flood-risk-roads.geojson             GeoLibre-Web/yilan-flood-risk-roads.csv             GeoLibre-Web/yilan-flood-risk-report.md             GeoLibre-Web/yilan-flood-risk-summary.json             GeoLibre-Web/yilan-flood-points-2021-2025.geojson             GeoLibre-Web/yilan-storm-sewers-near-risk.geojson             GeoLibre-Web/yilan-county-boundary.geojson
+          if git diff --cached --quiet; then
+            echo "No generated changes."
+          else
+            git commit -m "data(gis): update Yilan flood-risk analyzed map"
+            git push
+          fi
