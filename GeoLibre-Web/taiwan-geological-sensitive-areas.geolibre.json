@@ -1,0 +1,190 @@
+{
+  "version": "0.2.0",
+  "name": "臺灣地質敏感區（官方 WMS 顯示）",
+  "mapView": {
+    "center": [
+      120.9,
+      23.7
+    ],
+    "zoom": 6.1,
+    "bearing": 0,
+    "pitch": 0
+  },
+  "basemapStyleUrl": "https://tiles.openfreemap.org/styles/liberty",
+  "basemapVisible": true,
+  "basemapOpacity": 1,
+  "blankBackgroundColor": null,
+  "layers": [
+    {
+      "id": "gsmma-sensitive-fault",
+      "name": "活動斷層地質敏感區",
+      "type": "image",
+      "source": {
+        "type": "image",
+        "url": "https://geomap.gsmma.gov.tw/mapguide/mapagent/mapagent.fcgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.0.0&LAYERS=WMS%2FSensitive_area_fault&STYLES=&FORMAT=image%2Fpng&TRANSPARENT=TRUE&SRS=EPSG%3A4326&BBOX=117%2C21%2C123%2C27&WIDTH=2048&HEIGHT=2048",
+        "coordinates": [
+          [
+            117,
+            27
+          ],
+          [
+            123,
+            27
+          ],
+          [
+            123,
+            21
+          ],
+          [
+            117,
+            21
+          ]
+        ]
+      },
+      "visible": true,
+      "opacity": 0.68,
+      "metadata": {
+        "dataProvider": "經濟部地質調查及礦業管理中心",
+        "officialService": "地質資料整合查詢服務 WMS",
+        "officialLayer": "WMS/Sensitive_area_fault",
+        "wmsVersion": "1.0.0",
+        "crs": "EPSG:4326",
+        "extent": "117E-123E, 21N-27N",
+        "accessMode": "DISPLAY_ONLY",
+        "retrievedAt": "2026-09-24",
+        "limitation": "官方 WMS 全臺影像顯示層；供圖資套疊與初步查詢，不取代現地調查、鑽探試驗、法定程序或專業簽證。"
+      }
+    },
+    {
+      "id": "gsmma-sensitive-groundwater",
+      "name": "地下水補注地質敏感區",
+      "type": "image",
+      "source": {
+        "type": "image",
+        "url": "https://geomap.gsmma.gov.tw/mapguide/mapagent/mapagent.fcgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.0.0&LAYERS=WMS%2FSensitive_area_groundwater&STYLES=&FORMAT=image%2Fpng&TRANSPARENT=TRUE&SRS=EPSG%3A4326&BBOX=117%2C21%2C123%2C27&WIDTH=2048&HEIGHT=2048",
+        "coordinates": [
+          [
+            117,
+            27
+          ],
+          [
+            123,
+            27
+          ],
+          [
+            123,
+            21
+          ],
+          [
+            117,
+            21
+          ]
+        ]
+      },
+      "visible": true,
+      "opacity": 0.68,
+      "metadata": {
+        "dataProvider": "經濟部地質調查及礦業管理中心",
+        "officialService": "地質資料整合查詢服務 WMS",
+        "officialLayer": "WMS/Sensitive_area_groundwater",
+        "wmsVersion": "1.0.0",
+        "crs": "EPSG:4326",
+        "extent": "117E-123E, 21N-27N",
+        "accessMode": "DISPLAY_ONLY",
+        "retrievedAt": "2026-09-24",
+        "limitation": "官方 WMS 全臺影像顯示層；供圖資套疊與初步查詢，不取代現地調查、鑽探試驗、法定程序或專業簽證。"
+      }
+    },
+    {
+      "id": "gsmma-sensitive-landscape",
+      "name": "地質遺跡地質敏感區",
+      "type": "image",
+      "source": {
+        "type": "image",
+        "url": "https://geomap.gsmma.gov.tw/mapguide/mapagent/mapagent.fcgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.0.0&LAYERS=WMS%2FSensitive_area_landscape&STYLES=&FORMAT=image%2Fpng&TRANSPARENT=TRUE&SRS=EPSG%3A4326&BBOX=117%2C21%2C123%2C27&WIDTH=2048&HEIGHT=2048",
+        "coordinates": [
+          [
+            117,
+            27
+          ],
+          [
+            123,
+            27
+          ],
+          [
+            123,
+            21
+          ],
+          [
+            117,
+            21
+          ]
+        ]
+      },
+      "visible": true,
+      "opacity": 0.68,
+      "metadata": {
+        "dataProvider": "經濟部地質調查及礦業管理中心",
+        "officialService": "地質資料整合查詢服務 WMS",
+        "officialLayer": "WMS/Sensitive_area_landscape",
+        "wmsVersion": "1.0.0",
+        "crs": "EPSG:4326",
+        "extent": "117E-123E, 21N-27N",
+        "accessMode": "DISPLAY_ONLY",
+        "retrievedAt": "2026-09-24",
+        "limitation": "官方 WMS 全臺影像顯示層；供圖資套疊與初步查詢，不取代現地調查、鑽探試驗、法定程序或專業簽證。"
+      }
+    },
+    {
+      "id": "gsmma-sensitive-landslide",
+      "name": "山崩與地滑地質敏感區",
+      "type": "image",
+      "source": {
+        "type": "image",
+        "url": "https://geomap.gsmma.gov.tw/mapguide/mapagent/mapagent.fcgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.0.0&LAYERS=WMS%2FSensitive_area_landslide&STYLES=&FORMAT=image%2Fpng&TRANSPARENT=TRUE&SRS=EPSG%3A4326&BBOX=117%2C21%2C123%2C27&WIDTH=2048&HEIGHT=2048",
+        "coordinates": [
+          [
+            117,
+            27
+          ],
+          [
+            123,
+            27
+          ],
+          [
+            123,
+            21
+          ],
+          [
+            117,
+            21
+          ]
+        ]
+      },
+      "visible": true,
+      "opacity": 0.68,
+      "metadata": {
+        "dataProvider": "經濟部地質調查及礦業管理中心",
+        "officialService": "地質資料整合查詢服務 WMS",
+        "officialLayer": "WMS/Sensitive_area_landslide",
+        "wmsVersion": "1.0.0",
+        "crs": "EPSG:4326",
+        "extent": "117E-123E, 21N-27N",
+        "accessMode": "DISPLAY_ONLY",
+        "retrievedAt": "2026-09-24",
+        "limitation": "官方 WMS 全臺影像顯示層；供圖資套疊與初步查詢，不取代現地調查、鑽探試驗、法定程序或專業簽證。"
+      }
+    }
+  ],
+  "layerGroups": [],
+  "styles": {},
+  "preferences": {},
+  "legend": {},
+  "comments": [],
+  "metadata": {
+    "description": "由經濟部地質調查及礦業管理中心公開 WMS 建立的臺灣地質敏感區顯示專案。",
+    "source": "https://geomap.gsmma.gov.tw/gsb108-1/list_service.cfm",
+    "dataRole": "DISPLAY_ONLY",
+    "generatedAt": "2026-09-24"
+  }
+}
