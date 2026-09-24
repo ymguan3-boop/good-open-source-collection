@@ -56,14 +56,20 @@ Support two install modes:
 ### 1. standalone_repo (default)
 - Repo: `<owner>/GeoLibre` or a collision-safe name.
 - `source_path = "."`
-- `analysis_root = "GeoLibre-Web/analysis"`
+- `web_root = "GeoLibre-Web"` by default, unless the installation publishes the app directly at the repository Pages root.
+- `analysis_root = "<web_root>/analysis"`
 - `task_script_root = "scripts/geolibre_tasks"`
+- `task_manifest_path = "<web_root>/tasks/current-task.json"`
 
 ### 2. subdirectory
 - Existing repo supplied by user.
 - `source_path = "GeoLibre"` (or explicit chosen path)
-- `analysis_root = "<source_path>/GeoLibre-Web/analysis"`
-- `task_script_root = "<source_path>/scripts/geolibre_tasks"`
+- Detect the existing published web directory independently. Do **not** assume it is inside `source_path`.
+- Example: source may be `GeoLibre/` while published web is `GeoLibre-Web/` at repository root.
+- `web_root = <detected published web directory>`
+- `analysis_root = "<web_root>/analysis"`
+- `task_script_root = "scripts/geolibre_tasks"` unless an existing task-script directory indicates otherwise.
+- `task_manifest_path = "<web_root>/tasks/current-task.json"`
 
 If repo-creation tooling is available, use it after the user agrees to setup.
 
