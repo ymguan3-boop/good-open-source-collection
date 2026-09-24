@@ -23,7 +23,7 @@ Whitebox 數百個工具名稱需另行匯入語言包（同目錄 `geolibre-whi
 - 地質遺跡地質敏感區
 - 山崩與地滑地質敏感區
 
-- 直接開啟圖層專案：[臺灣地質敏感區 GeoLibre 專案](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Ftaiwan-geological-sensitive-areas.geolibre.json)
+- 直接開啟圖層專案：[臺灣地質敏感區 GeoLibre 專案](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Ftaiwan-geological-sensitive-areas.geolibre.json%3Fv%3D20260924-school4)
 - 專案檔：[taiwan-geological-sensitive-areas.geolibre.json](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/taiwan-geological-sensitive-areas.geolibre.json)
 - 官方服務：[地質資料整合查詢服務](https://geomap.gsmma.gov.tw/gsb108-1/list_service.cfm)
 
