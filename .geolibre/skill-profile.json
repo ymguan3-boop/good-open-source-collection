@@ -1,0 +1,25 @@
+{
+  "geolibre_skill_profile_version": 1,
+  "status": "ready",
+  "github_owner": "ymguan3-boop",
+  "repo_full_name": "ymguan3-boop/good-open-source-collection",
+  "default_branch": "main",
+  "install_mode": "subdirectory",
+  "source_path": "GeoLibre",
+  "web_root": "GeoLibre-Web",
+  "analysis_root": "GeoLibre-Web/analysis",
+  "task_script_root": "scripts/geolibre_tasks",
+  "task_manifest_path": "GeoLibre-Web/tasks/current-task.json",
+  "pages_url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW",
+  "pages_base_path": "/good-open-source-collection/GeoLibre-Web/",
+  "upstream_repo": "opengeos/GeoLibre",
+  "upstream_ref": "main",
+  "upstream_commit": null,
+  "installed_at": "2026-09-24T00:00:00Z",
+  "last_verified_at": "2026-09-25T07:06:00+08:00",
+  "notes": [
+    "Existing installation discovered during skill onboarding test.",
+    "Source is under GeoLibre/; published static web is under repository-root GeoLibre-Web/.",
+    "GeoLibre-Web/README.md documents the deployed Pages URL and a 2026-09-24 sync from opengeos/GeoLibre."
+  ]
+}
