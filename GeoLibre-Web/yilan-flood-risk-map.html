@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>宜蘭縣淹水風險道路分析</title>
+  <script>
+    (function () {
+      const project = new URL("./yilan-flood-risk.geolibre.json", window.location.href).href;
+      const target =
+        "./?url=" + encodeURIComponent(project) +
+        "&locale=zh-TW&layout=viewer";
+      window.location.replace(target);
+    })();
+  </script>
+</head>
+<body>
+  <p>正在開啟宜蘭縣淹水風險道路分析地圖…</p>
+</body>
+</html>
