@@ -1,52 +1,51 @@
 # GitHub MCP execution protocol
 
-Use this only after the user has explicitly confirmed the final analysis specification.
+Use only after:
+1. a valid `geolibre_profile` has been resolved, and
+2. the user explicitly confirmed the final analysis specification.
 
-## Fixed repository
+## Dynamic target
 
-- Repository: `ymguan3-boop/good-open-source-collection`
-- Branch: `main`
-- GeoLibre web output root: `GeoLibre-Web`
+Never hard-code a repository.
 
-Use the connected GitHub MCP tools. Tool names may vary slightly by environment; use the equivalents of repository metadata, fetch file, create file, update file, and workflow/log inspection.
+Resolve from the canonical profile:
 
-## Existing pattern to preserve
+- `repo_full_name`
+- `default_branch`
+- `source_path`
+- `analysis_root`
+- `task_script_root`
+- `pages_url`
 
-The repository already contains a working example:
+Use the connected GitHub MCP/tooling for repository metadata, file reads/writes, commits, and workflow/log inspection.
 
-- `scripts/build_yilan_flood_risk.py`
-- `.github/workflows/build-yilan-flood-risk.yml`
-- `GeoLibre-Web/yilan-flood-risk.geolibre.json`
+## Per-task paths
 
-Treat it as a reference implementation, not a file to overwrite for unrelated tasks.
-
-## Per-task files
-
-Create a stable slug `task_id`, for example:
-
+Create a stable `task_id`, e.g.:
 `yilan-traffic-accident-safety-2026-09`
 
-Write the analysis script to:
+Task script:
+`<task_script_root>/<task_id>.py`
 
-`scripts/geolibre_tasks/<task_id>.py`
+Trigger manifest:
+`<source_path>/GeoLibre-Web/tasks/current-task.json`
+(when `source_path="."`, normalize to `GeoLibre-Web/tasks/current-task.json`)
 
-Write the final trigger manifest to:
+Output directory:
+`<analysis_root>/<task_id>/`
 
-`GeoLibre-Web/tasks/current-task.json`
+Generic workflow target:
+`.github/workflows/geolibre-analysis.yml`
 
-Expected output directory:
-
-`GeoLibre-Web/analysis/<task_id>/`
+When absent, create it from the current skill's generic analysis workflow asset or generate an equivalent profile-aware workflow.
 
 ## Manifest schema
-
-Use this structure:
 
 ```json
 {
   "enabled": true,
   "task_id": "<task_id>",
-  "script": "scripts/geolibre_tasks/<task_id>.py",
+  "script": "<resolved task script path>",
   "topic": "<topic>",
   "goal": "<analysis_goal>",
   "confirmed_spec": {
@@ -65,67 +64,68 @@ The manifest is the execution trigger. **Write/update it last.**
 
 ## Script requirements
 
-The generated Python script must:
+Generated Python must:
 
-1. Read `GeoLibre-Web/tasks/current-task.json`.
-2. Assert that the manifest `task_id` matches the script's task.
-3. Fetch or load the confirmed data sources.
-4. Keep coordinate reference systems explicit.
-5. Perform exactly the confirmed spatial rules and thresholds.
-6. Keep source provenance in metadata/report.
-7. Write the required result contract into `GeoLibre-Web/analysis/<task_id>/`.
+1. Read the resolved task manifest.
+2. Assert that manifest `task_id` matches the script task.
+3. Fetch/load exactly the confirmed data sources.
+4. Keep CRS explicit.
+5. Apply exactly the confirmed spatial rules/thresholds.
+6. Preserve provenance in output metadata/report.
+7. Write outputs only under `<analysis_root>/<task_id>/`.
 8. Never modify unrelated result folders.
-9. Fail loudly when a required criterion cannot be evaluated; do not silently drop it.
-10. When a source is unavailable but the user had allowed substitutes, record the substitution in `report.md` and `summary.json`.
+9. Fail loudly if a required criterion cannot be evaluated.
+10. Record allowed substitutions in `report.md` + `summary.json`.
 
-Prefer Taiwan TWD97 / TM2 (EPSG:3826) for meter-based distance analysis in Yilan/Taiwan, then export GeoLibre-facing geometries in WGS84 (EPSG:4326).
+For Taiwan meter-based analysis, prefer an appropriate local projected CRS such as TWD97 / TM2 (e.g. EPSG:3826 for Taiwan zone 121) when applicable, then export GeoLibre-facing geometry as EPSG:4326.
 
 ## Data priority
 
-Prefer, in order:
+Prefer:
+1. existing validated sources already in the user's GeoLibre project,
+2. authoritative free/public government GIS/open data,
+3. reputable open data such as OpenStreetMap,
+4. user-provided files.
 
-1. Existing repository data already used and validated.
-2. Taiwan government open data / public GIS services that require no API key.
-3. OpenStreetMap / other reputable public open data.
-4. User-provided files.
-
-Do not introduce paid services or required secret API keys unless the user explicitly approved them.
+Do not introduce paid services or secret API requirements without explicit approval.
 
 ## MCP write order
 
-1. Verify repository access.
-2. Fetch reference files needed for the task.
-3. Create/update `scripts/geolibre_tasks/<task_id>.py`.
-4. Ensure the generic workflow `.github/workflows/geolibre-analysis.yml` exists.
-5. Only after all code is ready, create/update `GeoLibre-Web/tasks/current-task.json`.
-6. The manifest commit triggers the GitHub Action.
-7. Inspect the Action result/logs when available.
-8. Fetch and validate the generated outputs.
+1. Revalidate the bound repository and canonical profile.
+2. Fetch existing task/workflow files needed for safe integration.
+3. Create/update `<task_script_root>/<task_id>.py`.
+4. Ensure profile-aware `.github/workflows/geolibre-analysis.yml` exists.
+5. Only after code is ready, create/update the resolved `current-task.json`.
+6. Let the manifest commit trigger the Action.
+7. Inspect Action result/logs when available.
+8. Fetch and validate generated outputs.
+9. When appropriate, publish/link the result from the user's existing Pages deployment without replacing GeoLibre itself.
 
 Do not update the manifest first.
 
 ## Completion checks
 
-Require all applicable files:
-
+Require all applicable outputs:
 - `map.geolibre.json`
 - `result.geojson`
 - `result.csv`
-- `result.xlsx` if tabular
+- `result.xlsx` when tabular
 - `report.md`
 - `summary.json`
 
-Inspect `summary.json` for record count and data-source notes.
+Inspect:
+- `summary.json` for result count/source notes,
+- `report.md` for criteria/sources/limitations/substitutions,
+- map project for intended visible result layers.
 
-Inspect `report.md` for criteria, sources, limitations, and substitutions.
-
-The final response to the user should include:
-
-- completed task name,
+Final response should include:
+- task name,
+- bound repo,
 - criteria actually applied,
-- number of selected features,
-- data sources used,
+- result count,
+- data sources,
 - limitations/substitutions,
-- direct GitHub paths/links to the GeoLibre map and table files.
+- GitHub file links/paths,
+- Pages URL or GeoLibre URL when available.
 
-Do not report "analysis complete" until outputs are verified.
+Never say “analysis complete” until outputs are verified.
