@@ -17,6 +17,7 @@ import io
 import json
 import math
 import os
+import subprocess
 import sys
 import time
 from collections import Counter
@@ -132,9 +133,30 @@ def find_column(columns, candidates):
     return None
 
 def fetch_flood_points(boundary_wgs84):
-    r = session.get(FLOOD_CSV_URL, timeout=90)
-    r.raise_for_status()
-    text = decode_csv(r.content)
+    try:
+        r = session.get(FLOOD_CSV_URL, timeout=90)
+        r.raise_for_status()
+        raw = r.content
+    except Exception as first_error:
+        # mas.nstc.gov.tw currently negotiates TLS in a way OpenSSL 3's
+        # requests defaults can reject on GitHub-hosted runners. curl with a
+        # TLS-1.2 ceiling and SECLEVEL=1 is a compatibility fallback for this
+        # public CSV only; all analysis/output remains unchanged.
+        log(f"Standard flood CSV HTTPS failed; trying legacy-TLS compatibility: {first_error}")
+        cmd = [
+            "curl", "-L", "--fail", "--silent", "--show-error",
+            "--tlsv1.2", "--tls-max", "1.2",
+            "--ciphers", "DEFAULT:@SECLEVEL=1",
+            FLOOD_CSV_URL,
+        ]
+        proc = subprocess.run(cmd, capture_output=True, check=False)
+        if proc.returncode != 0 or not proc.stdout:
+            raise RuntimeError(
+                "Could not download official flood CSV. "
+                + proc.stderr.decode("utf-8", errors="replace")
+            ) from first_error
+        raw = proc.stdout
+    text = decode_csv(raw)
     df = pd.read_csv(io.StringIO(text))
     if len(df.columns) < 4:
         raise RuntimeError("Flood CSV did not contain the expected coordinate fields.")
