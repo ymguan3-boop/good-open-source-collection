@@ -1,0 +1,120 @@
+name: GeoLibre analysis task
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "GeoLibre-Web/tasks/current-task.json"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: geolibre-analysis-task
+  cancel-in-progress: false
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install GIS dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install             numpy             pandas             requests             pillow             pyproj             shapely             geopandas             rasterio             scipy             scikit-learn             openpyxl
+
+      - name: Validate task manifest
+        id: task
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest_path = Path("GeoLibre-Web/tasks/current-task.json")
+          if not manifest_path.exists():
+              raise SystemExit("Task manifest not found.")
+
+          data = json.loads(manifest_path.read_text(encoding="utf-8"))
+          if not data.get("enabled", False):
+              raise SystemExit("Task manifest is disabled.")
+
+          task_id = str(data.get("task_id", "")).strip()
+          script = str(data.get("script", "")).strip()
+
+          if not task_id:
+              raise SystemExit("task_id is required.")
+          if not script.startswith("scripts/geolibre_tasks/") or not script.endswith(".py"):
+              raise SystemExit("script must be under scripts/geolibre_tasks/ and end in .py")
+          if ".." in Path(script).parts:
+              raise SystemExit("Path traversal is not allowed.")
+          if not Path(script).is_file():
+              raise SystemExit(f"Task script does not exist: {script}")
+
+          output_dir = Path("GeoLibre-Web/analysis") / task_id
+          output_dir.mkdir(parents=True, exist_ok=True)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+              fh.write(f"task_id={task_id}\n")
+              fh.write(f"script={script}\n")
+              fh.write(f"output_dir={output_dir.as_posix()}\n")
+          PY
+
+      - name: Run GeoLibre GIS analysis
+        env:
+          GEOLIBRE_TASK_MANIFEST: GeoLibre-Web/tasks/current-task.json
+        run: |
+          python "${{ steps.task.outputs.script }}"
+
+      - name: Validate required outputs
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path("GeoLibre-Web/tasks/current-task.json").read_text(encoding="utf-8"))
+          task_id = manifest["task_id"]
+          out = Path("GeoLibre-Web/analysis") / task_id
+
+          required = [
+              out / "map.geolibre.json",
+              out / "result.geojson",
+              out / "result.csv",
+              out / "report.md",
+              out / "summary.json",
+          ]
+          missing = [str(p) for p in required if not p.exists()]
+          if missing:
+              raise SystemExit("Missing required outputs: " + ", ".join(missing))
+
+          summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+          print("Task:", task_id)
+          print("Result count:", summary.get("result_count", "unknown"))
+          PY
+
+      - name: Commit generated analysis outputs
+        shell: bash
+        run: |
+          TASK_ID="${{ steps.task.outputs.task_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "GeoLibre-Web/analysis/${TASK_ID}"
+          if git diff --cached --quiet; then
+            echo "No generated changes."
+          else
+            git commit -m "data(gis): publish GeoLibre analysis ${TASK_ID}"
+            git push
+          fi
