@@ -9,7 +9,8 @@ Try in this order:
 1. Local cache: `$CODEX_HOME/geolibre-profile.json`; fallback `~/.codex/geolibre-profile.json`.
 2. Current repo: `.geolibre/skill-profile.json`.
 3. Connected GitHub search for the exact marker `geolibre_skill_profile_version`.
-4. If a likely repository named GeoLibre exists, inspect it for:
+4. Because GitHub code-search indexing can lag behind recent commits, **if search returns no profile, enumerate accessible repositories and directly request `.geolibre/skill-profile.json` from each reasonable candidate**. A 404 means “not bound”; continue without asking the user. Prefer owned/pushable repositories first.
+5. If a likely repository named GeoLibre exists, inspect it for:
    - `.geolibre/skill-profile.json`
    - `package.json` with GeoLibre workspace metadata, or
    - `<source_path>/package.json` plus the official upstream structure.
