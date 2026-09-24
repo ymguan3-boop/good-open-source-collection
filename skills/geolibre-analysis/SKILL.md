@@ -69,9 +69,11 @@ Maintain a `geolibre_profile` containing at least:
 - `repo_full_name`
 - `default_branch`
 - `install_mode`: `standalone_repo` or `subdirectory`
-- `source_path`: `.` or e.g. `GeoLibre`
+- `source_path`: GeoLibre source location, e.g. `.` or `GeoLibre`
+- `web_root`: published/static GeoLibre web root; may differ from `source_path`, e.g. `GeoLibre-Web`
 - `analysis_root`
 - `task_script_root`
+- `task_manifest_path`
 - `pages_url`
 - `pages_base_path`
 - `upstream_repo`: normally `opengeos/GeoLibre`
@@ -178,7 +180,7 @@ Reuse existing project data and code when safe. Never overwrite unrelated analys
 
 ## 8. Required result contract
 
-Under `<analysis_root>/<task_id>/`, aim to produce:
+Under `<analysis_root>/<task_id>/`, aim to produce. Do not derive `analysis_root` from `source_path` when the profile explicitly provides a separate `web_root` or `analysis_root`:
 
 - `map.geolibre.json`
 - `result.geojson`
