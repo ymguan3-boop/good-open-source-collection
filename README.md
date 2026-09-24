@@ -12,6 +12,10 @@
   - 輕量雲端原生 GIS：瀏覽器、桌面、手機、Jupyter 皆可跑，1,000+ 地理處理工具。
   - 版本：2026-09-24 同步的最新版（shallow clone, 去除 .git 歷史，7,617 星）
   - 詳細說明請看 `GeoLibre/來源說明.md`
+- `GeoLibre-Web/` — 自建靜態網頁版（含繁體中文），線上即用：
+  https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW
+  - 由 `GeoLibre/` 原始碼建置（`GEOLIBRE_APP_BASE` 對應子路徑），主介面 zh-TW 6,534 條
+  - Whitebox 繁中包：`GeoLibre-Web/geolibre-whitebox-zh-TW-pack.json`（設定→語言→匯入）
 
 ## 來源聲明
 

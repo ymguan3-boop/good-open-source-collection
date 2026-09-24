@@ -1,0 +1,1 @@
+import{t as r}from"./esm-BFZOC7pI.js";async function n(t){return f(r(new Uint8Array(t)))}function f(t){if(t.byteOffset===0&&t.byteLength===t.buffer.byteLength)return t.buffer;const e=new Uint8Array(t.byteLength);return e.set(t),e.buffer}export{n as decode};
