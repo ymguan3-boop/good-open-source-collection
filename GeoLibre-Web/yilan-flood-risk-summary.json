@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-09-24T07:22:52+00:00",
+  "analysisPeriod": "2021-2025",
+  "floodDistanceMeters": 100.0,
+  "sewerDistanceMeters": 30.0,
+  "lowLyingRule": "DEM local percentile <= 20.0% OR elevation <= 5.0 m",
+  "floodSource": "國科會/國家災害防救科技中心「近5年淹水災點資料」",
+  "floodSourceUrl": "https://data.gov.tw/dataset/130016",
+  "sewerSource": "內政部國土管理署雨水下水道圖資（公開 ArcGIS Feature Layer 鏡像）",
+  "sewerSourceUrl": "https://gis.liquid.net.tw/arcgis/rest/services/Hosted/%E9%9B%A8%E6%B0%B4%E4%B8%8B%E6%B0%B4%E9%81%93%E6%B8%85%E6%B7%A4%E7%B4%80%E9%8C%84/FeatureServer/13",
+  "roadSource": "OpenStreetMap via Overpass API",
+  "demSource": "AWS Open Data Terrain Tiles (Terrarium)",
+  "note": "官方近5年淹水災點目前資料內容更新至2025年；2026年當年度尚未完整納入。本成果為篩選用空間分析，不取代主管機關認定、現勘或工程設計。",
+  "officialFloodPointCountYilan": 137,
+  "roadWayCountScreened": 7822,
+  "stormSewerFeatureCountYilan": 2687,
+  "preDemCandidateSegmentCount": 107,
+  "finalRiskSegmentCount": 20,
+  "uniqueRoadCount": 15,
+  "totalRiskSegmentLengthKm": 2.035,
+  "riskLevels": {
+    "高": 7,
+    "中": 11,
+    "注意": 2
+  },
+  "demTileCountFetched": 19,
+  "demFailures": 0
+}
