@@ -1,0 +1,310 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      # Reads package-lock.json and queries the registry — no install needed, so
+      # this stays fast. Blocking at `high` catches high/critical advisories
+      # without reddening CI for the moderate/low noise Dependabot handles via PR.
+      # Scoped to production deps: `--omit=dev` drops advisories that only reach
+      # local build/dev tooling (e.g. sharp/libvips via wrangler+miniflare, which
+      # never ships in a GeoLibre artifact), while still blocking anything that
+      # reaches users. Dependabot bumps the dev toolchain separately.
+      # Wrapped in scripts/audit-check.mjs because plain `npm audit` cannot accept
+      # a single advisory: see the ALLOWLIST there for the unpatchable, unreachable
+      # findings that would otherwise redden every PR indefinitely.
+      - name: Audit npm dependencies (high and critical)
+        run: npm run audit:ci
+
+  e2e:
+    # Only the `core` Playwright project gates a PR: the app boots and renders a
+    # map, and the shared UI surfaces still work. The per-feature specs
+    # (mapbox/cesium/stac/export/...) are the `features` project and run in
+    # e2e-full.yml — nightly, on demand, or on a PR labelled `full-e2e`.
+    #
+    # This job was the sole critical path of CI at 29-39 min (everything else
+    # finishes in <= 9 min), and ~35.9 min of that was test execution at one
+    # worker; the build inside it is only ~16 s.
+    name: E2E core (Playwright)
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Playwright Chromium (cache miss)
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Run E2E core tests
+        run: npm run test:e2e -- --project=core
+        env:
+          VITE_GEE_OAUTH_CLIENT_ID: ${{ secrets.VITE_GEE_OAUTH_CLIENT_ID }}
+
+      - name: Upload Playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  citation:
+    name: Validate CITATION.cff
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install cffconvert
+        run: python -m pip install cffconvert
+
+      - name: Validate CITATION.cff against the CFF schema
+        run: cffconvert --validate -i CITATION.cff
+
+      - name: Ensure version matches package.json
+        run: |
+          cff_version="$(sed -n 's/^version: *//p' CITATION.cff | tr -d '"' | head -n1)"
+          pkg_version="$(python -c "import json; print(json.load(open('package.json'))['version'])")"
+          echo "CITATION.cff version: $cff_version"
+          echo "package.json version: $pkg_version"
+          if [ "$cff_version" != "$pkg_version" ]; then
+            echo "::error file=CITATION.cff::version ($cff_version) does not match package.json ($pkg_version). Update CITATION.cff version and date-released when bumping the release version."
+            exit 1
+          fi
+
+  collab-image:
+    name: Collab relay image
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      # publish-container.yml only builds the web Dockerfile, so nothing in CI
+      # ever built the relay image and v2.5.0 shipped one that exited at startup
+      # on module resolution (GeoLibre#1866). A build alone would not have caught
+      # it either -- the missing dependency only surfaces when the container
+      # runs, so this job starts it and talks to it.
+      - name: Build the collaboration relay image
+        run: docker build -f workers/collab-node/Dockerfile -t geolibre-collab:ci .
+
+      - name: Start the relay container
+        run: docker run -d --name collab -p 8787:8787 geolibre-collab:ci
+
+      - name: Smoke-test the running relay
+        run: node workers/collab-node/scripts/smoke.mjs http://127.0.0.1:8787
+
+      # The container logs carry the module-resolution error that a failed smoke
+      # test only reports as "never answered GET /health".
+      - name: Show the container logs
+        if: ${{ always() }}
+        run: docker logs collab
+
+  checks:
+    name: Build and test
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/geolibre_server/pyproject.toml
+            backend/geolibre_server_api/pyproject.toml
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+        with:
+          toolchain: stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: apps/geolibre-desktop/src-tauri -> target
+
+      - name: Install Linux desktop dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            patchelf \
+            wget
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install backend test dependencies
+        # The full test suite needs the optional engines; without them the
+        # vector/raster/SQL/ML tests skip themselves and CI is green but hollow.
+        run: |
+          python -m pip install -e "backend/geolibre_server[test]"
+          python -m pip install -e "backend/geolibre_server_api[test]"
+
+      # backend/geolibre_server/uv.lock is committed because the desktop
+      # installers bundle that project and `uv run --frozen` it from a read-only
+      # resource directory at app startup. A lock that has drifted from
+      # pyproject.toml would make the bundled sidecar and the Notebook panel
+      # fail to start on users' machines, with nothing failing here. Fail the
+      # build instead, so a dependency edit has to land with a refreshed lock
+      # (`uv lock --project backend/geolibre_server`).
+      - name: Check the bundled sidecar lockfile is in sync
+        run: |
+          python -m pip install uv
+          uv lock --check --project backend/geolibre_server
+
+      # Audit the resolved backend environment for known advisories. Non-blocking
+      # (continue-on-error): the sidecar pulls a heavy geospatial/ML dependency
+      # tree whose transitive advisories are often upstream and not immediately
+      # fixable, so this surfaces them without halting the release cadence.
+      # Dependabot opens the fix PRs; this step keeps the signal visible in CI.
+      #
+      # pip-audit runs in a throwaway venv against a frozen snapshot of the test
+      # environment (--exclude-editable drops the local geolibre_server checkout,
+      # which isn't on PyPI). This keeps its own dependency resolution from
+      # mutating the environment the "Run CI gate" step below tests against.
+      - name: Audit Python dependencies (advisory, non-blocking)
+        continue-on-error: true
+        run: |
+          python -m pip freeze --exclude-editable > /tmp/backend-freeze.txt
+          python -m venv /tmp/pip-audit-venv
+          /tmp/pip-audit-venv/bin/pip install --quiet pip-audit
+          /tmp/pip-audit-venv/bin/pip-audit \
+            --progress-spinner off \
+            --requirement /tmp/backend-freeze.txt
+
+      # Drive the documented `npm run ci` gate directly (lint -> build ->
+      # frontend+worker+backend coverage -> rust) so this workflow cannot drift
+      # from the script in package.json.
+      - name: Run CI gate (lint, build, frontend/worker/backend tests, rust)
+        run: npm run ci
+        env:
+          VITE_GEE_OAUTH_CLIENT_ID: ${{ secrets.VITE_GEE_OAUTH_CLIENT_ID }}
+
+      - name: Test projects and identity server
+        run: python -m pytest backend/geolibre_server_api/tests
+
+  projects-identity-postgres:
+    name: Identity PostgreSQL concurrency gate
+    runs-on: ubuntu-22.04
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: geolibre_test
+          POSTGRES_USER: geolibre
+          POSTGRES_PASSWORD: geolibre
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U geolibre -d geolibre_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install the projects-and-identity API with the postgres extra
+        run: python -m pip install -e "backend/geolibre_server_api[test,postgres]"
+
+      # OAuth code consumption, refresh rotation, family revocation, and legacy
+      # PAT policy creation rely on database uniqueness and row locking. Exercise
+      # those boundaries on PostgreSQL rather than SQLite's process-local writes.
+      - name: Run the postgres-marked concurrency gate
+        env:
+          GEOLIBRE_TEST_POSTGRES_URL: postgresql+psycopg://geolibre:geolibre@127.0.0.1:5432/geolibre_test
+        run: python -m pytest backend/geolibre_server_api/tests -m postgres

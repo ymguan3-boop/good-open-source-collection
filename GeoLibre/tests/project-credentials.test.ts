@@ -1,0 +1,365 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import {
+  PROJECT_CREDENTIAL_FIELDS,
+  createEmptyProject,
+  redactCredentials,
+  redactProjectCredentials,
+  serializeProject,
+} from "@geolibre/core";
+
+function credentialProject() {
+  const project = createEmptyProject("Credential fixture");
+  project.preferences.environmentVariables = [
+    { key: "SERVICE_TOKEN", value: "environment-secret", enabled: true },
+  ];
+  project.preferences.geocoding.apiKeys = { mapbox: "geocoder-secret" };
+  project.preferences.geocoding.forwardEndpoint =
+    "https://geocode.example.com/search?key=endpoint-secret";
+  project.basemapStyleUrl = "https://styles.example.com/map.json?access_token=basemap-secret";
+  project.preferences = {
+    ...project.preferences,
+    map: {
+      ...project.preferences.map,
+      mapboxStyleUrl: "https://api.mapbox.com/styles/v1/acme/day?access_token=mapbox-style-secret",
+    },
+  };
+  project.layers = [
+    {
+      id: "auth",
+      name: "Authenticated layer",
+      type: "3d-tiles",
+      source: {
+        url: "https://user:password@example.com/tiles?token=url-secret&subscription%2Dkey=encoded-secret&style=day",
+        nested: { headers: { Authorization: "Bearer header-secret" } },
+      },
+      visible: true,
+      opacity: 1,
+      style: {},
+      metadata: {
+        endpoint: "https://example.com/data?%58-Amz-Signature=signed-secret&format=json",
+        brokerRef: "credential-broker://tiles/auth",
+      },
+    },
+  ];
+  project.plugins = {
+    manifestUrls: ["https://example.com/plugin.json?api-key=manifest-secret"],
+    activePluginIds: ["external"],
+    mapControlPositions: {},
+    settings: { external: { arbitraryName: "plugin-secret" } },
+  };
+  return project;
+}
+
+describe("project credential redaction", () => {
+  it("removes every marked credential while preserving broker references", () => {
+    const original = credentialProject();
+    const { project, redactedPaths } = redactProjectCredentials(original);
+    const serialized = serializeProject(project);
+
+    for (const secret of [
+      "environment-secret",
+      "geocoder-secret",
+      "endpoint-secret",
+      "basemap-secret",
+      "mapbox-style-secret",
+      "password",
+      "url-secret",
+      "encoded-secret",
+      "header-secret",
+      "signed-secret",
+      "plugin-secret",
+      "manifest-secret",
+    ]) {
+      assert.ok(!serialized.includes(secret), `redacted ${secret}`);
+    }
+    assert.match(serialized, /credential-broker:\/\/tiles\/auth/);
+    assert.match(serialized, /style=day/);
+    assert.deepEqual(project.plugins?.settings, {});
+    assert.ok(redactedPaths.includes("plugins.settings"));
+    assert.equal(redactedPaths.includes("basemapStyleUrl"), true);
+    assert.equal(redactedPaths.includes("preferences.map.mapboxStyleUrl"), true);
+    assert.equal(
+      project.preferences.map.mapboxStyleUrl,
+      "https://api.mapbox.com/styles/v1/acme/day",
+    );
+    assert.equal(redactProjectCredentials(original).redactedCount, 10);
+    assert.equal(original.plugins?.settings.external.arbitraryName, "plugin-secret");
+  });
+
+  it("keeps the first-party map controls so an export still renders them", () => {
+    const original = credentialProject();
+    original.plugins!.settings = {
+      external: { arbitraryName: "plugin-secret" },
+      "maplibre-gl-components": { legend: { A: "#112233" } },
+      "maplibre-gl-swipe": { position: 50 },
+      "maplibre-gl-time-slider": {
+        startDate: "2024-01-01T00:00:00.000Z",
+        interval: 1,
+        granularity: "day",
+        currentDate: "2024-01-01T00:00:00.000Z",
+        speed: 800,
+        loop: false,
+        sources: [
+          {
+            type: "mosaic",
+            id: "acdom",
+            url: "https://example.com/{date:YYYYMMDD}_acdom.json",
+          },
+        ],
+      },
+    };
+    const { project, redactedPaths } = redactProjectCredentials(original);
+    const settings = project.plugins!.settings;
+
+    assert.deepEqual(settings["maplibre-gl-components"], { legend: { A: "#112233" } });
+    assert.deepEqual(settings["maplibre-gl-swipe"], { position: 50 });
+    assert.deepEqual(settings["maplibre-gl-time-slider"], {
+      startDate: "2024-01-01T00:00:00.000Z",
+      interval: 1,
+      granularity: "day",
+      currentDate: "2024-01-01T00:00:00.000Z",
+      speed: 800,
+      loop: false,
+      sources: [
+        {
+          type: "mosaic",
+          id: "acdom",
+          url: "https://example.com/{date:YYYYMMDD}_acdom.json",
+        },
+      ],
+    });
+    // An unknown plugin's blob is free-form and can hold a key, so it still goes.
+    assert.ok(!("external" in settings));
+    assert.ok(redactedPaths.includes("plugins.settings"));
+  });
+
+  it("drops the components plugin's hand-authored HTML panel", () => {
+    const original = credentialProject();
+    original.plugins!.settings = {
+      "maplibre-gl-components": {
+        legend: { A: "#112233" },
+        html: { htmls: [{ html: '<img src="https://x/y?api_key=html-secret">' }] },
+      },
+    };
+    const { project } = redactProjectCredentials(original);
+    const components = project.plugins!.settings["maplibre-gl-components"];
+
+    assert.deepEqual(components, { legend: { A: "#112233" } });
+    assert.ok(!serializeProject(project).includes("html-secret"));
+  });
+
+  it("still sweeps a kept plugin blob for credentials", () => {
+    const original = credentialProject();
+    original.plugins!.settings = { "maplibre-gl-swipe": { position: 50, apiKey: "swipe-secret" } };
+    const { project } = redactProjectCredentials(original);
+
+    assert.ok(!serializeProject(project).includes("swipe-secret"));
+    assert.equal(project.plugins!.settings["maplibre-gl-swipe"].position, 50);
+  });
+
+  it("reports nothing redacted when only publishable plugin settings are present", () => {
+    const original = credentialProject();
+    original.plugins!.settings = { "maplibre-gl-swipe": { position: 50 } };
+    const { redactedPaths } = redactProjectCredentials(original);
+    assert.ok(!redactedPaths.includes("plugins.settings"));
+  });
+
+  it("does not count God's Eye View feed toggles as credentials", () => {
+    // Regression: the plugin's blob is booleans plus a numeric speed, but it was
+    // absent from the allowlist, so every toggle was counted as a credential and
+    // the "Strip credentials?" prompt fired on saving any project, blank ones
+    // included. The count is what drives that prompt, so assert on it directly.
+    const plugins = {
+      manifestUrls: [],
+      activePluginIds: ["gods-eye-view"],
+      settings: {
+        "gods-eye-view": { earthquakes: true, satellites: true, cctv: false, speed: 1 },
+      },
+    };
+    // Measured as a delta against the same project without the blob: the count
+    // is what the prompt shows, and adding feed toggles must not move it.
+    const before = redactProjectCredentials(createEmptyProject("Feed toggles")).redactedCount;
+    const original = createEmptyProject("Feed toggles");
+    original.plugins = plugins;
+    const { project, redactedCount, redactedPaths } = redactProjectCredentials(original);
+
+    assert.equal(redactedCount, before);
+    assert.ok(!redactedPaths.includes("plugins.settings"));
+    // The toggles survive, so a shared project reopens with the same feeds on.
+    assert.deepEqual(project.plugins!.settings["gods-eye-view"], {
+      earthquakes: true,
+      satellites: true,
+      cctv: false,
+      speed: 1,
+    });
+  });
+
+  it("provides a stable schema-level credential decision registry", () => {
+    assert.deepEqual(PROJECT_CREDENTIAL_FIELDS.preferences, [
+      "environmentVariables",
+      "geocoding.apiKeys",
+    ]);
+    assert.ok(PROJECT_CREDENTIAL_FIELDS.layerConfiguration.includes("requestHeaders"));
+    assert.deepEqual(PROJECT_CREDENTIAL_FIELDS.pluginState, ["plugins.settings"]);
+  });
+
+  it("is idempotent", () => {
+    const once = redactCredentials(credentialProject());
+    assert.deepEqual(redactCredentials(once), once);
+  });
+
+  it("returns detached inline GeoJSON", () => {
+    const original = credentialProject();
+    original.layers[0].source = {
+      type: "FeatureCollection",
+      features: [{ type: "Feature", geometry: null, properties: { name: "original" } }],
+    };
+    const safe = redactCredentials(original);
+    const safeSource = safe.layers[0].source as {
+      features: Array<{ properties: { name: string } }>;
+    };
+    safeSource.features[0].properties.name = "changed";
+    assert.equal(
+      (
+        original.layers[0].source as {
+          features: Array<{ properties: { name: string } }>;
+        }
+      ).features[0].properties.name,
+      "original",
+    );
+  });
+
+  it("removes credential-named configuration fields in every spelling", () => {
+    const project = credentialProject();
+    project.layers[0].source = {
+      sasToken: "sas-secret",
+      bearer: "bearer-secret",
+      auth: { user: "u", pass: "auth-secret" },
+      "subscription-key": "subscription-secret",
+      api_key: "underscore-secret",
+      pwd: "pwd-secret",
+      // Azure SAS positional parameters are credentials only inside a query
+      // string; as configuration field names they are ordinary state.
+      sr: 4326,
+      key: "layer-identifier",
+    };
+
+    const { project: safe } = redactProjectCredentials(project);
+    const serialized = serializeProject(safe);
+    for (const secret of [
+      "sas-secret",
+      "bearer-secret",
+      "auth-secret",
+      "subscription-secret",
+      "underscore-secret",
+      "pwd-secret",
+    ]) {
+      assert.ok(!serialized.includes(secret), `redacted ${secret}`);
+    }
+    assert.deepEqual(safe.layers[0].source, { sr: 4326, key: "layer-identifier" });
+  });
+
+  it("strips tokens from the resolved ArcGIS vector-tile sources", () => {
+    // The ArcGIS plugin persists the SDK's resolved sources on the layer so
+    // the Cesium drape can rebuild them; a token-bearing tile URL rides along.
+    const project = credentialProject();
+    project.layers[0] = {
+      ...project.layers[0],
+      type: "arcgis",
+      source: {
+        arcgisSources: {
+          parcels: {
+            type: "vector",
+            tiles: ["https://tiles.example.com/{z}/{x}/{y}.pbf?token=arcgis-secret&f=pbf"],
+          },
+        },
+        arcgisLayers: [
+          { id: "parcels-fill", type: "fill", source: "parcels", "source-layer": "parcels" },
+        ],
+      },
+      metadata: { nativeLayerIds: ["parcels-fill"] },
+    };
+
+    const { project: safe, redactedPaths } = redactProjectCredentials(project);
+    const serialized = serializeProject(safe);
+    assert.ok(!serialized.includes("arcgis-secret"));
+    const sources = safe.layers[0].source.arcgisSources as {
+      parcels: { tiles: string[] };
+    };
+    assert.deepEqual(sources.parcels.tiles, ["https://tiles.example.com/{z}/{x}/{y}.pbf?f=pbf"]);
+    assert.deepEqual(safe.layers[0].source.arcgisLayers, project.layers[0].source.arcgisLayers);
+    assert.ok(redactedPaths.includes("layers[0].source.arcgisSources.parcels.tiles[0]"));
+  });
+
+  it("sweeps a layer's connection record, not only its source", () => {
+    // `lastError` is free-form text from a caught error, so a refresh path that
+    // words it with the request URL must not carry the credential out.
+    const project = credentialProject();
+    project.layers[0].connection = {
+      layerId: "auth",
+      interval: 300,
+      lastSyncedAt: "2026-01-01T00:00:00.000Z",
+      lastError: "Failed to fetch https://example.com/tiles?token=connection-secret",
+      onFailure: "keep-last",
+    };
+
+    const { project: safe, redactedPaths } = redactProjectCredentials(project);
+    assert.ok(!serializeProject(safe).includes("connection-secret"));
+    assert.equal(safe.layers[0].connection?.lastError, "Failed to fetch https://example.com/tiles");
+    assert.equal(safe.layers[0].connection?.interval, 300);
+    assert.ok(redactedPaths.includes("layers[0].connection.lastError"));
+  });
+
+  it("fingerprints the credential values, not just their paths", () => {
+    // The save prompt reuses a remembered Keep only while the fingerprints
+    // match, so a different secret at an unchanged path has to change one.
+    const original = credentialProject();
+    const baseline = redactProjectCredentials(original);
+    assert.equal(baseline.redactedFingerprints.length, baseline.redactedPaths.length);
+    assert.deepEqual(
+      redactProjectCredentials(credentialProject()).redactedFingerprints,
+      baseline.redactedFingerprints,
+    );
+    assert.ok(
+      !baseline.redactedFingerprints.some((fingerprint) => fingerprint.includes("header-secret")),
+    );
+
+    const rotated = credentialProject();
+    (
+      rotated.layers[0].source.nested as { headers: { Authorization: string } }
+    ).headers.Authorization = "Bearer rotated-secret";
+    const after = redactProjectCredentials(rotated);
+    assert.deepEqual(after.redactedPaths, baseline.redactedPaths);
+    assert.notDeepEqual(after.redactedFingerprints, baseline.redactedFingerprints);
+  });
+
+  it("fails closed for a credential it cannot fingerprint", () => {
+    // A fingerprint match skips the Keep confirmation, so a value that cannot
+    // be serialized is reported rather than hashed into something that could
+    // collide with an unrelated one.
+    const project = credentialProject();
+    assert.equal(redactProjectCredentials(project).hasUnfingerprintableCredential, false);
+
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    project.layers[0].source = { token: circular };
+    const result = redactProjectCredentials(project);
+
+    assert.equal(result.hasUnfingerprintableCredential, true);
+    assert.ok(result.redactedPaths.includes("layers[0].source.token"));
+    assert.ok(!result.redactedFingerprints.some((entry) => entry.startsWith("layers[0].source.")));
+    assert.ok(!serializeProject(result.project).includes("self"));
+  });
+
+  it("fails closed when configuration exceeds the traversal depth", () => {
+    let nested: Record<string, unknown> = { arbitrary: "too-deep-secret" };
+    for (let index = 0; index < 12; index += 1) nested = { child: nested };
+    const project = credentialProject();
+    project.layers[0].source = nested;
+
+    const result = redactProjectCredentials(project);
+    assert.ok(!serializeProject(result.project).includes("too-deep-secret"));
+    assert.ok(result.redactedPaths.includes(`layers[0].source${".child".repeat(12)}`));
+  });
+});

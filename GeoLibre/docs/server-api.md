@@ -1,0 +1,452 @@
+# GeoLibre projects and identity API
+
+This document defines version 1 of the HTTP contract used by GeoLibre's
+Project Gallery and **Project → Share** flow. A compatible server may use any
+implementation or storage engine. The reference implementation lives in
+`backend/geolibre_server_api`.
+
+## Conventions
+
+- The base URL is configured with `GEOLIBRE_SHARE_URL` at container runtime
+  (or `VITE_GEOLIBRE_SHARE_URL` at build time).
+- JSON request and response bodies use `application/json` and camel-case keys.
+- Dates are UTC ISO 8601 strings.
+- Authenticated endpoints accept a personal API token or OAuth access token in
+  `Authorization: Bearer <token>`.
+- Error responses are JSON objects with an `error` string. `401` means a
+  missing, invalid, or expired token; `403` means the authenticated principal
+  lacks permission; `404` deliberately covers both a missing project and a
+  project the caller may not discover; `409` is a uniqueness conflict; `422`
+  is malformed input; and `429` is rate limiting.
+- Servers should send `Cache-Control: public, max-age=3600` on immutable raw
+  project versions and may use `ETag`/conditional requests. Private responses
+  must use `Cache-Control: private, no-store`.
+- CORS deployments must allow `Authorization` and `Content-Type` from the
+  GeoLibre web origin. Native desktop requests do not depend on CORS.
+
+## What the reference server leaves to the operator
+
+Deployment protections remain the operator's responsibility:
+
+- **Personal-token lifecycle.** Omitting `expiresInDays` preserves the v1
+  delete-only lifecycle and creates a non-expiring token. Require an explicit
+  1–365 day lifetime where bounded credentials are needed, and revoke or rotate
+  delete-only and legacy tokens operationally.
+- **Rate limiting.** The OAuth consent flow caps pending interactions per
+  browser binding, but a fresh cookie bypasses that cap; the reference server
+  has no general request limiter. Before enabling OAuth publicly, enforce
+  per-client-IP limits at the ingress on **GET and POST** `/oauth/authorize`,
+  `POST /oauth/token`, `POST /api/auth/token`, and `POST /api/accounts`.
+  The last three POSTs include password or token operations; consent login
+  and the PAT/account routes run scrypt. Add per-username limits where the
+  ingress can safely parse credentials. Every public path to the API must go
+  through this limiter: Compose binds the API host port to loopback by default.
+  A root-issuer nginx deployment can put this zone in its `http` context and
+  the location in its TLS issuer `server` context:
+
+  ```nginx
+  # http context
+  limit_req_zone $binary_remote_addr zone=geolibre_auth:10m rate=12r/m;
+
+  # TLS issuer server context; proxy other API routes separately.
+  location ~ ^/(oauth/(authorize|token)|api/(auth/token|accounts))$ {
+      limit_req zone=geolibre_auth burst=6 nodelay;
+      limit_req_status 429;
+      client_max_body_size 16k;
+      access_log off;
+      proxy_pass http://127.0.0.1:8000;
+      proxy_set_header Host $http_host;
+  }
+  ```
+
+  Preserve the original Host authority, including any port, or OAuth host
+  binding rejects the request. Route the issuer's exact discovery URL and
+  other API paths to the same backend; for a path-prefixed issuer, apply the
+  limit to its externally visible prefix and strip that prefix when proxying.
+  Suppress authorization request query strings, callback `Location` headers,
+  and callback request query strings at the web ingress in proxy, WAF, and
+  load-balancer logs.
+- **A request-size limit.** The server rejects an oversized *declared*
+  `Content-Length` before reading the body, but a chunked or HTTP/2 request
+  declares no length and is parsed in full before the per-route limit applies.
+  Cap request size at the proxy as well.
+
+The reference implementation is a correctness baseline, not a hardened
+deployment.
+
+## Limits
+
+| Field | Limit |
+| --- | ---: |
+| project title (derived from the uploaded project) | 100 Unicode code points |
+| username | 3–39 lowercase ASCII letters, digits, or hyphens |
+| slug | 1–100 lowercase ASCII letters, digits, or hyphens |
+| description | 2,000 Unicode code points |
+| tags | 20 tags, 40 Unicode code points each |
+| project document | 50 MiB UTF-8 JSON |
+| thumbnail | 5 MiB; PNG, JPEG, or WebP |
+| `limit` | default 24, maximum 100 |
+
+Servers may configure a smaller upload limit, but must return `413` and an
+`error` explaining that limit.
+
+## Visibility
+
+- `public`: discoverable in the public listing and readable without auth.
+- `unlisted`: omitted from public listings, but readable by anyone holding its
+  URL. It appears in the owner's authenticated listing.
+- `private`: readable and mutable only by its owner. Raw and thumbnail URLs
+  require the same Bearer token as the metadata endpoint.
+
+Changing visibility affects every version immediately. A raw URL is therefore
+not a capability URL for a private project.
+
+## Identity
+
+### `POST /api/accounts`
+
+Creates an account and returns a personal API token once. This endpoint may be
+disabled when an installation delegates identity to an external provider.
+`name`, `scopes`, and `expiresInDays` are optional. New tokens default to all
+three project scopes. Omitting `expiresInDays` preserves the v1 delete-only
+token lifecycle (the token does not expire); the accepted explicit lifetime is
+1–365 days. An unknown or empty `scopes` list returns `400`
+`{"error": "invalid_scope"}`; an `expiresInDays` outside 1–365 returns `400`
+`{"error": "invalid_request"}`.
+
+```json
+{
+  "username": "ada",
+  "password": "correct horse battery staple",
+  "name": "GeoLibre desktop",
+  "scopes": ["read:projects", "write:projects"],
+  "expiresInDays": 30
+}
+```
+
+Response `201`:
+
+```json
+{
+  "account": {"id": "uuid", "username": "ada", "createdAt": "2026-08-03T12:00:00Z"},
+  "token": "secret-token",
+  "tokenId": "uuid",
+  "scopes": ["read:projects", "write:projects"],
+  "expiresAt": "2026-09-02T12:00:00Z"
+}
+```
+
+### `POST /api/auth/token`
+
+Exchanges account credentials for a personal API token. It accepts the same
+optional policy fields and returns the same shape as account creation. Tokens
+are opaque and stored only as SHA-256 digests.
+
+### `DELETE /api/auth/token`
+
+Revokes the presented Bearer token. Response: `204`.
+
+### `GET /api/users/me`
+
+Returns the account, effective project scopes, and OAuth session ID. `sessionId`
+is `null` for personal tokens.
+
+```json
+{
+  "user": {"id": "uuid", "username": "ada", "createdAt": "2026-08-03T12:00:00Z"},
+  "sessionId": "oauth-session-uuid",
+  "scopes": ["read:projects", "write:projects", "share:public"]
+}
+```
+
+An identity provider may create accounts without a username. Project creation
+for such an account must return `400` with an error containing the stable,
+case-insensitive sentinel text `username required`. Existing clients recognize
+that phrase and direct the user to account settings.
+
+## Projects
+
+### Project representation
+
+```json
+{
+  "id": "uuid",
+  "username": "ada",
+  "slug": "wetlands",
+  "title": "Wetlands",
+  "description": "",
+  "visibility": "public",
+  "thumbnailUrl": "/api/projects/uuid/thumbnail",
+  "views": 12,
+  "forkCount": 0,
+  "versionCount": 1,
+  "featured": false,
+  "createdAt": "2026-08-03T12:00:00Z",
+  "updatedAt": "2026-08-03T12:00:00Z",
+  "tags": [],
+  "rawJsonUrl": "https://example.org/ada/wetlands.geolibre.json",
+  "projectUrl": "https://example.org/ada/wetlands",
+  "viewerUrl": "https://example.org/?project=https%3A%2F%2Fexample.org%2Fada%2Fwetlands.geolibre.json"
+}
+```
+
+URLs are absolute except that `thumbnailUrl` may be root-relative. Consumers
+must resolve a relative thumbnail URL against the server base URL. Unknown
+fields must be ignored.
+
+### `POST /api/projects`
+
+Requires auth. Creates a project and its first immutable version.
+
+```json
+{
+  "filename": "Wetlands.geolibre.json",
+  "content": "{\"version\":\"1.0\", ...}",
+  "visibility": "public"
+}
+```
+
+`content` is a string containing a valid GeoLibre project JSON document.
+`filename` supplies a fallback title/slug; the project document's non-empty
+title is authoritative. `visibility` is required and is `public`, `unlisted`,
+or `private`.
+
+Response `201`:
+
+```json
+{"project": {"id": "uuid", "username": "ada", "slug": "wetlands", "projectUrl": "...", "viewerUrl": "...", "rawJsonUrl": "..."}}
+```
+
+The `project` object is the full project representation. In particular,
+`projectUrl` and `rawJsonUrl` are required because the current client treats a
+successful response without them as invalid.
+
+### `GET /api/projects`
+
+Returns a page in newest-updated-first order:
+
+```json
+{"projects": [], "limit": 24, "offset": 0, "total": 0}
+```
+
+Query parameters:
+
+- `limit`: integer page size.
+- `offset`: non-negative number of matching records to skip.
+- `featured=true`: return featured projects only.
+- `mine=true`: return the caller's own projects, including unlisted and private
+  ones. Requires auth; without a valid token this is `401`.
+
+Only public projects are returned unless `mine=true` is set. An Authorization
+header does not broaden a public listing by itself. Invalid pagination is `422`.
+
+### `GET /api/users/{username}/projects`
+
+Returns `{"projects": [...]}` owned by `{username}`, in newest-updated-first
+order. Auth is optional and decides the breadth of the result: when the token
+identifies `{username}`, the listing includes their unlisted and private
+projects; every other caller, authenticated or not, sees only that user's public
+projects. The current client first resolves its username through
+`GET /api/users/me`, then calls this route.
+
+A non-owner therefore gets a filtered `200`, not a `403` — the listing narrows
+rather than refusing, which keeps a user's existence from being probed through
+the status code.
+
+### `GET /api/projects/{id}`
+
+Returns `{"project": <project>}` if visible to the caller.
+
+### `PATCH /api/projects/{id}`
+
+Requires ownership. Accepted fields are `title`, `description`, `visibility`,
+and `tags`. Response: `{"project": <project>}`.
+
+### `PUT /api/projects/{id}/content`
+
+Requires ownership. Creates a new immutable version.
+
+```json
+{"content": "{\"version\":\"1.0\", ...}"}
+```
+
+Response `201`: `{"project": <project>, "version": <positive integer>}`.
+
+### `DELETE /api/projects/{id}`
+
+Requires ownership. Deletes metadata and stored objects. Response: `204`.
+
+### `GET /api/projects/{id}/activity`
+
+Requires ownership. Returns the project's activity log, newest first, capped
+at 100 entries:
+
+```json
+{"activity": [
+  {"id": "…", "action": "visibility_change", "actorId": "…",
+   "details": {"before": "private", "after": "public"}, "createdAt": "…"},
+  {"id": "…", "action": "open", "actorId": null,
+   "details": {"date": "2026-08-21", "count": 40}, "createdAt": "…"}
+]}
+```
+
+Actions and their `details`: `version_save` (`version`), `fork`
+(`forked_project_id`), `visibility_change` (`before`, `after`), `fetch` of
+the raw JSON (`version`) and `open` of the project page. `actorId` is the
+acting account, or `null` for an anonymous visitor. Anonymous `open` and
+`fetch` events are **never stored per visitor**: they are aggregated into one
+row per action and UTC day carrying a `count`, and no IP address or other
+visitor fingerprint is recorded. Rows are pruned after
+`GEOLIBRE_ACTIVITY_RETENTION_DAYS` (default 90) the next time the project logs
+an event. The log is visible only to the owner and never appears in listings.
+
+### `DELETE /api/projects/{id}/activity`
+
+Requires ownership. Deletes every activity row for the project. Response: `204`.
+
+### `POST /api/projects/{id}/forks`
+
+Requires auth. Creates a new project owned by the caller from the visible
+source's latest content. The request body is **optional**: `{"visibility": ...}`
+selects the fork's visibility, and omitting the body entirely (the common "fork
+this project" call) must behave as `{"visibility":"private"}` rather than
+returning `422`. Responds `201` with `{"project": <project>}`. The source
+`forkCount` increases atomically.
+
+### Raw project and website-compatible routes
+
+- `GET /{username}/{slug}.geolibre.json` returns the latest project document
+  with `Content-Type: application/json`.
+- `GET /api/projects/{id}/versions/{version}` returns an immutable historical
+  document.
+- `GET /{username}/{slug}` may return an HTML project page or redirect to the
+  configured GeoLibre viewer. It is the `projectUrl` advertised by the API.
+
+Every successful read of the latest raw document may increment `views`; servers
+must not count failed or unauthorized reads.
+
+### Thumbnails
+
+`PUT /api/projects/{id}/thumbnail` requires ownership and accepts the image
+bytes with their image content type. `GET /api/projects/{id}/thumbnail` follows
+project visibility. `DELETE` removes it. Upload and delete responses are `204`.
+
+## Personal token scopes
+
+| Scope | Grants |
+| --- | --- |
+| `read:projects` | List and open the caller's own projects, including unlisted/private projects |
+| `write:projects` | Create, update, delete, and fork projects owned by the caller |
+| `share:public` | Create a public project or raise a project's visibility to public |
+
+New personal tokens require a nonempty subset of these scopes. Omitting
+`scopes` preserves the historical project permissions for existing clients.
+Omitting `expiresInDays` keeps the token valid until revoked (the v1
+delete-only lifecycle); set `expiresInDays` to 1–365 to mint an expiring token.
+Tokens that predate the policy table are upgraded on first use with all three
+project scopes, no expiry, and a legacy marker.
+
+A valid credential missing a required scope receives `403` with
+`{"error": "insufficient_scope", "requiredScope": "<scope>"}` and
+`WWW-Authenticate: Bearer error="insufficient_scope"`. Missing credentials use
+the `Bearer` challenge; malformed, unknown, revoked, and expired credentials use
+`Bearer error="invalid_token"`.
+
+## OAuth 2.0 sign-in (Authorization Code + S256 PKCE)
+
+The reference server implements Authorization Code with PKCE (`S256` only) for
+public clients; no client secret is accepted. Registrations are exact and
+startup-validated through `GEOLIBRE_OAUTH_CLIENTS`. The only supported client
+IDs are `geolibre-web` and `geolibre-desktop`. Empty or unset configuration
+disables every OAuth route without changing personal-token startup behavior.
+
+The issuer is `GEOLIBRE_PUBLIC_URL`. When OAuth is enabled it must be an
+absolute HTTPS URL. Loopback HTTP is allowed only for `localhost` or
+`127.0.0.1` with an explicit port. The request `Host` header, including its
+port, must match the issuer authority.
+
+### Discovery
+
+`GET /.well-known/oauth-authorization-server` returns RFC 8414 metadata. For an
+issuer with path `/services/projects`, the route is
+`/.well-known/oauth-authorization-server/services/projects`. The document
+advertises the authorization, token, and revocation endpoints; authorization
+code and refresh grants; `S256`; and the three project scopes.
+
+### Authorization and consent
+
+`GET /oauth/authorize` accepts one value each for `response_type=code`,
+`client_id`, exact `redirect_uri`, nonempty `scope`, `state`, `code_challenge`,
+and `code_challenge_method=S256`; `device_label` is optional. State is 16–512
+URL-safe characters. The S256 challenge is the 43-character unpadded base64url
+SHA-256 value.
+
+Duplicate authorization parameters, unknown clients, unregistered redirects,
+and state values longer than 512 characters return a local error page without
+a `Location` header. Other authorization errors redirect to the already
+validated callback with `error`, `iss`, and the exact `state` value when supplied.
+
+`POST /oauth/authorize` submits the server-owned consent form. It requires the
+browser-binding cookie, CSRF value, same-origin `Origin` or `Referer`, and
+account credentials. Approval returns `303` to the exact callback with a
+single-use code, `state`, and `iss`; cancellation returns `access_denied`.
+Authorization codes expire after 60 seconds by default.
+
+Web redirects must be absolute HTTPS URLs ending in `/oauth-callback.html`.
+Explicit-port loopback HTTP is allowed for development. Desktop redirects must
+be exactly `org.geolibre.desktop:/oauth/callback`.
+
+### Token exchange and rotation
+
+`POST /oauth/token` accepts form-urlencoded bodies up to 16 KiB:
+
+- `grant_type=authorization_code` requires `client_id`, `code`,
+  `redirect_uri`, and a 43–128 character `code_verifier`.
+- `grant_type=refresh_token` requires `client_id` and `refresh_token`.
+  Optional `scope` must be the same scope set as the original grant; ordering
+  does not matter.
+
+Success returns:
+
+```json
+{
+  "access_token": "opaque",
+  "token_type": "Bearer",
+  "expires_in": 600,
+  "refresh_token": "opaque",
+  "scope": "read:projects write:projects"
+}
+```
+
+Access tokens expire after 600 seconds by default and never outlive their
+family. Refresh tokens are single-use and rotate on every use. Reusing a
+consumed refresh token revokes the entire family, including tokens minted by
+the successful rotation. A family expires at issuance plus the configured
+refresh TTL (30 days by default); rotation never extends it.
+
+An enabled server deletes bounded batches of expired interactions, access
+tokens, and families at startup, during OAuth requests, and every five minutes
+while running. Consumed refresh generations stay until the family expires so
+replay detection remains effective.
+
+`POST /oauth/revoke` accepts `client_id`, `token`, and optional advisory
+`token_type_hint`. A matching access or refresh token revokes its entire
+family. Unknown, already-revoked, and wrong-client tokens all return the same
+empty `200`.
+
+OAuth failures use `invalid_request`, `invalid_client`, `invalid_grant`,
+`invalid_scope`, `unsupported_grant_type`, or `unsupported_token_type`. Token
+and revocation responses are `no-store`. Raw codes and tokens are returned once;
+the database stores only SHA-256 digests.
+
+OAuth access tokens use the same project scope matrix as personal tokens.
+`admin:org` and `manage:sessions` are reserved for later stacks and are rejected
+by this server.
+
+## Compatibility
+
+The API is additive within version 1. Implementations must not repurpose fields
+or narrow visibility rules. New optional fields and endpoints may be added.
+Breaking changes require a new `/api/v2` namespace. The conformance baseline is
+the frontend tests for `share-geolibre.ts` and `share-gallery.ts`, plus the
+reference server's API tests.
