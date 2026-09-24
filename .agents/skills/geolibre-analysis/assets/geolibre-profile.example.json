@@ -1,0 +1,19 @@
+{
+  "geolibre_skill_profile_version": 1,
+  "status": "ready",
+  "github_owner": "example-user",
+  "repo_full_name": "example-user/GeoLibre",
+  "default_branch": "main",
+  "install_mode": "standalone_repo",
+  "source_path": ".",
+  "analysis_root": "GeoLibre-Web/analysis",
+  "task_script_root": "scripts/geolibre_tasks",
+  "pages_url": "https://example-user.github.io/GeoLibre/",
+  "pages_base_path": "/GeoLibre/",
+  "upstream_repo": "opengeos/GeoLibre",
+  "upstream_ref": "main",
+  "upstream_commit": null,
+  "installed_at": "2026-09-25T00:00:00Z",
+  "last_verified_at": "2026-09-25T00:00:00Z",
+  "notes": []
+}
