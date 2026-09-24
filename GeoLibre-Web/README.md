@@ -29,6 +29,18 @@ Whitebox 數百個工具名稱需另行匯入語言包（同目錄 `geolibre-whi
 
 目前為全臺官方 WMS 影像顯示層，使用 EPSG:4326、2048×2048 全域影像覆蓋，因此縮放時不會重新切換圖磚解析度。圖層標記為 DISPLAY_ONLY，僅供圖資套疊與初步查詢，不取代現地調查、鑽探試驗、法定程序或專業簽證。
 
+## 敏感區學校點位與清單
+
+已依官方向量資料完成全臺學校校園範圍與地質敏感區範圍套疊，共 **597 個學校點位**：
+
+- [直接開啟含學校點位的地圖](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Ftaiwan-geological-sensitive-areas.geolibre.json)
+- [GeoJSON 點位資料](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/school-sensitive-areas.geojson)
+- [CSV 清單](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/school-sensitive-areas.csv)
+- [Markdown 清單](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/school-sensitive-areas.md)
+- [空間分析 QA 紀錄](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/school-sensitive-areas.qa.json)
+
+判定方式是「學校校園範圍 Polygon 與官方地質敏感區 Polygon 相交」；地圖上的點是每個校園範圍的 representative point，並非校地界址或單一校舍位置。資料屬 `SCREENING_REFERENCE`，地質敏感區數值範圍僅供規劃參考，不取代公告圖資、現地調查、鑽探試驗或專業判定。
+
 ## 版本資訊
 
 - 基於 opengeos/GeoLibre（MIT），2026-09-24 同步，自建 `GEOLIBRE_APP_BASE=/good-open-source-collection/GeoLibre-Web/`
