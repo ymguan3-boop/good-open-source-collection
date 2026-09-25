@@ -37,8 +37,8 @@
     }
   },
   "execution_metadata": {
-    "rerun_revision": 2,
-    "reason": "更正預設地下水補注圖層並區分11個校地點位與10所學校",
+    "rerun_revision": 3,
+    "reason": "修正 GeoLibre 專案 GeoJSON 層格式並實際驗證點位渲染",
     "confirmed_at": "2026-09-25"
   }
 }
