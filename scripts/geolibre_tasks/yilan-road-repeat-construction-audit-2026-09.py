@@ -772,15 +772,30 @@ def write_outputs(out, events, roads, result, source_url, diagnostics, quality):
     roads_url=f"{PAGES_ROOT}analysis/{TASK_ID}/roads-context.geojson"
     project={
         "version":"0.2.0","name":"宜蘭縣道路重複施工審計熱點",
-        "mapView":{"center":[121.62,24.67],"zoom":9.3,"bearing":0,"pitch":0},
+        "mapView":{"center":[121.74835,24.70388],"zoom":11,"bearing":0,"pitch":0},
         "basemapStyleUrl":"https://tiles.openfreemap.org/styles/liberty","basemapVisible":True,
         "layers":[
-            {"id":"repeat-hotspots","name":"重複施工查核熱點","type":"geojson","source":{"type":"geojson","data":overview_url},"visible":True,"opacity":1,"style":{"circleColor":"#dc2626","circleRadius":7,"circleStrokeColor":"#ffffff","circleStrokeWidth":1},"metadata":{"popupFields":["cluster_id","road_names","event_count","short_repeat_pair_count","min_short_gap_days","event_types","trigger_reason","audit_priority"]}},
-            {"id":"construction-events","name":"施工案件證據點／線","type":"geojson","source":{"type":"geojson","data":events_url},"visible":False,"opacity":0.65,"style":{"circleColor":"#2563eb","circleRadius":4,"strokeColor":"#2563eb","strokeWidth":2}},
-            {"id":"road-centerline-context","name":"道路中心線（OSM補充）","type":"geojson","source":{"type":"geojson","data":roads_url},"visible":False,"opacity":0.35,"style":{"strokeColor":"#64748b","strokeWidth":1}},
+            {
+                "id":"repeat-hotspots","name":"重複施工查核熱點","type":"geojson",
+                "source":{"type":"geojson"},"geojson":json.loads((out/"overview.geojson").read_text(encoding="utf-8")),
+                "visible":True,"opacity":1,
+                "style":{"fillColor":"#dc2626","fillOpacity":0.95,"strokeColor":"#ffffff","strokeWidth":2,"circleRadius":9},
+                "metadata":{"popupFields":["cluster_id","road_names","event_count","short_repeat_pair_count","min_short_gap_days","event_types","trigger_reason","audit_priority"]}
+            },
+            {
+                "id":"construction-events","name":"施工案件證據","type":"geojson",
+                "source":{"type":"geojson"},"geojson":json.loads((out/"events.geojson").read_text(encoding="utf-8")),
+                "visible":False,"opacity":0.65,
+                "style":{"fillColor":"#2563eb","fillOpacity":0.25,"strokeColor":"#2563eb","strokeWidth":2,"circleRadius":5},
+                "metadata":{"popupFields":["event_id","project_name","road_name","unit","purpose","event_type","start_date","end_date"]}
+            }
         ],
         "selectedLayerId":"repeat-hotspots",
-        "metadata":{"generatedAt":now_utc(),"analysisRole":"AUDIT_SCREENING_REFERENCE","sourceUrl":source_url,"limitations":summary["limitations"]}
+        "metadata":{
+            "generatedAt":now_utc(),"analysisRole":"AUDIT_SCREENING_REFERENCE","sourceUrl":source_url,
+            "limitations":summary["limitations"],
+            "compatibilityNote":"GeoJSON is embedded inline because the deployed GeoLibre loader is verified to render layer.geojson with source.type=geojson."
+        }
     }
     (out/"map.geolibre.json").write_text(json.dumps(project,ensure_ascii=False,separators=(",",":")),encoding="utf-8")
     viewer=PAGES_ROOT+"?locale=zh-TW&loading=true&url="
