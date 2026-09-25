@@ -107,6 +107,22 @@ jobs:
         run: |
           python "${{ steps.task.outputs.script }}"
 
+      - name: Optimize GeoLibre project for web/mobile
+        shell: bash
+        env:
+          OUTPUT_DIR: ${{ steps.task.outputs.output_dir }}
+          GEOLIBRE_PROJECT_TARGET_BYTES: 2097152
+          GEOLIBRE_PROJECT_HARD_BYTES: 5242880
+          GEOLIBRE_INLINE_LAYER_MAX_BYTES: 262144
+          GEOLIBRE_INITIAL_LOAD_SOFT_BYTES: 6291456
+          GEOLIBRE_INITIAL_LOAD_HARD_BYTES: 12582912
+        run: |
+          if [ ! -f ".geolibre/tools/optimize-project.py" ]; then
+            echo "Missing .geolibre/tools/optimize-project.py"
+            exit 1
+          fi
+          python ".geolibre/tools/optimize-project.py" "${OUTPUT_DIR}"
+
       - name: Validate required outputs
         shell: bash
         env:
@@ -124,13 +140,25 @@ jobs:
               out / "result.xlsx",
               out / "report.md",
               out / "summary.json",
+              out / "performance.json",
           ]
           missing = [str(p) for p in required if not p.exists()]
           if missing:
               raise SystemExit("Missing required outputs: " + ", ".join(missing))
           summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+          perf = json.loads((out / "performance.json").read_text(encoding="utf-8"))
+          if not perf.get("project_budget_ok", False):
+              raise SystemExit("Project-size hard budget failed")
+          if not perf.get("inline_budget_ok", False):
+              raise SystemExit("Inline GeoJSON budget failed")
+          if not perf.get("mobile_hard_budget_ok", False):
+              raise SystemExit("Mobile initial-load hard budget failed")
           print("Result count:", summary.get("result_count", "unknown"))
           print("High-risk count:", summary.get("high_risk_count", "unknown"))
+          print("Project bytes:", perf.get("project_final_bytes", "unknown"))
+          print("Initial-load estimate:", perf.get("initial_load_bytes_estimate", "unknown"))
+          if not perf.get("mobile_soft_budget_ok", True):
+              print("WARNING: soft mobile budget exceeded; consider an even smaller overview.")
           PY
 
       - name: Commit generated analysis outputs
