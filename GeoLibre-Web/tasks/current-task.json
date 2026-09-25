@@ -60,8 +60,8 @@
   },
   "performance_policy_version": 5,
   "execution_metadata": {
-    "rerun_revision": 4,
-    "reason": "縮短Overpass補充查詢timeout，避免外部端點不回應阻塞；官方資料與衍生範圍快取維持不變",
-    "confirmed_at": "2026-09-25T11:55:00+08:00"
+    "rerun_revision": 5,
+    "reason": "官方地質敏感區RAR解壓縮改用unrar-free優先，7z作備援",
+    "confirmed_at": "2026-09-25T12:00:00+08:00"
   }
 }
