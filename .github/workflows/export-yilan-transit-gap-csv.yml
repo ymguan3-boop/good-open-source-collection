@@ -1,0 +1,22 @@
+name: Export Yilan transit-gap CSV artifact
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/export-yilan-transit-gap-csv.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yilan-vulnerable-transit-gap-csv
+          path: GeoLibre-Web/analysis/yilan-vulnerable-transit-gap/result.csv
+          if-no-files-found: error
