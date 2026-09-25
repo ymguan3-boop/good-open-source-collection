@@ -17,7 +17,7 @@ from typing import Any
 import geopandas as gpd
 import pandas as pd
 import requests
-from shapely.geometry import Point, Polygon, mapping
+from shapely.geometry import Point, Polygon, mapping, shape
 from shapely.ops import unary_union
 
 
@@ -161,6 +161,23 @@ def scope_from_official_boundary(session: requests.Session, temp: Path, substitu
         }
     except Exception as exc:
         substitutions.append(f"官方 NLSC 縣市界線下載或解析失敗：{exc}")
+        static_scope_path = Path("GeoLibre-Web/analysis-inputs/yilan-county-scope.geojson")
+        if static_scope_path.exists():
+            payload = json.loads(static_scope_path.read_text(encoding="utf-8"))
+            features = payload.get("features", [])
+            if features and features[0].get("geometry"):
+                substitutions.append("使用已驗證的宜蘭縣範圍快取：由官方 NLSC 鄉鎮市區界線聯集並以約100公尺容差簡化")
+                return shape(features[0]["geometry"]), {
+                    "name": "宜蘭縣縣界（NLSC鄉鎮市區界線衍生快取）",
+                    "provider": "內政部國土測繪中心（衍生）",
+                    "dataset_url": "https://data.gov.tw/dataset/7441",
+                    "download_url": "https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-county-scope.geojson",
+                    "retrieved_at": now_utc(),
+                    "source_crs": "EPSG:3826",
+                    "analysis_crs": ANALYSIS_CRS,
+                    "role": "derived_scope_boundary_cache",
+                    "limitation": "由官方鄉鎮市區界線聯集並以約100公尺容差簡化，僅供本次縣級範圍篩選；不取代官方縣市界線原始檔。",
+                }
         try:
             response = session.get(
                 URLS["county_boundary_arcgis_query"],
