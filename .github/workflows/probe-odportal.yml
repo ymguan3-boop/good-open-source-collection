@@ -30,9 +30,9 @@ jobs:
                   print("\n=== PAGE ===", u, r.status_code, r.url, r.headers.get("content-type"), len(r.content))
                   text = html.unescape(r.text).replace("\\/","/")
                   hrefs = set()
-                  for h in re.findall(r'href\\s*=\\s*["\\']([^"\\']+)["\\']', text, flags=re.I):
+                  for h in re.findall("href\\\\s*=\\\\s*[\\\"']([^\\\"']+)[\\\"']", text, flags=re.I):
                       hrefs.add(urljoin(r.url,h))
-                  for h in re.findall(r'https?://[^"\\'<>\\s]+', text):
+                  for h in re.findall("https?://[^\\\"'<>\\\\s]+", text):
                       hrefs.add(h.rstrip(");,"))
                   for h in sorted(hrefs):
                       low=h.lower()
