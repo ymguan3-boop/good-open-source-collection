@@ -6,63 +6,68 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/analyze-yilan-transit-gap.yml"
+      - ".github/scripts/build_yilan_vulnerable_transit_gap.py"
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: analyze-yilan-vulnerable-transit-gap
+  cancel-in-progress: true
 
 jobs:
-  inspect-segis:
+  analyze:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
-      - name: Download and inspect SEGIS GeoJSON
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install GeoLibre MCP runtime
         run: |
-          python -m pip install requests
+          python -m pip install --upgrade pip
+          python -m pip install requests "mcp>=2.0" "anywidget>=0.9" "traitlets>=5" "jupyter-ui-poll>=0.2"
+          PYTHONPATH=GeoLibre/python/src python -m geolibre.mcp --help
+
+      - name: Build analysis with official SEGIS data and GeoLibre MCP
+        run: |
+          PYTHONPATH=GeoLibre/python/src python .github/scripts/build_yilan_vulnerable_transit_gap.py
+
+      - name: Verify standard text deliverables
+        run: |
+          OUT="GeoLibre-Web/analysis/yilan-vulnerable-transit-gap"
+          test -s "$OUT/map.geolibre.json"
+          test -s "$OUT/result.csv"
+          test -s "$OUT/report.md"
+          test -s "$OUT/summary.json"
           python - <<'PY'
-          import requests, json, re, xml.etree.ElementTree as ET
-
-          urls = {
-            "economic": "https://segisws.moi.gov.tw/STATWSSTData/OpenService.asmx/GetAdminSTDataForOpenCode?oCode=ECC48479C0B91632E91C5874DF23C60E51A1FBEE829C41DB1C77A88194F09938EEEF8D4FBBD14F1FEDD4BAFEE0D072B7DDE79C332EB9258D",
-            "convenience": "https://segisws.moi.gov.tw/STATWSSTData/OpenService.asmx/GetAdminSTDataForOpenCode?oCode=ECC48479C0B91632E91C5874DF23C60E51A1FBEE829C41DB1C77A88194F09938197BD211528B77F4EDD4BAFEE0D072B7DDE79C332EB9258D",
-          }
-          def parse(text):
-            text=text.lstrip("\ufeff").strip()
-            if text.startswith("<"):
-              root=ET.fromstring(text)
-              text="".join(root.itertext()).strip()
-            try:
-              return json.loads(text)
-            except Exception:
-              # Some services double-encode JSON.
-              obj=json.loads(text.strip('"'))
-              return obj
-
-          for name,url in urls.items():
-            r=requests.get(url,headers={"User-Agent":"Mozilla/5.0"},timeout=90)
-            print("\n===",name,"status",r.status_code,"bytes",len(r.content),"ctype",r.headers.get("content-type"),"===")
-            r.raise_for_status()
-            obj=parse(r.text)
-            print("root type",type(obj).__name__)
-            if isinstance(obj,dict):
-              print("root keys",list(obj)[:30])
-              fs=obj.get("features") or obj.get("Features") or []
-            elif isinstance(obj,list):
-              fs=obj
-            else:
-              fs=[]
-            print("feature/row count",len(fs))
-            if fs:
-              first=fs[0]
-              props=first.get("properties",first) if isinstance(first,dict) else first
-              print("property keys",list(props)[:80] if isinstance(props,dict) else type(props).__name__)
-              # identify county property names/values
-              y=[]
-              for x in fs:
-                p=x.get("properties",x) if isinstance(x,dict) else {}
-                if any("宜蘭" in str(v) for v in p.values()):
-                  y.append(p)
-              print("Yilan rows",len(y))
-              for p in y[:5]:
-                print("YILAN_SAMPLE",json.dumps(p,ensure_ascii=False)[:4000])
+          import json
+          from pathlib import Path
+          p=Path("GeoLibre-Web/analysis/yilan-vulnerable-transit-gap/summary.json")
+          j=json.loads(p.read_text(encoding="utf-8"))
+          assert j["status"]=="completed"
+          assert j["result_count"]==233
+          assert j["mcp_validation"]["status"]=="pass"
+          print("standard deliverables OK; top result:", j["top_results"][0])
           PY
+
+      - name: Commit analysis results
+        run: |
+          OUT="GeoLibre-Web/analysis/yilan-vulnerable-transit-gap"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT/map.geolibre.json" "$OUT/result.csv" "$OUT/report.md" "$OUT/summary.json"
+          if git diff --cached --quiet; then
+            echo "No analysis changes."
+          else
+            git commit -m "feat(gis): add Yilan vulnerable elderly transit-gap analysis"
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase "origin/${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
