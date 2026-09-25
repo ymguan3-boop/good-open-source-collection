@@ -6,7 +6,8 @@ on:
     paths:
       - ".github/workflows/geolibre-viewer-qa.yml"
       - "scripts/geolibre-viewer-qa.mjs"
-      - "GeoLibre-Web/analysis/yilan-road-repeat-construction-audit-2026-09/**"
+      - "GeoLibre-Web/analysis/yilan-road-repeat-construction-audit-2026-09/map.geolibre.json"
+      - "GeoLibre-Web/analysis/yilan-road-repeat-construction-audit-2026-09/index.html"
   workflow_dispatch:
 
 permissions:
