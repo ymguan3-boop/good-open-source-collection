@@ -62,13 +62,26 @@ jobs:
           if [ ! -d "$GEOLIBRE_QA_DIR" ]; then
             exit 0
           fi
+
+          tmp_dir=$(mktemp -d)
+          cp -a "$GEOLIBRE_QA_DIR" "$tmp_dir/qa"
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Preserve any commits that landed while Playwright was running, then
+          # restore the just-generated QA evidence on top of the latest main.
+          git fetch origin main
+          git reset --hard origin/main
+          rm -rf "$GEOLIBRE_QA_DIR"
+          mkdir -p "$(dirname "$GEOLIBRE_QA_DIR")"
+          cp -a "$tmp_dir/qa" "$GEOLIBRE_QA_DIR"
+
           git add "$GEOLIBRE_QA_DIR"
           if git diff --cached --quiet; then
             echo "No QA changes to commit."
             exit 0
           fi
+
           git commit -m "test(gis): record GeoLibre viewer screen QA"
-          git pull --rebase origin main
-          git push
+          git push origin HEAD:main
