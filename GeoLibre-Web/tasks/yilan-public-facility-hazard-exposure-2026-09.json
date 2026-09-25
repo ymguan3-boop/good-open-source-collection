@@ -37,8 +37,8 @@
     }
   },
   "execution_metadata": {
-    "rerun_revision": 6,
-    "reason": "同步修正醫療來源實際納入衛生室之說明，並發布無技術錯誤堆疊的白話報告",
+    "rerun_revision": 7,
+    "reason": "依最新技能完整章節重寫正式報告，重新分析並執行自架／官方 GeoLibre 桌面與 Android viewport QA",
     "confirmed_at": "2026-09-25"
   }
 }
