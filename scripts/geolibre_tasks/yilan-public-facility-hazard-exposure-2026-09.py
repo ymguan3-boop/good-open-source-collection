@@ -102,6 +102,11 @@ def extract_archive(payload: bytes, filename: str, root: Path) -> Path:
         attempt = subprocess.run([unrar, "x", "-o+", str(archive), str(extracted)], capture_output=True, text=True)
         if attempt.returncode == 0:
             return extracted
+    unar = shutil.which("unar")
+    if signature.startswith(b"Rar!") and unar:
+        attempt = subprocess.run([unar, "-f", "-o", str(extracted), str(archive)], capture_output=True, text=True)
+        if attempt.returncode == 0:
+            return extracted
     seven_zip = shutil.which("7z") or shutil.which("7zz")
     if not seven_zip:
         raise RuntimeError(f"需要 7z 解壓縮官方 GIS 壓縮檔，但執行環境未提供：{filename}")
