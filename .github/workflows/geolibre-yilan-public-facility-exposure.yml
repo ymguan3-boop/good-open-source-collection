@@ -104,7 +104,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y p7zip-full unrar-free unar
           python -m pip install --upgrade pip
-          pip install numpy pandas requests pillow pyproj shapely geopandas rasterio scipy scikit-learn openpyxl
+          pip install numpy pandas requests pillow pyproj shapely geopandas rasterio scipy scikit-learn openpyxl markdown
 
       - name: Run GeoLibre GIS analysis
         if: steps.task.outputs.execution_mode != 'postprocess_only'
@@ -147,6 +147,11 @@ jobs:
               out / "result.csv",
               out / "result.xlsx",
               out / "report.md",
+              out / "report.html",
+              out / "sensitive-schools.geojson",
+              out / "sensitive-schools.csv",
+              out / "scope.geojson",
+              out / "index.html",
               out / "summary.json",
               out / "performance.json",
           ]
@@ -163,6 +168,24 @@ jobs:
               raise SystemExit("Default-visible thematic layer budget failed")
           if not perf.get("mobile_hard_budget_ok", False):
               raise SystemExit("Mobile initial-load hard budget failed")
+          result = json.loads((out / "result.geojson").read_text(encoding="utf-8"))
+          schools = json.loads((out / "sensitive-schools.geojson").read_text(encoding="utf-8"))
+          project = json.loads((out / "map.geolibre.json").read_text(encoding="utf-8"))
+          if len(result.get("features", [])) != summary["result_count"]:
+              raise SystemExit("Result GeoJSON and summary count differ")
+          if len(schools.get("features", [])) != summary["schools_inside_geological_sensitive_area_count"]:
+              raise SystemExit("School GeoJSON and summary count differ")
+          layers = {layer["id"]: layer for layer in project.get("layers", [])}
+          for layer_id, count in [("yilan-public-facility-exposure", summary["result_count"]), ("yilan-sensitive-schools", summary["schools_inside_geological_sensitive_area_count"])]:
+              layer = layers.get(layer_id, {})
+              if len(layer.get("geojson", {}).get("features", [])) != count:
+                  raise SystemExit(f"Map layer {layer_id} does not embed the expected features")
+          report = (out / "report.md").read_text(encoding="utf-8")
+          for section in ["## 先看結果", "## 打開地圖", "## 每個輸出檔案到底是什麼", "## 資料來源連結與採用依據", "## 總結"]:
+              if section not in report:
+                  raise SystemExit(f"Human-readable report is missing: {section}")
+          if "<table>" not in (out / "report.html").read_text(encoding="utf-8"):
+              raise SystemExit("Browser-readable report has no rendered data tables")
           print("Result count:", summary.get("result_count", "unknown"))
           print("High-risk count:", summary.get("high_risk_count", "unknown"))
           print("Project bytes:", perf.get("project_final_bytes", "unknown"))
