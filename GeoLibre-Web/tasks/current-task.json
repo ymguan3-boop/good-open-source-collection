@@ -60,8 +60,8 @@
   },
   "performance_policy_version": 5,
   "execution_metadata": {
-    "rerun_revision": 3,
-    "reason": "第二輪誤選新北市道路資料且全縣Overpass查詢504；加入宜蘭行政區來源驗證，並將道路中心線改為四分區Overpass雙端點查詢",
+    "rerun_revision": 4,
+    "reason": "已由ODPortal頁面確認宜蘭官方XML資源 YilanDigweb/Download/XML/dig.xml；改用直接宜蘭來源並將OSM道路中心線降為非阻斷性輔助圖層",
     "confirmed_at": "2026-09-25T20:17:00+08:00"
   }
 }
