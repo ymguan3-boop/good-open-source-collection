@@ -7,7 +7,7 @@
 - 核心判斷：設施點位符合任一災害群組即納入；學校直接落在地質敏感區內者另列，不把僅鄰近者算入區內清單
 - 可分析設施點位：291 筆；命中：111 筆；未命中：180 筆
 - 重要子結果：23 筆命中兩種以上災害群組；敏感區內學校 11 筆代表點、10 所學校
-- 報告更新時間：2026-09-25T16:27:10+00:00（UTC）
+- 報告更新時間：2026-09-25T16:37:02+00:00（UTC）
 
 ## 方法
 
@@ -67,16 +67,16 @@
 
 | 提供單位與資料 | 官方資料集／服務 | 取得日期與座標系統 | 用途及限制 |
 |---|---|---|---|
-| 內政部國土測繪中心（衍生）・[宜蘭縣縣界（NLSC鄉鎮市區界線衍生快取）](https://data.gov.tw/dataset/7441) | [https://data.gov.tw/dataset/7441](https://data.gov.tw/dataset/7441) | 未標示；取得／快取日期 2026-09-25T16:26:56+00:00；EPSG:4326 → EPSG:3826 | derived scope boundary cache。原始 NLSC 鄉鎮市區界線為 EPSG:3826；快取為 EPSG:4326，由宜蘭縣各鄉鎮市區聯集並以約100公尺容差簡化，僅供本次縣級範圍篩選。 |
+| 內政部國土測繪中心（衍生）・[宜蘭縣縣界（NLSC鄉鎮市區界線衍生快取）](https://data.gov.tw/dataset/7441) | [https://data.gov.tw/dataset/7441](https://data.gov.tw/dataset/7441) | 未標示；取得／快取日期 2026-09-25T16:36:48+00:00；EPSG:4326 → EPSG:3826 | derived scope boundary cache。原始 NLSC 鄉鎮市區界線為 EPSG:3826；快取為 EPSG:4326，由宜蘭縣各鄉鎮市區聯集並以約100公尺容差簡化，僅供本次縣級範圍篩選。 |
 | 內政部國土測繪中心・[國土測繪中心醫療設施 API 宜蘭分格衍生點位](https://data.gov.tw/dataset/139250) | [https://data.gov.tw/dataset/139250](https://data.gov.tw/dataset/139250) | 未標示；取得／快取日期 2026-09-25T12:35:34.797175+00:00；EPSG:4326 → EPSG:3826 | official hospital and health center points。僅納入名稱核對為醫院、衛生所或衛生室的地標；不代表完整診所或醫療機構名冊。 |
 | 數位發展部・[iTaiwan 宜蘭政府機關熱點代理點](https://data.gov.tw/dataset/5962) | [https://data.gov.tw/dataset/5962](https://data.gov.tw/dataset/5962) | 未標示；取得／快取日期 2026-09-25T12:38:53.492533+00:00；EPSG:4326 → EPSG:3826 | government office location proxy points not complete roster。熱點位置僅可當政府機關位置代理點；以約10公尺精度座標聚合相同場址，可能合併同址不同機關；僅涵蓋設有 iTaiwan 熱點且名稱符合條件的機關，不是政府機關完整名冊。 |
-| 內政部國土測繪中心（衍生）・[各級學校範圍圖_121分帶（宜蘭衍生點位快取）](https://data.gov.tw/dataset/174606) | [https://data.gov.tw/dataset/174606](https://data.gov.tw/dataset/174606) | 未標示；取得／快取日期 2026-09-25T16:26:57+00:00；EPSG:4326 → EPSG:3826 | official school campus representative points cache。由 NLSC 1150409 版 121 分帶校地 polygon 依校碼、校名及資料月份合併後取 representative point；快取輸出為 EPSG:4326，校點不代表校門或校舍。 |
-| 內政部消防署・[救援與應變單位點位](https://data.gov.tw/dataset/5969) | [https://data.gov.tw/dataset/5969](https://data.gov.tw/dataset/5969) | 未標示；取得／快取日期 2026-09-25T16:26:59+00:00；EPSG:4326 → EPSG:3826 | official fire station points。僅取名稱含「分隊」的紀錄。此版 CSV 欄名為 X座標_TWD97TM121／Y座標_TWD97TM121，但數值約121／24，實際為經緯度；程式依數值範圍判讀為 EPSG:4326 並轉至 EPSG:3826，建議與消防署複核欄位詮釋。 |
-| 經濟部地質調查及礦業管理中心・[地質敏感區 G0003 宜蘭平原](https://data.gov.tw/dataset/27744) | [https://data.gov.tw/dataset/27744](https://data.gov.tw/dataset/27744) | 103年12月26日；取得／快取日期 2026-09-25T16:27:00+00:00；EPSG:3826 → EPSG:3826 | official geological sensitive area。數值範圍為規劃參考；實際範圍與法定判定以公告圖資、主管機關及專業程序為準。 |
-| 經濟部地質調查及礦業管理中心・[地質敏感區 H0010 龜山島火山碎屑堆積層](https://data.gov.tw/dataset/27744) | [https://data.gov.tw/dataset/27744](https://data.gov.tw/dataset/27744) | 104年6月26日；取得／快取日期 2026-09-25T16:27:00+00:00；EPSG:3826 → EPSG:3826 | official geological sensitive area。數值範圍為規劃參考；實際範圍與法定判定以公告圖資、主管機關及專業程序為準。 |
-| 經濟部地質調查及礦業管理中心・[地質敏感區 L0016 宜蘭縣](https://data.gov.tw/dataset/27744) | [https://data.gov.tw/dataset/27744](https://data.gov.tw/dataset/27744) | 105年8月29日；取得／快取日期 2026-09-25T16:27:06+00:00；EPSG:3826 → EPSG:3826 | official geological sensitive area。數值範圍為規劃參考；實際範圍與法定判定以公告圖資、主管機關及專業程序為準。 |
-| 國家科學及技術委員會・[近5年淹水災點資料](https://data.gov.tw/dataset/130016) | [https://data.gov.tw/dataset/130016](https://data.gov.tw/dataset/130016) | ['2021', '2022', '2024', '2025']；取得／快取日期 2026-09-25T16:27:07+00:00；EPSG:3826 → EPSG:3826 | official historical flood points。本次官方檔案 year 欄位涵蓋全國2021–2025；宜蘭子集2023年沒有紀錄。資料集網頁仍註記2023年產製，與檔案年度不一致；2026年事件不在此檔。局部、零星都市道路或農漁塭淹水可能未納入。 |
-| 農業部農村發展及水土保持署・[115年度1753條土石流潛勢溪流影響範圍圖](https://data.gov.tw/dataset/176526) | [https://data.gov.tw/dataset/176526](https://data.gov.tw/dataset/176526) | 未標示；取得／快取日期 2026-09-25T16:27:10+00:00；EPSG:3826 → EPSG:3826 | official debris flow impact area。僅使用影響範圍幾何，未使用原始屬性中的風險分級欄位；潛勢／影響範圍不代表災害必然發生，也不取代現勘或法定審查。 |
+| 內政部國土測繪中心（衍生）・[各級學校範圍圖_121分帶（宜蘭衍生點位快取）](https://data.gov.tw/dataset/174606) | [https://data.gov.tw/dataset/174606](https://data.gov.tw/dataset/174606) | 未標示；取得／快取日期 2026-09-25T16:36:49+00:00；EPSG:4326 → EPSG:3826 | official school campus representative points cache。由 NLSC 1150409 版 121 分帶校地 polygon 依校碼、校名及資料月份合併後取 representative point；快取輸出為 EPSG:4326，校點不代表校門或校舍。 |
+| 內政部消防署・[救援與應變單位點位](https://data.gov.tw/dataset/5969) | [https://data.gov.tw/dataset/5969](https://data.gov.tw/dataset/5969) | 未標示；取得／快取日期 2026-09-25T16:36:51+00:00；EPSG:4326 → EPSG:3826 | official fire station points。僅取名稱含「分隊」的紀錄。此版 CSV 欄名為 X座標_TWD97TM121／Y座標_TWD97TM121，但數值約121／24，實際為經緯度；程式依數值範圍判讀為 EPSG:4326 並轉至 EPSG:3826，建議與消防署複核欄位詮釋。 |
+| 經濟部地質調查及礦業管理中心・[地質敏感區 G0003 宜蘭平原](https://data.gov.tw/dataset/27744) | [https://data.gov.tw/dataset/27744](https://data.gov.tw/dataset/27744) | 103年12月26日；取得／快取日期 2026-09-25T16:36:52+00:00；EPSG:3826 → EPSG:3826 | official geological sensitive area。數值範圍為規劃參考；實際範圍與法定判定以公告圖資、主管機關及專業程序為準。 |
+| 經濟部地質調查及礦業管理中心・[地質敏感區 H0010 龜山島火山碎屑堆積層](https://data.gov.tw/dataset/27744) | [https://data.gov.tw/dataset/27744](https://data.gov.tw/dataset/27744) | 104年6月26日；取得／快取日期 2026-09-25T16:36:52+00:00；EPSG:3826 → EPSG:3826 | official geological sensitive area。數值範圍為規劃參考；實際範圍與法定判定以公告圖資、主管機關及專業程序為準。 |
+| 經濟部地質調查及礦業管理中心・[地質敏感區 L0016 宜蘭縣](https://data.gov.tw/dataset/27744) | [https://data.gov.tw/dataset/27744](https://data.gov.tw/dataset/27744) | 105年8月29日；取得／快取日期 2026-09-25T16:36:58+00:00；EPSG:3826 → EPSG:3826 | official geological sensitive area。數值範圍為規劃參考；實際範圍與法定判定以公告圖資、主管機關及專業程序為準。 |
+| 國家科學及技術委員會・[近5年淹水災點資料](https://data.gov.tw/dataset/130016) | [https://data.gov.tw/dataset/130016](https://data.gov.tw/dataset/130016) | ['2021', '2022', '2024', '2025']；取得／快取日期 2026-09-25T16:36:59+00:00；EPSG:3826 → EPSG:3826 | official historical flood points。本次官方檔案 year 欄位涵蓋全國2021–2025；宜蘭子集2023年沒有紀錄。資料集網頁仍註記2023年產製，與檔案年度不一致；2026年事件不在此檔。局部、零星都市道路或農漁塭淹水可能未納入。 |
+| 農業部農村發展及水土保持署・[115年度1753條土石流潛勢溪流影響範圍圖](https://data.gov.tw/dataset/176526) | [https://data.gov.tw/dataset/176526](https://data.gov.tw/dataset/176526) | 未標示；取得／快取日期 2026-09-25T16:37:02+00:00；EPSG:3826 → EPSG:3826 | official debris flow impact area。僅使用影響範圍幾何，未使用原始屬性中的風險分級欄位；潛勢／影響範圍不代表災害必然發生，也不取代現勘或法定審查。 |
 
 | 來源取得狀況 | 本次處理方式 |
 |---|---|
