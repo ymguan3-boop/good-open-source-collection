@@ -49,19 +49,21 @@
       "report.md",
       "source-diagnostics.json",
       "performance.json",
-      "index.html"
+      "index.html",
+      "source-snapshot.json"
     ],
     "source_catalog": {
       "yilan_public_query": "https://mntengmgt.e-land.gov.tw/YilandSvc/",
       "odportal_snapshot": "https://odportal.tw/dataset/DSNTMGUM",
       "odportal_cdn_snapshot": "https://cdn.odportal.tw/dataset/DSNTMGUM",
-      "osm_overpass": "https://overpass-api.de/api/interpreter"
+      "osm_overpass": "https://overpass-api.de/api/interpreter",
+      "odportal_resourcedata": "https://cdn.odportal.tw/api/v1/resourcedata/DSNTMGUM/61b504bb6e97860024674b09.csv"
     }
   },
   "performance_policy_version": 5,
   "execution_metadata": {
-    "rerun_revision": 4,
-    "reason": "已由ODPortal頁面確認宜蘭官方XML資源 YilanDigweb/Download/XML/dig.xml；改用直接宜蘭來源並將OSM道路中心線降為非阻斷性輔助圖層",
+    "rerun_revision": 5,
+    "reason": "已驗證 ODPortal resourcedata 可直接回傳宜蘭道路挖掘 XML，含 2026-09-24 案件；改用該端點、解析 CASE_DETAIL/GML 施工多邊形並建立 source-snapshot.json 備援",
     "confirmed_at": "2026-09-25T20:17:00+08:00"
   }
 }
