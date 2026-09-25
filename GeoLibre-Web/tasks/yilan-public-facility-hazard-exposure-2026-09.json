@@ -37,8 +37,8 @@
     }
   },
   "execution_metadata": {
-    "rerun_revision": 7,
-    "reason": "依最新技能完整章節重寫正式報告，重新分析並執行自架／官方 GeoLibre 桌面與 Android viewport QA",
-    "confirmed_at": "2026-09-25"
+    "rerun_revision": 8,
+    "reason": "修正空錯誤陣列判讀與行動版圖層面板展開檢查，重新分析並完成自架／官方 GeoLibre 桌面與 Android viewport QA，更新正式報告",
+    "confirmed_at": "2026-09-26"
   }
 }
