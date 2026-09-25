@@ -19,5 +19,6 @@
   "notes": [
     "Initial-load estimate includes project JSON plus optimizer-created visible GeoJSON files only.",
     "Hidden layers and third-party/service URLs may still have runtime costs not estimated here."
-  ]
+  ],
+  "project_original_bytes_peak": 18621728
 }
