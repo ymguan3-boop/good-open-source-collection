@@ -873,6 +873,7 @@ def main() -> None:
             provider="內政部國土測繪中心", dataset_url="https://data.gov.tw/dataset/139250",
             role="official_hospital_and_health_center_points",
         )
+        medical_source["limitation"] = "僅納入名稱核對為醫院、衛生所或衛生室的地標；不代表完整診所或醫療機構名冊。"
         source_records.append(medical_source)
         government, government_source = build_cached_facility_points(
             "yilan-government-hotspot-proxies.geojson", scope,
