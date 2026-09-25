@@ -1,0 +1,38 @@
+name: Analyze Yilan vulnerable-transit gap
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/analyze-yilan-transit-gap.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-segis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Inspect SEGIS service links
+        run: |
+          python -m pip install requests beautifulsoup4
+          python - <<'PY'
+          import requests, re
+          from bs4 import BeautifulSoup
+
+          urls = {
+            "economic": "https://segis.moi.gov.tw/STATCloud/QueryInterfaceView?COL=aQN%252fHCX5M1xcy0qa5dIGIw%253d%253d&MCOL=jKBRvLmz4PSIl8kKYNJmZw%253d%253d",
+            "convenience": "https://segis.moi.gov.tw/STATCloud/QueryInterfaceView?COL=XstSF3HYqIa8C%252bcHRT4OZQ%253d%253d&MCOL=rJKUJpShFsKhAOJqtLtzkw%253d%253d",
+          }
+          h={"User-Agent":"Mozilla/5.0"}
+          for name,url in urls.items():
+            r=requests.get(url,headers=h,timeout=60)
+            print("\n===",name,r.status_code,r.url,len(r.text),"===")
+            print("title", BeautifulSoup(r.text,"html.parser").title)
+            for line in r.text.splitlines():
+              if any(k.lower() in line.lower() for k in ["geojson","json","opendata","service","wgs84","csv"]):
+                print(line[:2000])
+          PY
