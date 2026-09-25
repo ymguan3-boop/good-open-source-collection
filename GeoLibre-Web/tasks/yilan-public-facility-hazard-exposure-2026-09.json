@@ -1,0 +1,44 @@
+{
+  "enabled": true,
+  "task_id": "yilan-public-facility-hazard-exposure-2026-09",
+  "execution_mode": "analysis",
+  "script": "scripts/geolibre_tasks/yilan-public-facility-hazard-exposure-2026-09.py",
+  "topic": "審計／稽核專題：宜蘭縣公共設施複合災害暴露查核",
+  "goal": "顯示位於地質敏感區內的學校點位及清單，並查核宜蘭縣學校、醫療機構、消防分隊、政府機關與地質敏感區、近5年歷史淹水災點、土石流影響範圍相交或300公尺內的暴露情形。",
+  "confirmed_spec": {
+    "geographic_scope": "宜蘭縣全縣",
+    "target_features": [
+      "學校",
+      "醫療機構（醫院與衛生所）",
+      "消防分隊",
+      "政府機關（iTaiwan 熱點代理點）"
+    ],
+    "time_range": "近5年淹水災點（官方檔案實際年度2021–2025）；115年度土石流影響範圍；地質敏感區公告數值檔",
+    "spatial_rules": [
+      "點位直接相交災害 polygon 或距離不超過300公尺列入暴露清單",
+      "學校點位直接相交地質敏感區 polygon 時另列敏感區內學校清單",
+      "複合暴露表示命中兩種以上災害群組，非官方風險分級"
+    ],
+    "thresholds": {
+      "buffer_m": 300,
+      "compound_hazard_groups": 2,
+      "analysis_crs": "EPSG:3826",
+      "output_crs": "EPSG:4326"
+    },
+    "source_catalog": {
+      "schools": "https://data.gov.tw/dataset/174606",
+      "medical": "https://data.gov.tw/dataset/139250",
+      "fire": "https://data.gov.tw/dataset/5969",
+      "government_proxy": "https://data.gov.tw/dataset/5962",
+      "geological_sensitive_areas": "https://data.gov.tw/dataset/27744",
+      "historic_flood_points": "https://data.gov.tw/dataset/130016",
+      "debris_flow": "https://data.gov.tw/dataset/176526",
+      "county_boundary": "https://data.gov.tw/dataset/7441"
+    }
+  },
+  "execution_metadata": {
+    "rerun_revision": 1,
+    "reason": "使用者確認執行且要求詳細資料來源，補齊四類設施與嚴格區內學校清單",
+    "confirmed_at": "2026-09-25"
+  }
+}
