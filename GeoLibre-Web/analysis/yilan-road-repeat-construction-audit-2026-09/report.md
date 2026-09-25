@@ -122,9 +122,29 @@ GitHub Actions 的 GIS 分析、最佳化、必要成果驗證與成果 commit �
 
 ## 截圖與瀏覽器畫面驗證
 
-目前這個執行環境**沒有可用的瀏覽器自動化工具**，因此無法依最新版技能完成 data-geolibre-load-state=ready、data-geolibre-load-errors、圖層面板與實際圖徵的瀏覽器畫面交叉驗證，也沒有產生 map-overview.png。截圖因此明確標示為**尚未交付／尚未完成瀏覽器視覺驗證**，不以其他靜態地圖冒充。
+本次已依最新版技能使用 **GitHub Actions + Playwright 真實瀏覽器**完成雙入口畫面驗證，並同時測試桌面與 Android 手機 viewport。
 
-GitHub Pages 的 build / deploy 成功與 performance.json 通過，證明發布與檔案預算正常，但依最新版技能規則，這兩項不能取代真正的瀏覽器圖層驗證。
+驗證結果如下：
+
+- 自架 GitHub Pages｜桌面：**PASS**
+- 自架 GitHub Pages｜Android 手機：**PASS**
+- 官方 GeoLibre 備援｜桌面：**PASS**
+- 官方 GeoLibre 備援｜Android 手機：**PASS**
+
+四組測試均確認：
+
+- HTTP 200；
+- GeoLibre App 已成功掛載；
+- `data-geolibre-load-state=ready`；
+- `data-geolibre-load-errors=[]`；
+- 有可見 MapLibre canvas；
+- 畫面不是白屏；
+- canvas 有實際地圖像素內容；
+- UI 中可辨識到本案預期圖層「施工案件證據」與「重複施工查核熱點」。
+
+因此，本次瀏覽器視覺驗證已完成，且**自架入口與官方備援入口均已驗證可正常載入圖資**。QA 證據已保存於 `viewer-qa/`，包含 `viewer-qa.json`、桌面截圖、Android 截圖與地圖 canvas 截圖。
+
+另需說明：`map-overview.png` 並不是本次 Viewer QA 的必要交付檔；本次實際保存的是自架與官方入口各自的桌面／手機真實瀏覽器截圖。
 
 ## 資料限制
 
