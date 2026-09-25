@@ -60,8 +60,8 @@
   },
   "performance_policy_version": 5,
   "execution_metadata": {
-    "rerun_revision": 2,
-    "reason": "第一輪取得1000筆具幾何案件但日期欄位未辨識；擴充民國年、緊縮日期、時間戳與非標準日期欄位解析後重跑",
+    "rerun_revision": 3,
+    "reason": "第二輪誤選新北市道路資料且全縣Overpass查詢504；加入宜蘭行政區來源驗證，並將道路中心線改為四分區Overpass雙端點查詢",
     "confirmed_at": "2026-09-25T20:17:00+08:00"
   }
 }
