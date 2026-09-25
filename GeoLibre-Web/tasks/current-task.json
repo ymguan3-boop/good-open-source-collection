@@ -19,7 +19,8 @@
       "道路中心線（OpenStreetMap／Overpass 補充）"
     ],
     "spatial_rules": [
-      "施工事件幾何在 EPSG:3826 中距離不超過50公尺，視為具有同一路段／鄰近施工關聯",
+      "宜蘭公開案件 GML 施工多邊形或中心點在 EPSG:3826 中距離不超過50公尺，視為具有同一路段／鄰近施工關聯",
+      "道路名稱優先使用官方 DG_ROAD／DG_ROAD2 欄位；OSM道路中心線僅為可選輔助，不影響核心判定",
       "分析期間內同一空間群聚至少2件施工，即列入重複施工查核熱點",
       "後一案件開工日距前一案件完工日0至180天，另標示短期重複施工",
       "缺日期或缺可計算座標／幾何的案件不得以道路名稱猜測位置，不納入正式異常判定"
@@ -62,8 +63,8 @@
   },
   "performance_policy_version": 5,
   "execution_metadata": {
-    "rerun_revision": 6,
-    "reason": "ODPortal resourcedata 已驗證可回傳完整宜蘭 CASE_DETAIL/GML，改為驗證成功即短路使用，停止探測已知逾時的官方來源",
+    "rerun_revision": 7,
+    "reason": "核心空間判定改以宜蘭公開 XML 的 GML 施工多邊形/中心點與 DG_ROAD/DG_ROAD2 為準；OSM 改為可選輔助，完全移除第三方道路查詢阻塞",
     "confirmed_at": "2026-09-25T20:17:00+08:00"
   }
 }
