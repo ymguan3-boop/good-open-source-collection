@@ -29,9 +29,11 @@ PAGES_ROOT = "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibr
 USER_AGENT = "GeoLibreAuditSkill/1.0 (+https://github.com/ymguan3-boop/good-open-source-collection)"
 
 SOURCE_PAGES = [
-    "https://mntengmgt.e-land.gov.tw/YilandSvc/",
+    "https://mntengmgt.e-land.gov.tw/YilanDigweb/Download/XML/dig.xml",
+    "http://mntengmgt.e-land.gov.tw/YilanDigweb/Download/XML/dig.xml",
     "https://odportal.tw/dataset/DSNTMGUM",
     "https://cdn.odportal.tw/dataset/DSNTMGUM",
+    "https://mntengmgt.e-land.gov.tw/YilandSvc/",
 ]
 OVERPASS = "https://overpass-api.de/api/interpreter"
 YILAN_BBOX = (24.25, 121.25, 25.08, 122.08)  # south, west, north, east
@@ -41,9 +43,9 @@ PIPE_KW = ("管線","管路","自來水","台水","電力","台電","電信","�
 MAINT_KW = ("養護","道路改善","路面改善","刨鋪","銑鋪","鋪面","瀝青","AC路面","路面修復","路平","修補","重鋪")
 DATE_KEYS = ("日期","時間","起日","迄日","開工","完工","施工","核准","begin","start","end","date","ABE","AEN","CBE","CEN","CL_DA")
 ID_KEYS = ("案件編號","許可證","申挖","CASE_ID","AC_NO","編號","ID","id")
-TITLE_KEYS = ("案件名稱","工程名稱","施工名稱","計畫名稱","CONST_NAME","標題","名稱","project")
-LOC_KEYS = ("施工地點","挖掘地點","施工位置","挖掘位置","LOCATION","地址","地點","路段")
-UNIT_KEYS = ("申請單位","施工單位","管線單位","主辦單位","承辦單位","UN_NA","機關","單位")
+TITLE_KEYS = ("案件名稱","工程名稱","施工名稱","計畫名稱","CONST_NAME","constname","標題","名稱","project")
+LOC_KEYS = ("施工地點","挖掘地點","施工位置","挖掘位置","LOCATION","digsite","road","地址","地點","路段")
+UNIT_KEYS = ("申請單位","施工單位","管線單位","主辦單位","承辦單位","UN_NA","constructionunit","機關","單位")
 PURPOSE_KEYS = ("施工原因","挖掘原因","用途","PURP","工程類別","案件類別","類別","目的")
 
 
@@ -211,7 +213,8 @@ def fetch_candidate_rows(session):
     queue = list(SOURCE_PAGES)
     for page in list(queue):
         try:
-            r = session.get(page, timeout=35, allow_redirects=True)
+            timeout = 90 if "YilanDigweb/Download/XML/dig.xml" in page else 35
+            r = session.get(page, timeout=timeout, allow_redirects=True)
             diagnostics.append({"url":page,"final_url":r.url,"status":r.status_code,"bytes":len(r.content),"content_type":r.headers.get("content-type","")})
             if r.ok:
                 ct = r.headers.get("content-type","").lower()
@@ -241,7 +244,8 @@ def fetch_candidate_rows(session):
     # crawl discovered resource-like URLs only, bounded
     for u in queue[len(SOURCE_PAGES):]:
         try:
-            r = session.get(u, timeout=30, allow_redirects=True)
+            timeout = 90 if "YilanDigweb/Download/XML/dig.xml" in u else 30
+            r = session.get(u, timeout=timeout, allow_redirects=True)
             diagnostics.append({"url":u,"final_url":r.url,"status":r.status_code,"bytes":len(r.content),"content_type":r.headers.get("content-type","")})
             if not r.ok or len(r.content) < 100:
                 continue
@@ -738,8 +742,17 @@ def main():
         (out/"source-diagnostics.json").write_text(json.dumps(diagnostics,ensure_ascii=False,indent=2),encoding="utf-8")
         raise RuntimeError("無法從宜蘭縣道路挖掘公開系統或 ODPortal 公開快照取得可解析的案件資料；已輸出 source-diagnostics.json，不以假資料替代。")
     events, quality=prepare_events(rows,source_url)
-    roads=fetch_osm_roads(session)
-    events=attach_roads(events,roads)
+    try:
+        roads=fetch_osm_roads(session)
+        events=attach_roads(events,roads)
+    except Exception as exc:
+        print("WARNING: 道路中心線補充資料取得失敗，核心50公尺分析仍以施工案件幾何執行：", exc)
+        roads=gpd.GeoDataFrame(columns=["road_id","road_name","highway","geometry"], geometry="geometry", crs=ANALYSIS_CRS)
+        events=events.copy()
+        events["road_id"]=""
+        events["road_name"]=events["location"].fillna("")
+        events["highway"]=""
+        events["road_distance_m"]=np.nan
     result=build_clusters(events)
     write_outputs(out,events,roads,result,source_url,diagnostics,quality)
     print(json.dumps({"task_id":TASK_ID,"source_url":source_url,**quality,"result_count":len(result)},ensure_ascii=False))
