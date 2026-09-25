@@ -35,6 +35,7 @@ SOURCE_PAGES = [
 ]
 OVERPASS = "https://overpass-api.de/api/interpreter"
 YILAN_BBOX = (24.25, 121.25, 25.08, 122.08)  # south, west, north, east
+YILAN_PLACES = ("宜蘭縣","宜蘭市","羅東鎮","蘇澳鎮","頭城鎮","礁溪鄉","壯圍鄉","員山鄉","冬山鄉","五結鄉","三星鄉","大同鄉","南澳鄉")
 
 PIPE_KW = ("管線","管路","自來水","台水","電力","台電","電信","中華電信","瓦斯","天然氣","污水","雨水","下水道","寬頻","纜線","輸油")
 MAINT_KW = ("養護","道路改善","路面改善","刨鋪","銑鋪","鋪面","瀝青","AC路面","路面修復","路平","修補","重鋪")
@@ -279,9 +280,34 @@ def fetch_candidate_rows(session):
                         break
         if date_hits:
             s += 8000 + date_hits * 20
+        locality_text = " ".join(" ".join(map(str,row.values())) for row in rows[:80])
+        yilan_hits = sum(locality_text.count(name) for name in YILAN_PLACES)
+        if yilan_hits:
+            s += 25000 + min(yilan_hits,100) * 100
+        if any(bad in url.lower() for bad in ("data.ntpc.gov.tw","data.taipei","opendata.taichung")):
+            s -= 50000
+        if any(bad in locality_text for bad in ("新北市","臺北市","台北市","桃園市","臺中市","台中市","高雄市")) and not yilan_hits:
+            s -= 25000
+        if "e-land.gov.tw" in url.lower():
+            s += 12000
         if "DSNTMGUM" in url: s += 1500
         return s
-    best = max(candidates, key=score)
+    ranked = sorted(candidates, key=score, reverse=True)
+    print(json.dumps({
+        "candidate_sources": [
+            {
+                "url": u,
+                "rows": len(rs),
+                "score": score((u,rs)),
+                "sample": " ".join(" ".join(map(str,r.values())) for r in rs[:2])[:500]
+            }
+            for u,rs in ranked[:8]
+        ]
+    }, ensure_ascii=False))
+    best = ranked[0]
+    best_text = " ".join(" ".join(map(str,r.values())) for r in best[1][:100])
+    if not any(name in best_text for name in YILAN_PLACES):
+        raise RuntimeError("找到道路施工候選資料，但最高可信來源無法驗證為宜蘭縣資料；拒絕使用外縣市資料。候選來源已輸出至工作紀錄。")
     return best[1], diagnostics, best[0]
 
 
