@@ -106,7 +106,10 @@ Preferred flow:
 7. Set `GEOLIBRE_APP_BASE` to the GitHub Pages base path.
 8. Deploy `apps/geolibre-desktop/dist` to GitHub Pages.
 9. Verify repository source and the published site.
-10. Update profile status to `ready`.
+10. Copy the skill asset `assets/optimize-project.py` to `.geolibre/tools/optimize-project.py`.
+11. Ensure the analysis workflow invokes the optimizer after each task script.
+12. Add the default performance-budget block from `assets/geolibre-profile.example.json`.
+13. Update profile status to `ready`.
 
 The official GeoLibre Vite config supports `GEOLIBRE_APP_BASE`, so use it for project-site subpaths.
 
