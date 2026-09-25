@@ -570,6 +570,7 @@ def load_flood_points(session: requests.Session, scope: Any, substitutions: list
         "source_crs": ANALYSIS_CRS,
         "analysis_crs": ANALYSIS_CRS,
         "role": "official_historical_flood_points",
+        "scope_records": int(len(points)),
         "record_years_in_yilan": years,
         "limitation": "本次官方檔案 year 欄位涵蓋全國2021–2025；宜蘭子集2023年沒有紀錄。資料集網頁仍註記2023年產製，與檔案年度不一致；2026年事件不在此檔。局部、零星都市道路或農漁塭淹水可能未納入。",
     }
@@ -728,7 +729,7 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
         "time_range": "國科會官方近5年淹水災點實際檔案年度2021–2025；115年度土石流影響範圍；現行官方地質敏感區公告數值檔。",
         "spatial_rules": [
             f"公共設施點位與災害 polygon 相交，或距離災害 geometry／淹水災點不超過 {BUFFER_M} 公尺。",
-            "學校位置使用官方校地 polygon representative point；其他設施使用官方座標或 OSM point/center。",
+            "學校採官方校地範圍的代表點；醫療設施採國土測繪中心地標座標；消防分隊採消防署座標；政府機關採 iTaiwan 熱點位置代理點。",
         ],
         "thresholds": {"buffer_m": BUFFER_M, "compound_exposure_groups": 2},
         "input_facility_count": input_facility_count,
@@ -745,7 +746,7 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
         "substitutions": substitutions,
         "limitations": [
             "地質敏感區與淹水潛勢／災點為規劃或防災參考，不取代法定公告、現勘、鑽探、水理分析或專業簽證。",
-            "醫療機構僅含國土測繪中心地標分類的醫院與衛生所，未涵蓋一般診所完整名冊。",
+            "醫療機構僅含國土測繪中心地標分類的醫院、衛生所與衛生室，未涵蓋一般診所完整名冊。",
             "政府機關採 iTaiwan 熱點作位置代理點，僅涵蓋設有熱點且名稱符合條件者，並非完整機關名冊。",
             "結果以設施點位判定，未以建物 polygon、校舍棟別、路網可達性或人口暴露計算。",
         ],
@@ -848,6 +849,8 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
         "- `index.html`：穩定公開入口",
     ]
     (out / "report.md").write_text("\n".join(report_lines) + "\n", encoding="utf-8")
+    from build_yilan_readable_report import build_report
+    build_report(out)
 
 
 def main() -> None:
