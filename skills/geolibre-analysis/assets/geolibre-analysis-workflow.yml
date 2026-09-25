@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -95,11 +95,12 @@ jobs:
           PY
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
       - name: Install GIS dependencies
+        if: steps.task.outputs.execution_mode != 'postprocess_only'
         run: |
           python -m pip install --upgrade pip
           pip install numpy pandas requests pillow pyproj shapely geopandas rasterio scipy scikit-learn openpyxl
@@ -177,5 +178,7 @@ jobs:
             echo "No generated changes."
           else
             git commit -m "data(gis): publish GeoLibre analysis ${{ steps.task.outputs.task_id }}"
-            git push
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase "origin/${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
