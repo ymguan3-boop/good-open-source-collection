@@ -1,12 +1,11 @@
-# Template used by the GeoLibre Analysis skill.
-# Before copying to a user's repo, replace __DEFAULT_BRANCH__ if necessary.
 name: Run GeoLibre analysis task
 
 on:
   workflow_dispatch:
   push:
-    branches: [__DEFAULT_BRANCH__]
+    branches: [main]
     paths:
+      - "GeoLibre-Web/tasks/current-task.json"
       - "**/GeoLibre-Web/tasks/current-task.json"
 
 permissions:
@@ -19,11 +18,11 @@ concurrency:
 jobs:
   analyze:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -35,19 +34,30 @@ jobs:
           import json, os
           from pathlib import Path
 
-          profile_path = Path(".geolibre/skill-profile.json")
+          root = Path.cwd().resolve()
+          profile_path = root / ".geolibre/skill-profile.json"
           if not profile_path.exists():
               raise SystemExit("Missing .geolibre/skill-profile.json")
           profile = json.loads(profile_path.read_text(encoding="utf-8"))
+
           source_path = str(profile.get("source_path", ".")).strip() or "."
-          manifest = (Path(source_path) / "GeoLibre-Web/tasks/current-task.json").resolve()
-          root = Path.cwd().resolve()
+          web_root = str(profile.get("web_root", "")).strip()
+          if not web_root:
+              web_root = str((Path(source_path) / "GeoLibre-Web").as_posix())
+          manifest_rel = str(profile.get("task_manifest_path", "")).strip()
+          if not manifest_rel:
+              manifest_rel = str((Path(web_root) / "tasks/current-task.json").as_posix())
+          analysis_root = str(profile.get("analysis_root", "")).strip()
+          if not analysis_root:
+              analysis_root = str((Path(web_root) / "analysis").as_posix())
+
+          manifest = (root / manifest_rel).resolve()
           try:
               manifest.relative_to(root)
           except ValueError:
               raise SystemExit("Task manifest resolved outside repository")
           if not manifest.exists():
-              raise SystemExit(f"Task manifest not found: {manifest}")
+              raise SystemExit(f"Task manifest not found: {manifest_rel}")
 
           data = json.loads(manifest.read_text(encoding="utf-8"))
           if not data.get("enabled", False):
@@ -66,9 +76,6 @@ jobs:
           if not script_path.is_file():
               raise SystemExit(f"Task script does not exist: {script}")
 
-          analysis_root = str(profile.get("analysis_root", "")).strip()
-          if not analysis_root:
-              analysis_root = str((Path(source_path) / "GeoLibre-Web/analysis").as_posix())
           output_dir = (root / analysis_root / task_id).resolve()
           try:
               output_dir.relative_to(root)
@@ -84,7 +91,7 @@ jobs:
           PY
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
@@ -102,6 +109,8 @@ jobs:
 
       - name: Validate required outputs
         shell: bash
+        env:
+          OUTPUT_DIR: ${{ steps.task.outputs.output_dir }}
         run: |
           python - <<'PY'
           import json, os
@@ -112,6 +121,7 @@ jobs:
               out / "map.geolibre.json",
               out / "result.geojson",
               out / "result.csv",
+              out / "result.xlsx",
               out / "report.md",
               out / "summary.json",
           ]
@@ -120,9 +130,8 @@ jobs:
               raise SystemExit("Missing required outputs: " + ", ".join(missing))
           summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
           print("Result count:", summary.get("result_count", "unknown"))
+          print("High-risk count:", summary.get("high_risk_count", "unknown"))
           PY
-        env:
-          OUTPUT_DIR: ${{ steps.task.outputs.output_dir }}
 
       - name: Commit generated analysis outputs
         shell: bash
