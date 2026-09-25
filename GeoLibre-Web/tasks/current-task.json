@@ -1,0 +1,57 @@
+{
+  "enabled": true,
+  "task_id": "yilan-green-fragmentation-2020-2024",
+  "script": "scripts/geolibre_tasks/yilan-green-fragmentation-2020-2024.py",
+  "topic": "環境與生態／綠地破碎化",
+  "goal": "分析宜蘭縣全縣森林、農地、公園／都市綠地、河川沿岸自然地表在近五個可比較年度的破碎化現況與變化，篩選高／中／低破碎化區。",
+  "confirmed_spec": {
+    "geographic_scope": "宜蘭縣全縣",
+    "time_range": "近五個可比較年度：2020、2021、2022、2023、2024（最新免申請年度 LULC 完整至 2024）",
+    "target_features": [
+      "森林",
+      "農地",
+      "公園／都市綠地",
+      "河川沿岸自然地表"
+    ],
+    "input_layers": [
+      "Impact Observatory / Esri / Microsoft 10m Annual LULC",
+      "OpenStreetMap 道路",
+      "OpenStreetMap 河川",
+      "OpenStreetMap 公園／綠地",
+      "NLSC 國土利用現況調查（官方分類／可得性參考）"
+    ],
+    "spatial_rules": [
+      "30m 運算解析度",
+      "1km 網格彙整",
+      "河川沿岸 100m",
+      "小斑塊 <2ha",
+      "大型連續綠地 >=10ha",
+      "現況與2020基準比較"
+    ],
+    "thresholds": {
+      "analysis_resolution_m": 30,
+      "screening_grid_m": 1000,
+      "riparian_buffer_m": 100,
+      "small_patch_ha": 2,
+      "large_patch_ha": 10
+    },
+    "indicators": [
+      "綠地面積減少率",
+      "斑塊數增加率",
+      "平均斑塊面積下降率",
+      "道路＋建成區邊界切割壓力",
+      "孤立小斑塊比例",
+      "距大型連續同類綠地距離"
+    ],
+    "risk_method": "各綠地類型內六組指標等權百分位排名後取平均，以相對三分位分高／中／低。",
+    "data_source_preference": "政府免申請公開圖資優先；官方歷年向量服務需申請時，改用可重現的公開年度資料並於報告註明。",
+    "outputs": [
+      "GeoLibre互動地圖",
+      "GeoJSON",
+      "CSV",
+      "XLSX",
+      "Markdown報告",
+      "summary.json"
+    ]
+  }
+}
