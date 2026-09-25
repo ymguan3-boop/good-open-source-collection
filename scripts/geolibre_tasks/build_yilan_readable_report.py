@@ -106,7 +106,17 @@ def build_report(out: Path) -> None:
         lines.append(f"| {title} | {provider} | {url_text} | {note.replace('|', '／')} |")
     lines += ["", "## 替代資料與使用界線", ""]
     if summary.get("substitutions"):
-        lines += [f"- {str(item).replace(chr(10), ' ')}" for item in summary["substitutions"]]
+        for item in summary["substitutions"]:
+            if "縣市界線下載" in item:
+                lines.append("- 縣市界線原始下載網址這次拒絕存取（HTTP 403）；本次改用已核對的國土測繪中心鄉鎮市區界線衍生縣界。")
+            elif "宜蘭縣範圍快取" in item:
+                lines.append("- 上述縣界快取是把宜蘭縣各鄉鎮市區合併，並以約 100 公尺容差簡化，供縣級篩選與地圖顯示；不適合地籍級精度判定。")
+            elif "學校範圍圖" in item:
+                lines.append("- 學校校地原始下載網址這次拒絕存取（HTTP 403）；本次使用先前由同版官方校地圖產生、已保存的宜蘭校地代表點。")
+            elif "淹水災點" in item:
+                lines.append("- 歷史淹水資料即時下載發生連線加密協商錯誤；本次使用 2026-09-25 取得的同版官方 CSV 宜蘭子集快取。")
+            else:
+                lines.append(f"- {str(item).split(':', 1)[0].replace(chr(10), ' ')}；技術細節請見 summary.json。")
     else:
         lines.append("- 本次沒有使用替代範圍資料。")
     lines += [
