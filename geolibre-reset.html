@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GeoLibre 修復入口</title>
+<style>
+body{font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif;max-width:720px;margin:60px auto;padding:0 24px;line-height:1.7}
+.card{border:1px solid #ddd;border-radius:16px;padding:24px}
+.small{color:#666;font-size:.95rem}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>正在修復 GeoLibre 快取</h1>
+<p id="status">正在清除舊版 Service Worker 與快取，完成後會自動重新開啟分析。</p>
+<p class="small">如果 10 秒後仍未跳轉，請重新整理此頁。</p>
+</div>
+<script>
+(async()=>{
+  const status=document.getElementById("status");
+  try{
+    if("serviceWorker" in navigator){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      for(const reg of regs){
+        if((reg.scope||"").includes("/good-open-source-collection/GeoLibre-Web/")){
+          await reg.unregister();
+        }
+      }
+    }
+    if("caches" in window){
+      const keys=await caches.keys();
+      await Promise.all(keys.map(k=>caches.delete(k)));
+    }
+    status.textContent="清除完成，正在重新開啟 GeoLibre…";
+  }catch(e){
+    status.textContent="快取清除部分失敗，但仍會嘗試重新開啟 GeoLibre。";
+  }
+  const project="https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-road-repeat-construction-audit-2026-09/map.geolibre.json?v=89e1b9b";
+  const target="https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/"+"?locale=zh-TW&layout=viewer&url="+encodeURIComponent(project)+"&cachebust="+Date.now();
+  setTimeout(()=>location.replace(target),500);
+})();
+</script>
+</body>
+</html>
