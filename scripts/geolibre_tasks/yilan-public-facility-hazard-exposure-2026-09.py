@@ -849,7 +849,7 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
         "- `index.html`：穩定公開入口",
     ]
     (out / "report.md").write_text("\n".join(report_lines) + "\n", encoding="utf-8")
-    from build_yilan_readable_report import build_report
+    from build_yilan_full_report import build_report
     build_report(out)
 
 
