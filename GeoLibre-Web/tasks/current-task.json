@@ -1,69 +1,67 @@
 {
   "enabled": true,
-  "task_id": "yilan-public-facility-hazard-exposure-2026-09",
+  "task_id": "yilan-road-repeat-construction-audit-2026-09",
   "execution_mode": "analysis",
-  "script": "scripts/geolibre_tasks/yilan-public-facility-hazard-exposure-2026-09.py",
-  "topic": "審計／稽核專題：公共設施複合災害暴露查核",
-  "goal": "以宜蘭縣為範圍，盤點學校、醫療機構、消防分隊與政府機關位置，依官方地質敏感區、官方近五年淹水災點與115年度土石流影響範圍，篩選相交或300公尺內的設施，列出單一及複合災害暴露清單。",
+  "script": "scripts/geolibre_tasks/yilan-road-repeat-construction-audit-2026-09.py",
+  "topic": "審計／稽核專題：道路工程重複施工與資源浪費分析",
+  "goal": "找出宜蘭縣近3年同一路段或50公尺範圍內重複施工2次以上，或前一工程完工後180天內再次施工的道路工程熱點，供審計查核優先篩選。",
   "confirmed_spec": {
-    "geographic_scope": "宜蘭縣全縣，依內政部國土測繪中心官方縣市界線篩選",
-    "time_range": "國科會官方近五年淹水災點資料檔實際年份為2021–2025（宜蘭子集2023年0筆；資料集頁面仍註記2023年產製）；115年度土石流影響範圍；現行官方地質敏感區圖資",
+    "geographic_scope": "宜蘭縣全縣",
+    "time_range": "2023-09-25 至 2026-09-25",
     "target_features": [
-      "學校",
-      "醫療機構",
-      "消防分隊",
-      "政府機關"
+      "道路施工案件",
+      "重複施工熱點"
     ],
     "input_layers": [
-      "內政部國土測繪中心：直轄市、縣（市）界線",
-      "內政部國土測繪中心：各級學校範圍圖_121分帶",
-      "內政部消防署：救援與應變單位點位",
-      "經濟部地質調查及礦業管理中心：G0003宜蘭平原、H0010龜山島、L0016宜蘭縣地質敏感區",
-      "國家科學及技術委員會：近五年淹水災點",
-      "農業部農村發展及水土保持署：115年度1753條土石流潛勢溪流影響範圍",
-      "OpenStreetMap／Overpass：醫療機構、政府機關，以及官方學校／消防資料失敗時的補充點位"
+      "宜蘭縣道路挖掘案件公開資料",
+      "道路養護工程（依公開案件文字分類）",
+      "管線工程（依公開案件文字分類）",
+      "道路中心線（OpenStreetMap／Overpass 補充）"
     ],
     "spatial_rules": [
-      "設施點與災害 polygon 相交，或距離災害 polygon／災點不超過300公尺，即列入篩選結果",
-      "地質敏感區依官方 G0003、H0010、L0016 幾何合併後計算距離",
-      "歷史淹水災點以300公尺查詢範圍計數",
-      "命中兩種以上災害群組標示為複合災害暴露（優先查核）",
-      "縣界下載端點受限時，使用由官方NLSC鄉鎮市區界線聯集並以約100公尺容差簡化的可追溯範圍快取"
+      "施工事件幾何在 EPSG:3826 中距離不超過50公尺，視為具有同一路段／鄰近施工關聯",
+      "分析期間內同一空間群聚至少2件施工，即列入重複施工查核熱點",
+      "後一案件開工日距前一案件完工日0至180天，另標示短期重複施工",
+      "缺日期或缺可計算座標／幾何的案件不得以道路名稱猜測位置，不納入正式異常判定"
     ],
     "thresholds": {
-      "buffer_m": 300,
-      "compound_exposure_groups": 2,
+      "distance_m": 50,
+      "repeat_min": 2,
+      "short_repeat_days": 180,
       "analysis_crs": "EPSG:3826",
       "output_crs": "EPSG:4326"
     },
-    "data_source_preference": "官方政府公開圖資優先；醫療機構與政府機關因官方公開坐標名冊未形成可直接重現的完整 GIS 輸入，採OpenStreetMap／Overpass補充並在報告標示限制。",
+    "filters": {
+      "date_start": "2023-09-25",
+      "date_end": "2026-09-25",
+      "county": "宜蘭縣"
+    },
+    "data_source_preference": "宜蘭縣政府公開道路挖掘資訊優先；ODPortal歷史公開快照作備援；道路中心線使用免費開放的OSM／Overpass補充。公開資料不足時保留條件並揭露缺口，不以假資料或位置推測替代。",
     "outputs": [
       "GeoLibre互動地圖",
-      "完整命中設施 GeoJSON",
-      "逐設施 CSV 清單",
-      "XLSX 分析表、統計摘要、分析參數與來源",
-      "Markdown來源與方法報告",
+      "overview.geojson",
+      "完整 result.geojson",
+      "施工案件 events.geojson",
+      "道路中心線 roads-context.geojson",
+      "result.csv",
+      "result.xlsx",
       "summary.json",
-      "performance.json"
+      "report.md",
+      "source-diagnostics.json",
+      "performance.json",
+      "index.html"
     ],
     "source_catalog": {
-      "county_boundary_dataset": "https://data.gov.tw/dataset/7442",
-      "school_dataset": "https://data.gov.tw/dataset/174606",
-      "fire_dataset": "https://data.gov.tw/dataset/5969",
-      "flood_dataset": "https://data.gov.tw/dataset/130016",
-      "debris_dataset": "https://data.gov.tw/dataset/176526",
-      "geology_dataset": "https://data.gov.tw/dataset/27744",
-      "osm_overpass": "https://overpass-api.de/api/interpreter",
-      "county_boundary_township_dataset": "https://data.gov.tw/dataset/7441",
-      "derived_scope_cache": "https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-county-scope.geojson",
-      "official_school_cache": "https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-official-schools.geojson",
-      "official_flood_cache": "https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-flood-points-2021-2025.csv"
+      "yilan_public_query": "https://mntengmgt.e-land.gov.tw/YilandSvc/",
+      "odportal_snapshot": "https://odportal.tw/dataset/DSNTMGUM",
+      "odportal_cdn_snapshot": "https://cdn.odportal.tw/dataset/DSNTMGUM",
+      "osm_overpass": "https://overpass-api.de/api/interpreter"
     }
   },
   "performance_policy_version": 5,
   "execution_metadata": {
-    "rerun_revision": 7,
-    "reason": "校正衍生縣界CRS，加入可追溯的NLSC校點與國科會淹水災點快取，修正實際資料年度",
-    "confirmed_at": "2026-09-25T20:20:00+08:00"
+    "rerun_revision": 1,
+    "reason": "使用者確認執行道路工程重複施工與資源浪費分析",
+    "confirmed_at": "2026-09-25T20:17:00+08:00"
   }
 }
