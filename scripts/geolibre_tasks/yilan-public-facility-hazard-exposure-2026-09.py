@@ -416,17 +416,33 @@ def build_official_fire(session: requests.Session, scope: Any) -> tuple[gpd.GeoD
         raise RuntimeError(f"消防署 CSV 無法解析：{last_error}")
     lon_col = first_existing(list(frame.columns), ["經度", "Longitude", "lon", "LON"])
     lat_col = first_existing(list(frame.columns), ["緯度", "Latitude", "lat", "LAT"])
-    name_col = first_existing(list(frame.columns), ["名稱", "單位名稱", "Name", "name"])
-    if not lon_col or not lat_col:
-        raise RuntimeError(f"消防署 CSV 缺少經緯度欄位：{list(frame.columns)}")
-    frame["lon"] = pd.to_numeric(frame[lon_col], errors="coerce")
-    frame["lat"] = pd.to_numeric(frame[lat_col], errors="coerce")
-    frame = frame.dropna(subset=["lon", "lat"]).copy()
+    x_col = first_existing(list(frame.columns), ["X座標_TWD97TM121", "X座標", "X_97"])
+    y_col = first_existing(list(frame.columns), ["Y座標_TWD97TM121", "Y座標", "Y_97"])
+    name_col = first_existing(list(frame.columns), ["消防隊名稱", "名稱", "單位名稱", "Name", "name"])
+    if lon_col and lat_col:
+        frame["point_x"] = pd.to_numeric(frame[lon_col], errors="coerce")
+        frame["point_y"] = pd.to_numeric(frame[lat_col], errors="coerce")
+        source_crs = WEB_CRS
+    elif x_col and y_col:
+        frame["point_x"] = pd.to_numeric(frame[x_col], errors="coerce")
+        frame["point_y"] = pd.to_numeric(frame[y_col], errors="coerce")
+        sample_x = frame["point_x"].median()
+        sample_y = frame["point_y"].median()
+        if 115 <= sample_x <= 125 and 20 <= sample_y <= 30:
+            source_crs = WEB_CRS
+        elif 100000 <= sample_x <= 500000 and 2400000 <= sample_y <= 3100000:
+            source_crs = ANALYSIS_CRS
+        else:
+            raise RuntimeError(f"消防署 CSV 坐標值超出可辨識範圍：X={sample_x}, Y={sample_y}")
+    else:
+        raise RuntimeError(f"消防署 CSV 缺少可用坐標欄位：{list(frame.columns)}")
+    frame = frame.dropna(subset=["point_x", "point_y"]).copy()
     frame["facility_name"] = frame[name_col].fillna("").astype(str) if name_col else "消防單位"
+    frame = frame[frame["facility_name"].str.contains("分隊", na=False)].copy()
     out = gpd.GeoDataFrame(
         frame,
-        geometry=[Point(x, y) for x, y in zip(frame["lon"], frame["lat"])],
-        crs=WEB_CRS,
+        geometry=[Point(x, y) for x, y in zip(frame["point_x"], frame["point_y"])],
+        crs=source_crs,
     ).to_crs(ANALYSIS_CRS)
     out = out[out.geometry.within(scope.buffer(1))].copy()
     out["facility_id"] = [f"NFA-{i}" for i in out.index]
@@ -447,10 +463,33 @@ def build_official_fire(session: requests.Session, scope: Any) -> tuple[gpd.GeoD
         "dataset_url": URLS["fire_dataset"],
         "download_url": URLS["fire_download"],
         "retrieved_at": now_utc(),
-        "source_crs": WEB_CRS,
+        "source_crs": source_crs,
         "analysis_crs": ANALYSIS_CRS,
         "role": "official_fire_station_points",
-        "limitation": "資料集包含消防單位及災害應變中心；本分析以名稱／點位作消防分隊類型之篩選，未另行判定勤務編制。",
+        "limitation": "僅取名稱含「分隊」的紀錄。此版 CSV 欄名為 X座標_TWD97TM121／Y座標_TWD97TM121，但數值約121／24，實際為經緯度；程式依數值範圍判讀為 EPSG:4326 並轉至 EPSG:3826，建議與消防署複核欄位詮釋。",
+    }
+
+
+def build_cached_facility_points(filename: str, scope: Any, *, name: str, provider: str, dataset_url: str, role: str) -> tuple[gpd.GeoDataFrame, dict[str, Any]]:
+    cache_path = Path("GeoLibre-Web/analysis-inputs") / filename
+    payload = json.loads(cache_path.read_text(encoding="utf-8"))
+    frame = gpd.GeoDataFrame.from_features(payload.get("features", []), crs=WEB_CRS).to_crs(ANALYSIS_CRS)
+    frame = frame[frame.geometry.within(scope.buffer(1))].copy()
+    if frame.empty:
+        raise RuntimeError(f"設施點位快取無宜蘭範圍內資料：{filename}")
+    metadata = payload.get("metadata", {})
+    return frame, {
+        "name": name,
+        "provider": provider,
+        "dataset_url": dataset_url,
+        "download_url": f"https://github.com/ymguan3-boop/good-open-source-collection/blob/main/{cache_path.as_posix()}",
+        "retrieved_at": metadata.get("queried_at_utc", now_utc()),
+        "source_crs": WEB_CRS,
+        "analysis_crs": ANALYSIS_CRS,
+        "role": role,
+        "scope_records": int(len(frame)),
+        "upstream_url": metadata.get("api", metadata.get("download_url")),
+        "limitation": metadata.get("limitation", "衍生點位快取，應複核原始資料。"),
     }
 
 
@@ -556,8 +595,6 @@ def load_debris(session: requests.Session, scope: Any, temp: Path) -> tuple[Any,
         raise RuntimeError("115年度土石流影響範圍在宜蘭縣沒有可用幾何")
     combined = pd.concat(pieces, ignore_index=True)
     geometry = unary_union(combined.geometry)
-    risk_col = first_existing(list(combined.columns), ["Risk", "RISK", "風險等級"])
-    risk_values = sorted({str(value) for value in combined[risk_col].dropna().tolist()}) if risk_col else []
     return geometry, {
         "name": "115年度1753條土石流潛勢溪流影響範圍圖",
         "provider": "農業部農村發展及水土保持署",
@@ -568,8 +605,7 @@ def load_debris(session: requests.Session, scope: Any, temp: Path) -> tuple[Any,
         "analysis_crs": ANALYSIS_CRS,
         "role": "official_debris_flow_impact_area",
         "scope_records": int(len(combined)),
-        "risk_values": risk_values,
-        "limitation": "潛勢／影響範圍供防災規劃與風險提醒，不代表災害必然發生，也不取代現勘或法定審查。",
+        "limitation": "僅使用影響範圍幾何，未使用原始屬性中的風險分級欄位；潛勢／影響範圍不代表災害必然發生，也不取代現勘或法定審查。",
     }
 
 
@@ -583,7 +619,7 @@ def match_facilities(facilities: gpd.GeoDataFrame, scope: Any, geology: dict[str
         for official_id, geometry in geology.items():
             distance = float(point.distance(geometry))
             if distance <= BUFFER_M:
-                matches.append({"group": "地質敏感區", "source_id": official_id, "distance_m": round(distance, 1)})
+                matches.append({"group": "地質敏感區", "source_id": official_id, "distance_m": round(distance, 1), "intersects": bool(point.intersects(geometry))})
         flood_count = 0
         flood_distance: float | None = None
         if flood_sindex is not None:
@@ -594,7 +630,7 @@ def match_facilities(facilities: gpd.GeoDataFrame, scope: Any, geology: dict[str
                 matches.append({"group": "近5年歷史淹水災點", "source_id": "130016", "distance_m": flood_distance, "match_count": flood_count})
         debris_distance = float(point.distance(debris))
         if debris_distance <= BUFFER_M:
-            matches.append({"group": "土石流影響範圍", "source_id": "176526", "distance_m": round(debris_distance, 1)})
+            matches.append({"group": "土石流影響範圍", "source_id": "176526", "distance_m": round(debris_distance, 1), "intersects": bool(point.intersects(debris))})
         if not matches:
             continue
         groups = sorted({item["group"] for item in matches})
@@ -643,7 +679,7 @@ def clean_for_json(value: Any) -> Any:
     return value
 
 
-def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[str, Any], sources: list[dict[str, Any]], substitutions: list[str], input_facility_count: int) -> None:
+def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[str, Any], sources: list[dict[str, Any]], substitutions: list[str], input_facility_count: int, input_count_by_type: dict[str, int]) -> None:
     out.mkdir(parents=True, exist_ok=True)
     result_web = result.to_crs(WEB_CRS)
     features = []
@@ -669,6 +705,15 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
         row["matched_hazard_details"] = json.dumps(row.get("matched_hazard_details") or [], ensure_ascii=False)
         csv_rows.append(row)
     pd.DataFrame(csv_rows).to_csv(out / "result.csv", index=False, encoding="utf-8-sig")
+    sensitive_school_ids = {
+        feature["properties"]["facility_id"] for feature in features
+        if feature["properties"].get("facility_type") == "學校"
+        and any(detail.get("group") == "地質敏感區" and detail.get("intersects") for detail in feature["properties"].get("matched_hazard_details", []))
+    }
+    sensitive_school_features = [feature for feature in features if feature["properties"]["facility_id"] in sensitive_school_ids]
+    sensitive_school_rows = [row for row in csv_rows if row["facility_id"] in sensitive_school_ids]
+    (out / "sensitive-schools.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": sensitive_school_features}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    pd.DataFrame(sensitive_school_rows, columns=list(csv_rows[0]) if csv_rows else []).to_csv(out / "sensitive-schools.csv", index=False, encoding="utf-8-sig")
 
     scope_web = gpd.GeoSeries([scope], crs=ANALYSIS_CRS).to_crs(WEB_CRS).iloc[0]
     scope_payload = {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": mapping(scope_web), "properties": {"name": COUNTY, "source": URLS["county_boundary_dataset"]}}]}
@@ -686,7 +731,9 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
         ],
         "thresholds": {"buffer_m": BUFFER_M, "compound_exposure_groups": 2},
         "input_facility_count": input_facility_count,
+        "input_count_by_facility_type": input_count_by_type,
         "result_count": stats["result_count"],
+        "schools_inside_geological_sensitive_area_count": len(sensitive_school_ids),
         "unique_facility_count": stats["result_count"],
         "high_risk_count": stats["high_risk_count"],
         "screening_priority_definition": "high_risk_count 僅代表同一設施命中兩種以上災害群組，不是官方風險等級。",
@@ -696,7 +743,8 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
         "substitutions": substitutions,
         "limitations": [
             "地質敏感區與淹水潛勢／災點為規劃或防災參考，不取代法定公告、現勘、鑽探、水理分析或專業簽證。",
-            "OpenStreetMap 僅補充醫療機構與政府機關座標，完整性不等同官方機關名冊。",
+            "醫療機構僅含國土測繪中心地標分類的醫院與衛生所，未涵蓋一般診所完整名冊。",
+            "政府機關採 iTaiwan 熱點作位置代理點，僅涵蓋設有熱點且名稱符合條件者，並非完整機關名冊。",
             "結果以設施點位判定，未以建物 polygon、校舍棟別、路網可達性或人口暴露計算。",
         ],
         "generated_at": now_utc(),
@@ -704,7 +752,8 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
 
     result_df = pd.DataFrame(csv_rows)
-    stats_rows = [{"統計項目": "輸入公共設施數", "數值": input_facility_count}, {"統計項目": "命中設施數", "數值": stats["result_count"]}, {"統計項目": "複合災害暴露設施數", "數值": stats["high_risk_count"]}]
+    stats_rows = [{"統計項目": "輸入公共設施數", "數值": input_facility_count}, {"統計項目": "命中設施數", "數值": stats["result_count"]}, {"統計項目": "敏感區內學校點數", "數值": len(sensitive_school_ids)}, {"統計項目": "複合災害暴露設施數", "數值": stats["high_risk_count"]}]
+    stats_rows += [{"統計項目": f"輸入設施類型：{key}", "數值": value} for key, value in input_count_by_type.items()]
     stats_rows += [{"統計項目": f"設施類型：{key}", "數值": value} for key, value in stats["result_count_by_facility_type"].items()]
     stats_rows += [{"統計項目": f"災害群組：{key}", "數值": value} for key, value in stats["result_count_by_hazard_group"].items()]
     params = [{"參數": "分析範圍", "值": COUNTY}, {"參數": "距離門檻（公尺）", "值": BUFFER_M}, {"參數": "分析 CRS", "值": ANALYSIS_CRS}, {"參數": "輸出 CRS", "值": WEB_CRS}, {"參數": "空間條件", "值": "相交或距離不超過300公尺"}, {"參數": "複合暴露定義", "值": "命中兩種以上災害群組；僅為查核排序，不是官方風險分級"}, {"參數": "產製時間", "值": now_utc()}]
@@ -725,6 +774,7 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
 
     project_url = f"{PAGES_ROOT}analysis/{TASK_ID}/map.geolibre.json"
     result_url = f"{PAGES_ROOT}analysis/{TASK_ID}/result.geojson"
+    sensitive_school_url = f"{PAGES_ROOT}analysis/{TASK_ID}/sensitive-schools.geojson"
     scope_url = f"{PAGES_ROOT}analysis/{TASK_ID}/scope.geojson"
     project = {
         "version": "0.2.0",
@@ -733,7 +783,9 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
         "basemapStyleUrl": "https://tiles.openfreemap.org/styles/liberty",
         "basemapVisible": True,
         "layers": [
+            {"id": "gsmma-sensitive-landslide", "name": "山崩與地滑地質敏感區（官方 WMS）", "type": "image", "source": {"type": "image", "url": "https://geomap.gsmma.gov.tw/mapguide/mapagent/mapagent.fcgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.0.0&LAYERS=WMS%2FSensitive_area_landslide&STYLES=&FORMAT=image%2Fpng&TRANSPARENT=TRUE&SRS=EPSG%3A4326&BBOX=117%2C21%2C123%2C27&WIDTH=2048&HEIGHT=2048", "coordinates": [[117, 27], [123, 27], [123, 21], [117, 21]]}, "visible": True, "opacity": 0.5, "metadata": {"dataProvider": "經濟部地質調查及礦業管理中心", "officialLayer": "WMS/Sensitive_area_landslide", "accessMode": "DISPLAY_ONLY", "note": "顯示 WMS 與分析用公告向量資料不一定同版；精確命中以分析用向量檔為準。"}},
             {"id": "yilan-public-facility-exposure", "name": "公共設施複合災害暴露查核結果", "type": "geojson", "source": {"type": "geojson", "data": result_url}, "visible": True, "opacity": 1, "style": {"circleColor": "#dc2626", "circleRadius": 6, "circleStrokeColor": "#ffffff", "circleStrokeWidth": 1}, "metadata": {"resultCount": stats["result_count"], "source": "result.geojson", "analysisRole": "SCREENING_REFERENCE", "popupFields": ["facility_name", "facility_type", "facility_source", "matched_hazard_groups", "matched_hazard_details", "screening_priority", "analysis_predicate"]}},
+            {"id": "yilan-sensitive-schools", "name": "位於地質敏感區內的學校（點位）", "type": "geojson", "source": {"type": "geojson", "data": sensitive_school_url}, "visible": True, "opacity": 1, "style": {"circleColor": "#facc15", "circleRadius": 8, "circleStrokeColor": "#111827", "circleStrokeWidth": 2}, "metadata": {"resultCount": len(sensitive_school_ids), "listUrl": f"{PAGES_ROOT}analysis/{TASK_ID}/sensitive-schools.csv", "predicate": "school representative point intersects official geological-sensitive-area polygon"}},
             {"id": "yilan-county-boundary", "name": "宜蘭縣行政界", "type": "geojson", "source": {"type": "geojson", "data": scope_url}, "visible": True, "opacity": 0.45, "style": {"fillColor": "#64748b", "fillOpacity": 0.05, "strokeColor": "#334155", "strokeWidth": 2}, "metadata": {"source": URLS["county_boundary_dataset"], "role": "context"}},
         ],
         "selectedLayerId": "yilan-public-facility-exposure",
@@ -749,11 +801,13 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
         f"- 範圍：{COUNTY}",
         f"- 產製時間（UTC）：{summary['generated_at']}",
         f"- 輸入公共設施數：{input_facility_count}",
+        f"- 各類輸入數：{json.dumps(input_count_by_type, ensure_ascii=False)}",
         f"- 命中設施數：{stats['result_count']}",
+        f"- 代表點位落在地質敏感區內的學校：{len(sensitive_school_ids)} 所（不含僅在 300 公尺鄰近範圍者）",
         f"- 複合災害暴露（兩種以上群組）數：{stats['high_risk_count']}（不是官方風險等級）",
         "",
         "## 分析方法",
-        f"以公共設施點位與災害幾何套疊；設施與災害 polygon 相交，或距離災害 geometry／淹水災點不超過 {BUFFER_M} 公尺，即列入結果。分析距離使用 `{ANALYSIS_CRS}`，成果輸出為 `{WEB_CRS}`。學校使用 NLSC 校地 polygon 的 representative point；消防分隊優先使用消防署官方座標；醫療機構與政府機關以 OSM／Overpass 補充。",
+        f"以公共設施點位與災害幾何套疊；設施與災害 polygon 相交，或距離災害 geometry／淹水災點不超過 {BUFFER_M} 公尺，即列入結果。分析距離使用 `{ANALYSIS_CRS}`，成果輸出為 `{WEB_CRS}`。學校使用 NLSC 校地 polygon 的 representative point；消防分隊使用消防署官方座標；醫療機構取 NLSC 醫療設施 API 的醫院與衛生所；政府機關以 iTaiwan 熱點作位置代理。另以地質敏感區 polygon 與學校代表點直接相交，產製嚴格的區內學校清單。",
         "",
         "## 採用資料與依據",
         "|圖層／資料集|提供者|資料集／下載網址|CRS／角色|限制與用途|",
@@ -775,13 +829,16 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
     report_lines += [
         "- `高風險`欄位在工作流中僅表示命中兩種以上災害群組，為查核排序用的複合暴露指標，不是官方風險分級。",
         "- 淹水資料集網頁仍註記2023年產製；本次取得的官方檔案 year 欄位實際涵蓋2021–2025，宜蘭子集2023年為0筆，2026年未納入。",
-        "- OSM 醫療機構與政府機關資料屬補充性點位，不能解讀為完整官方名冊；應與衛生福利部、地方政府機關名冊複核。",
+        "- NLSC 醫療設施 API 實測查詢半徑約限 5 公里，本次以 7 公里網格、5 公里半徑分格查詢去重；醫療類別只含醫院與衛生所，不代表完整診所名冊。",
+        "- iTaiwan 點位僅定位設有熱點且名稱符合政府機關關鍵字的地點，部分為樓層／櫃臺，非正式機關駐地邊界或完整機關名冊。",
+        "- 消防署 CSV 座標欄名含 TWD97TM121，但數值約 121／24；本次按經緯度解讀並轉換，應向資料提供者複核欄位定義。",
         "- 地質敏感區、淹水災點與土石流影響範圍均為規劃／防災參考資料，不能取代法定公告、現地調查、專業簽證或工程安全鑑定。",
         "",
         "## 交付檔案",
         "- `map.geolibre.json`：GeoLibre 預設互動地圖",
         "- `result.geojson`：完整命中設施點位",
         "- `result.csv`：逐設施清單",
+        "- `sensitive-schools.geojson`／`sensitive-schools.csv`：代表點直接落在地質敏感區內的學校圖層及清單",
         "- `result.xlsx`：分析結果、統計摘要、分析參數、資料來源",
         "- `summary.json`：可機讀摘要",
         "- `performance.json`：GeoLibre 效能檢查（由 optimizer 產生）",
@@ -804,33 +861,35 @@ def main() -> None:
         temp = Path(temp_dir)
         scope, scope_source = scope_from_official_boundary(session, temp, substitutions)
         source_records = [scope_source]
-        osm = gpd.GeoDataFrame(columns=["facility_id", "facility_name", "facility_type", "facility_source", "source_record_id", "source_date", "admin_area", "osm_amenity", "osm_office", "geometry"], geometry="geometry", crs=ANALYSIS_CRS)
-        try:
-            osm, osm_source = build_osm_facilities(session, scope)
-            source_records.append(osm_source)
-        except Exception as exc:
-            substitutions.append(f"OSM／Overpass 設施補充資料下載失敗，後續僅使用可取得的官方學校／消防資料：{exc}")
+        medical, medical_source = build_cached_facility_points(
+            "yilan-official-medical.geojson", scope,
+            name="國土測繪中心醫療設施 API 宜蘭分格衍生點位",
+            provider="內政部國土測繪中心", dataset_url="https://data.gov.tw/dataset/139250",
+            role="official_hospital_and_health_center_points",
+        )
+        source_records.append(medical_source)
+        government, government_source = build_cached_facility_points(
+            "yilan-government-hotspot-proxies.geojson", scope,
+            name="iTaiwan 宜蘭政府機關熱點代理點",
+            provider="數位發展部", dataset_url="https://data.gov.tw/dataset/5962",
+            role="government_office_location_proxy_points_not_complete_roster",
+        )
+        source_records.append(government_source)
         schools = gpd.GeoDataFrame(columns=["facility_id", "facility_name", "facility_type", "source", "geometry"], geometry="geometry", crs=ANALYSIS_CRS)
         fire = gpd.GeoDataFrame(columns=["facility_id", "facility_name", "facility_type", "source", "geometry"], geometry="geometry", crs=ANALYSIS_CRS)
         try:
             schools, source = build_official_schools(session, scope, temp)
             source_records.append(source)
-            osm = osm[osm["facility_type"] != "學校"].copy()
         except Exception as exc:
             substitutions.append(f"NLSC 學校範圍圖即時下載或解析失敗，使用同版官方校地衍生點位快取：{exc}")
             schools, source = build_cached_official_schools(scope)
             source_records.append(source)
-            osm = osm[osm["facility_type"] != "學校"].copy()
         try:
             fire, source = build_official_fire(session, scope)
             source_records.append(source)
-            osm_fire = osm[osm["facility_type"] == "消防分隊"].copy()
-            if not osm_fire.empty:
-                distances = gpd.sjoin_nearest(osm_fire, fire[["geometry"]], how="left", distance_col="_d")
-                osm = osm.drop(index=distances[distances["_d"] <= 100].index, errors="ignore")
         except Exception as exc:
-            substitutions.append(f"消防署官方資料下載或解析失敗，保留 OSM 消防分隊補充資料：{exc}")
-        facilities = pd.concat([osm, schools, fire], ignore_index=True)
+            substitutions.append(f"消防署官方資料下載或解析失敗，消防分隊未納入本次分析：{exc}")
+        facilities = pd.concat([medical, government, schools, fire], ignore_index=True)
         facilities = gpd.GeoDataFrame(facilities, geometry="geometry", crs=ANALYSIS_CRS)
         facilities = facilities.drop_duplicates(subset=["facility_id"]).reset_index(drop=True)
         geology, geology_sources = load_geology(session, temp)
@@ -840,7 +899,7 @@ def main() -> None:
         debris, debris_source = load_debris(session, scope, temp)
         source_records.append(debris_source)
         result, stats = match_facilities(facilities, scope, geology, flood, debris)
-        write_outputs(out, scope, result, stats, source_records, substitutions, len(facilities))
+        write_outputs(out, scope, result, stats, source_records, substitutions, len(facilities), dict(Counter(facilities["facility_type"].tolist())))
         print(json.dumps({"task_id": TASK_ID, "input_facilities": len(facilities), **stats, "substitutions": substitutions}, ensure_ascii=False))
 
 
