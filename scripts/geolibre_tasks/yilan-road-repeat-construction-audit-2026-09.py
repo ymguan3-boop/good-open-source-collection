@@ -70,14 +70,62 @@ def parse_date(v):
     s = str(v or "").strip()
     if not s:
         return pd.NaT
+
+    # Microsoft JSON / Unix timestamps.
+    m = re.search(r"/?Date\((\d{10,13})", s, re.I)
+    if m:
+        raw = int(m.group(1))
+        unit = "ms" if len(m.group(1)) >= 13 else "s"
+        return pd.to_datetime(raw, unit=unit, errors="coerce")
+    if re.fullmatch(r"\d{13}", s):
+        return pd.to_datetime(int(s), unit="ms", errors="coerce")
+    if re.fullmatch(r"1[5-9]\d{8}", s):
+        return pd.to_datetime(int(s), unit="s", errors="coerce")
+
+    # Compact Gregorian / ROC calendar formats.
+    digits = re.sub(r"\D", "", s)
+    if re.fullmatch(r"(19|20)\d{6}", digits[:8] if len(digits) >= 8 else ""):
+        base = digits[:8]
+        tail = digits[8:14]
+        fmt = "%Y%m%d%H%M%S" if len(tail) == 6 else "%Y%m%d"
+        value = base + (tail if len(tail) == 6 else "")
+        return pd.to_datetime(value, format=fmt, errors="coerce")
+    if re.fullmatch(r"1\d{6}", digits[:7] if len(digits) >= 7 else ""):
+        roc = digits[:7]
+        y, mo, da = int(roc[:3]) + 1911, int(roc[3:5]), int(roc[5:7])
+        tail = digits[7:13]
+        value = f"{y:04d}{mo:02d}{da:02d}" + (tail if len(tail) == 6 else "")
+        fmt = "%Y%m%d%H%M%S" if len(tail) == 6 else "%Y%m%d"
+        return pd.to_datetime(value, format=fmt, errors="coerce")
+
     s = s.replace("年","-").replace("月","-").replace("日"," ").replace("/","-").replace(".","-")
     m = re.match(r"^\s*(1\d{2})-(\d{1,2})-(\d{1,2})(.*)$", s)
     if m:
         s = f"{int(m.group(1))+1911}-{int(m.group(2)):02d}-{int(m.group(3)):02d}{m.group(4)}"
     try:
-        return pd.to_datetime(s, errors="coerce")
+        d = pd.to_datetime(s, errors="coerce")
+        # Reject accidental parsing of identifiers outside the useful time domain.
+        if not pd.isna(d) and pd.Timestamp("2000-01-01") <= d <= pd.Timestamp("2035-12-31"):
+            return d
+        return pd.NaT
     except Exception:
         return pd.NaT
+
+
+def looks_like_date_value(v):
+    s = str(v or "").strip()
+    if not s:
+        return False
+    if re.search(r"/?Date\(\d{10,13}", s, re.I):
+        return True
+    if re.fullmatch(r"\d{7}|\d{8}|\d{10}|\d{13}|\d{14}", re.sub(r"\D", "", s)):
+        d = parse_date(s)
+        return not pd.isna(d)
+    if re.search(r"(?:19|20)\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}", s):
+        return True
+    if re.search(r"1\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}", s):
+        return True
+    return False
 
 
 def flatten_xml_records(text):
@@ -219,6 +267,18 @@ def fetch_candidate_rows(session):
         s = len(rows)
         if any(k in keys for k in ("挖掘","施工","案件","LOCATION","AC_NO","CASE_ID","座標","X","Y")): s += 5000
         if any(k in sample for k in ("道路","挖掘","施工","管線")): s += 3000
+        # Prefer candidates that actually carry dates; a geometry-only service can
+        # otherwise outrank the historical road-work table simply by having more rows.
+        date_hits = 0
+        for row in rows[:100]:
+            for k, v in row.items():
+                nk = norm_key(k)
+                if any(t in nk for t in ("日期","時間","開工","完工","date","time","start","begin","end","finish","abe","aen","cbe","cen","clda")) or looks_like_date_value(v):
+                    if not pd.isna(parse_date(v)):
+                        date_hits += 1
+                        break
+        if date_hits:
+            s += 8000 + date_hits * 20
         if "DSNTMGUM" in url: s += 1500
         return s
     best = max(candidates, key=score)
@@ -322,12 +382,17 @@ def canonicalize_rows(rows, source_url):
         starts, ends = [], []
         for k,v in row.items():
             nk = norm_key(k)
-            if any(norm_key(x) in nk for x in DATE_KEYS):
+            explicit_date_key = any(norm_key(x) in nk for x in DATE_KEYS) or any(
+                x in nk for x in ("sdate","edate","bdate","fdate","issued","permit","finish","closed","workfrom","workto","begtime","endtime")
+            )
+            if explicit_date_key or looks_like_date_value(v):
                 d = parse_date(v)
                 if not pd.isna(d):
                     dates.append(d)
-                    if any(x in nk for x in ("起","開工","start","begin","abe","cbe")): starts.append(d)
-                    if any(x in nk for x in ("迄","完工","end","aen","cen","clda")): ends.append(d)
+                    if any(x in nk for x in ("起","開工","start","begin","abe","cbe","sdate","bdate","workfrom","begtime")):
+                        starts.append(d)
+                    if any(x in nk for x in ("迄","完工","end","finish","aen","cen","clda","edate","fdate","workto","closed")):
+                        ends.append(d)
         start = min(starts) if starts else (min(dates) if dates else pd.NaT)
         end = max(ends) if ends else (max(dates) if dates else start)
         g, crs, geom_method = geometry_from_row(row)
@@ -515,7 +580,7 @@ def write_outputs(out, events, roads, result, source_url, diagnostics, quality):
     (out/"roads-context.geojson").write_text(json.dumps(road_fc,ensure_ascii=False,separators=(",",":")),encoding="utf-8")
 
     # Overview required only if large; create one regardless as a stable light viewer input.
-    overview = result.sort_values(["audit_priority","short_repeat_pair_count","event_count"],ascending=[True,False,False]).head(1000)
+    overview = result.copy() if result.empty else result.sort_values(["short_repeat_pair_count","event_count"],ascending=[False,False]).head(1000)
     (out/"overview.geojson").write_text(json.dumps(to_feature_collection(overview,"重複施工熱點摘要"),ensure_ascii=False,separators=(",",":")),encoding="utf-8")
 
     high_count=int((result.get("audit_priority",pd.Series(dtype=str))=="高").sum()) if not result.empty else 0
@@ -612,6 +677,14 @@ def main():
         raise RuntimeError(f"manifest task_id 不符：{manifest.get('task_id')} != {TASK_ID}")
     session=requests.Session(); session.headers.update({"User-Agent":USER_AGENT,"Accept-Language":"zh-TW,zh;q=0.9,en;q=0.7"})
     rows, diagnostics, source_url=fetch_candidate_rows(session)
+    if rows:
+        sample = rows[0]
+        print(json.dumps({
+            "source_probe": source_url,
+            "row_count": len(rows),
+            "sample_keys": list(sample.keys()),
+            "sample_values": {str(k): str(v)[:240] for k,v in list(sample.items())[:30]}
+        }, ensure_ascii=False))
     if not rows:
         out.mkdir(parents=True,exist_ok=True)
         (out/"source-diagnostics.json").write_text(json.dumps(diagnostics,ensure_ascii=False,indent=2),encoding="utf-8")
