@@ -1,4 +1,4 @@
-name: Probe ODPortal playground API
+name: Probe ODPortal resourcedata API
 
 on:
   push:
@@ -11,38 +11,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Probe playground API
+      - name: Probe resourcedata
         shell: bash
         run: |
           python - <<'PY'
-          import requests,re,html,json
-          from urllib.parse import urljoin
+          import requests,hashlib
           s=requests.Session(); s.headers["User-Agent"]="Mozilla/5.0"
-          page="https://cdn.odportal.tw/playground/DSNTMGUM?r=61b504bb6e97860024674b09"
-          r=s.get(page,timeout=30)
-          t=html.unescape(r.text).replace("\\/","/")
-          print("PAGE",r.status_code,len(r.content))
-          # Print Next data fields related to resource/data.
-          m=re.search(r'<script[^>]+id=["\']__NEXT_DATA__["\'][^>]*>(.*?)</script>',t,re.S|re.I)
-          if m:
-              print("NEXT_DATA",m.group(1)[:12000])
-          scripts=[urljoin(r.url,x) for x in re.findall(r'<script[^>]+src=["\']([^"\']+)["\']',t,re.I)]
-          for u in scripts:
-              if "playground" not in u:
-                  continue
-              rr=s.get(u,timeout=30)
-              txt=rr.text
-              print("\nSCRIPT",u,rr.status_code,len(rr.content))
-              strings=sorted(set(re.findall(r'["\']([^"\']{1,300})["\']',txt)))
-              for st in strings:
-                  low=st.lower()
-                  if any(k in low for k in ("/api/","resource","preview","playground","proxy","fetch","xml","dataset")):
-                      print("STR",st[:500])
-              for needle in ("/api/","resource","fetch(","axios","XML"):
-                  start=0
-                  while True:
-                      i=txt.find(needle,start)
-                      if i<0: break
-                      print("CTX",needle,txt[max(0,i-900):i+1800])
-                      start=i+len(needle)
+          urls=[
+            "https://cdn.odportal.tw/api/v1/resourcedata/DSNTMGUM/61b504bb6e97860024674b09.csv?251125",
+            "https://cdn.odportal.tw/api/v1/resourcedata/DSNTMGUM/61b504bb6e97860024674b09.csv",
+          ]
+          for u in urls:
+              try:
+                  r=s.get(u,timeout=60)
+                  print("\nTEST",r.status_code,u)
+                  print("CT",r.headers.get("content-type"),"LEN",len(r.content),"X-TOTAL",r.headers.get("x-total-count"),"X-TYPE",r.headers.get("x-content-type"),"ENC",r.headers.get("x-content-encoding"))
+                  print("SHA256",hashlib.sha256(r.content).hexdigest())
+                  print("HEAD",r.text[:12000].replace("\n","\\n"))
+              except Exception as e:
+                  print("ERR",u,repr(e))
           PY
