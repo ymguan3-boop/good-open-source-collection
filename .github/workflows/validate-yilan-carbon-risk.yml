@@ -1,0 +1,118 @@
+name: Validate Yilan carbon-risk GeoLibre project
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "GeoLibre/projects/yilan-old-building-carbon-risk/yilan-old-building-carbon-risk.geolibre.json"
+      - "GeoLibre/projects/yilan-old-building-carbon-risk/validate_with_mcp.py"
+      - ".github/workflows/validate-yilan-carbon-risk.yml"
+      - "GeoLibre/python/src/geolibre/**"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: validate-yilan-carbon-risk
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install GeoLibre MCP runtime
+        run: |
+          python -m pip install --upgrade pip
+          # GeoLibre source is already vendored in this repository. Install the
+          # optional MCP/runtime dependencies, then import GeoLibre directly from source.
+          python -m pip install "mcp>=2.0" "anywidget>=0.9" "traitlets>=5" "jupyter-ui-poll>=0.2" pillow
+          PYTHONPATH=GeoLibre/python/src python -c "import geolibre, mcp; print('GeoLibre', geolibre.__version__); print('MCP import OK')"
+
+      - name: Smoke-test GeoLibre MCP entry point
+        run: |
+          PYTHONPATH=GeoLibre/python/src python -m geolibre.mcp --help
+
+      - name: Rebuild and validate through MCP tools
+        run: |
+          PYTHONPATH=GeoLibre/python/src python GeoLibre/projects/yilan-old-building-carbon-risk/validate_with_mcp.py
+
+      - name: Verify standalone HTML structure
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated/map.html")
+          text = p.read_text(encoding="utf-8")
+          required = [
+              "https://web.geolibre.app/?embed=1",
+              "geolibre:load-project",
+              'id="geolibre-project"',
+          ]
+          missing = [x for x in required if x not in text]
+          if missing:
+              raise SystemExit("Missing HTML bridge markers: " + ", ".join(missing))
+          print("Standalone HTML bridge markers OK:", p.stat().st_size, "bytes")
+          PY
+
+      - name: Headless Chrome render
+        continue-on-error: true
+        run: |
+          OUT="GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated"
+          HTML="$(python - <<'PY'
+          from pathlib import Path
+          print((Path.cwd() / "GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated/map.html").resolve().as_uri())
+          PY
+          )"
+          google-chrome --headless --disable-gpu --no-sandbox             --window-size=1440,1000 --virtual-time-budget=15000             --screenshot="$OUT/render.png" "$HTML" || true
+          if [ -f "$OUT/render.png" ]; then
+            python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageStat
+          import json
+          p = Path("GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated/render.png")
+          im = Image.open(p).convert("RGB")
+          stat = ImageStat.Stat(im)
+          variance = sum(stat.var)
+          result = {
+              "exists": True,
+              "width": im.width,
+              "height": im.height,
+              "bytes": p.stat().st_size,
+              "rgb_variance_sum": variance,
+              "non_blank": variance > 1.0,
+          }
+          Path("GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated/render-validation.json").write_text(
+              json.dumps(result, indent=2), encoding="utf-8"
+          )
+          print(result)
+          PY
+          else
+            echo '{"exists": false, "non_blank": false}' > "$OUT/render-validation.json"
+          fi
+
+      - name: Commit MCP validation outputs
+        run: |
+          OUT="GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          if git diff --cached --quiet; then
+            echo "No validation changes."
+          else
+            git commit -m "test(gis): validate Yilan carbon-risk project through GeoLibre MCP"
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase "origin/${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
