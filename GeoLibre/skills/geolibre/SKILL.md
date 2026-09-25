@@ -43,14 +43,21 @@ Follow this bootstrap sequence first:
 3. **Register/start MCP for the active client** — configure `geolibre-mcp --root <workspace-maps-dir>` using the client-appropriate MCP configuration. Reuse an existing valid registration instead of duplicating it.
 4. **Smoke-test the server** — confirm the MCP process starts and the GeoLibre tools are discoverable before beginning analysis.
 5. **Create and verify the real project** — use `create_project`, add the required layers, then run `describe_project` after the final edit.
-6. **Export a viewable artifact** — run `export_html` unless the user explicitly asks only for a `.geolibre.json` project.
-7. **Visual verification** — open the exported HTML (or the hosted project URL), verify the map renders, inspect the intended layers/legend/view, and capture a screenshot when browser automation is available.
+6. **Package the standard analysis deliverables** under `GeoLibre-Web/analysis/<task-id>/`:
+   - `map.geolibre.json` — GeoLibre analysis project
+   - `result.xlsx` — complete analysis workbook
+   - `result.csv` — tabular results
+   - `report.md` — analysis report
+   - `summary.json` — machine-readable result summary
+7. **Publish and return the one-click GeoLibre link** — after GitHub Pages has deployed the files, return `https://web.geolibre.app/?url=<public-map.geolibre.json-url>`.
 
 Only use the hand-written JSON fallback after an actual bootstrap attempt fails because of environment restrictions (for example: no package-network access, no install permission, no MCP support in the active client). If fallback is necessary, explicitly state **which bootstrap step failed** and do not claim MCP or renderer validation was completed.
 
 For Codex/agent environments, installation is part of the skill's job when permitted; do not ask the user to install `geolibre[mcp]` manually unless the environment blocks installation or requires user-owned credentials/approval.
 
-**Self-healing continuation rule:** If this skill is repaired, updated, or extended while fulfilling a user's GeoLibre request, the repair is **not** the end of the task. Immediately resume the user's original project from the failed/interrupted step and continue through project creation, verification, export, and delivery as far as the active environment permits. Do not stop after reporting that the skill was fixed.
+**Self-healing continuation rule:** If this skill is repaired, updated, or extended while fulfilling a user's GeoLibre request, the repair is **not** the end of the task. Immediately resume the user's original project from the failed/interrupted step and continue through project creation, verification, standard result packaging, GitHub Pages publication, and delivery as far as the active environment permits. Do not stop after reporting that the skill was fixed.
+
+**Default deliverable rule:** Renderer screenshots, render PNGs, standalone HTML exports, and browser-debug artifacts are **internal QA artifacts only**. Do not present them as user deliverables unless the user explicitly asks for them. The default user-facing completion set is exactly the five standard files above plus the one-click GeoLibre Web link.
 
 ## Setup (MCP)
 
@@ -82,13 +89,14 @@ Six steps. Most maps use four of them.
 4. **Style it** — `style_layer` to merge style keys, or `classify_layer` to
    build a graduated choropleth from a numeric column.
 5. **Decorate** — `add_legend`, `add_colorbar`, `add_swipe` for before/after.
-6. **`export_html`** — a single self-contained page the recipient opens with no
-   install.
+6. **Package results** — save the standard completion set under
+   `GeoLibre-Web/analysis/<task-id>/`: `map.geolibre.json`, `result.xlsx`,
+   `result.csv`, `report.md`, and `summary.json`.
 
-**Finish with `export_html` whenever the user wants something to *look at* or
-*send on*.** A bare `.geolibre.json` is a file they need GeoLibre to open; the
-HTML is a map they can double-click. Only stop at the project file when they
-explicitly asked for a project, or will keep editing it.
+**Do not use `export_html` as the default completion artifact.** Use it only
+when the user explicitly asks for a standalone HTML file. For normal completed
+analyses, publish `map.geolibre.json` through GitHub Pages and return a
+one-click GeoLibre Web URL using the hosted project's public URL.
 
 ### A choropleth, start to finish
 
@@ -102,7 +110,8 @@ classify_layer(path=..., layer="Counties", column="pop_2020",
                class_count=5, colormap="blues", scheme="quantile")
 add_legend(path=..., title="Population",
            legend_dict={"Low": "#eff6ff", "High": "#1e3a8a"})
-export_html(path=..., out_path="counties.html", title="Population by county")
+# package the standard analysis outputs, then publish map.geolibre.json
+# direct viewer: https://web.geolibre.app/?url=<public-project-url>
 ```
 
 ## Rules that actually bite
@@ -155,8 +164,8 @@ export_html(path=..., out_path="counties.html", title="Population by county")
 - **Layers are addressed by id *or* display name**, so you can work from what
   `describe_project` showed without tracking UUIDs. Duplicate names are
   ambiguous — rename before you restyle.
-- To eyeball it: open the exported HTML, or load a public project URL with
-  `https://web.geolibre.app/?url=<project url>`.
+- Visual/browser rendering checks may be used internally when helpful, but they are QA only and are not part of the default user-facing result set.
+- The user-facing open link should load the public project URL with `https://web.geolibre.app/?url=<project url>`.
 - A layer that renders nothing is usually one of: the camera is somewhere else
   (`set_view` to the data), the URL 404s or blocks CORS, the layer is under an
   opaque one (`update_layer(index=...)`), or the data is in a projection other

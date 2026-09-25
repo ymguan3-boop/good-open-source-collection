@@ -1,0 +1,91 @@
+{
+  "task_id": "yilan-old-building-carbon-risk",
+  "analysis_title": "宜蘭縣既有住宅能源效率與碳排風險潛勢初篩",
+  "version": "0.2",
+  "status": "completed",
+  "result_count": 12,
+  "high_risk_count": 2,
+  "high_risk_definition": "A 極高優先或 B 高優先",
+  "township_baseline_period": "2019 year-end",
+  "county_current_reference": {
+    "period": "2025 Q2",
+    "average_age_years": 35,
+    "over_30_units": 123027,
+    "over_30_share_pct": 60.5
+  },
+  "methodology": {
+    "purpose": "優先查核初篩，不是實際碳排盤查",
+    "formula": "65% × 30年以上住宅占比 min-max 正規化 + 35% × 30年以上住宅宅數 min-max 正規化",
+    "bands": {
+      "A 極高優先": "score >= 75",
+      "B 高優先": "55 <= score < 75",
+      "C 中度": "35 <= score < 55",
+      "D 較低": "score < 35"
+    },
+    "building_age_policy_next_stage": "1998年前建物優先；1995年前標示為最高年代風險群"
+  },
+  "top_results": [
+    {
+      "rank": 1,
+      "town": "蘇澳鎮",
+      "screening_score": 85.8,
+      "screening_band": "A 極高優先",
+      "over30_share_pct": 71.28,
+      "estimated_over30_units": 11212
+    },
+    {
+      "rank": 2,
+      "town": "頭城鎮",
+      "screening_score": 62.2,
+      "screening_band": "B 高優先",
+      "over30_share_pct": 63.17,
+      "estimated_over30_units": 8036
+    },
+    {
+      "rank": 3,
+      "town": "冬山鄉",
+      "screening_score": 53.9,
+      "screening_band": "C 中度",
+      "over30_share_pct": 55.69,
+      "estimated_over30_units": 11921
+    },
+    {
+      "rank": 4,
+      "town": "南澳鄉",
+      "screening_score": 45.5,
+      "screening_band": "C 中度",
+      "over30_share_pct": 62.14,
+      "estimated_over30_units": 668
+    },
+    {
+      "rank": 5,
+      "town": "宜蘭市",
+      "screening_score": 44.9,
+      "screening_band": "C 中度",
+      "over30_share_pct": 45.54,
+      "estimated_over30_units": 18405
+    },
+    {
+      "rank": 6,
+      "town": "羅東鎮",
+      "screening_score": 44.4,
+      "screening_band": "C 中度",
+      "over30_share_pct": 49.71,
+      "estimated_over30_units": 13625
+    }
+  ],
+  "caveats": [
+    "2019鄉鎮級屋齡結構是空間初篩基線，不代表2025各鄉鎮即時值。",
+    "本指數不是實際碳排量，也不是官方BERS/BERSe能效評分。",
+    "正式建物級碳排/節能改善分析仍需加入使用執照日期、樓地板面積、用途、構造、樓層、熱環境及實際用電等資料。"
+  ],
+  "files": {
+    "geolibre_project": "map.geolibre.json",
+    "excel": "result.xlsx",
+    "csv": "result.csv",
+    "report": "report.md",
+    "summary": "summary.json"
+  },
+  "public_project_url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-old-building-carbon-risk/map.geolibre.json",
+  "direct_geolibre_url": "https://web.geolibre.app/?url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-old-building-carbon-risk%2Fmap.geolibre.json"
+}
