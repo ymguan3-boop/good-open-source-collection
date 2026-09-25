@@ -53,5 +53,6 @@
       "Markdown報告",
       "summary.json"
     ]
-  }
+  },
+  "performance_policy_version": 2
 }
