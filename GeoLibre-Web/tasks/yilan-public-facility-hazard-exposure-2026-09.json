@@ -37,8 +37,8 @@
     }
   },
   "execution_metadata": {
-    "rerun_revision": 4,
-    "reason": "產生白話來源方法報告、逐圖層成果對照與總結，並驗證所有交付檔案及內嵌圖徵",
+    "rerun_revision": 5,
+    "reason": "將備援資料說明改寫為白話，避免在公開報告直接列出下載例外堆疊",
     "confirmed_at": "2026-09-25"
   }
 }
