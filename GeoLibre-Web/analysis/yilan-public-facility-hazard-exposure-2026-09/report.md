@@ -1,67 +1,100 @@
-# 宜蘭縣公共設施複合災害暴露查核
+# 宜蘭縣公共設施與災害圖資交會分析：資料、方法與成果
 
-- 任務：`yilan-public-facility-hazard-exposure-2026-09`
-- 範圍：宜蘭縣
-- 產製時間（UTC）：2026-09-25T12:50:42+00:00
-- 輸入公共設施數：291
-- 各類輸入數：{"醫療機構": 42, "政府機關": 98, "學校": 133, "消防分隊": 18}
-- 命中設施數：111
-- 代表點位落在地質敏感區內的學校：11 個點位、去重後 10 所學校（不含僅在 300 公尺鄰近範圍者）
-- 複合災害暴露（兩種以上群組）數：23（不是官方風險等級）
+產製時間：2026-09-25T14:26:37+00:00（UTC）。這份報告供初步查核排序，不代表法定危險認定或建築安全鑑定。
 
-## 分析方法
-以公共設施點位與災害幾何套疊；設施與災害 polygon 相交，或距離災害 geometry／淹水災點不超過 300 公尺，即列入結果。分析距離使用 `EPSG:3826`，成果輸出為 `EPSG:4326`。學校使用 NLSC 校地 polygon 的 representative point；消防分隊使用消防署官方座標；醫療機構取 NLSC 醫療設施 API 的醫院與衛生所；政府機關以 iTaiwan 熱點作位置代理。另以地質敏感區 polygon 與學校代表點直接相交，產製嚴格的區內學校清單。
+## 先看結果
 
-## 採用資料與依據
-|圖層／資料集|提供者|資料集／下載網址|CRS／角色|限制與用途|
-|---|---|---|---|---|
-|宜蘭縣縣界（NLSC鄉鎮市區界線衍生快取）|內政部國土測繪中心（衍生）|https://data.gov.tw/dataset/7441<br>https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-county-scope.geojson|EPSG:4326 → EPSG:3826<br>derived_scope_boundary_cache|原始 NLSC 鄉鎮市區界線為 EPSG:3826；快取為 EPSG:4326，由宜蘭縣各鄉鎮市區聯集並以約100公尺容差簡化，僅供本次縣級範圍篩選。|
-|國土測繪中心醫療設施 API 宜蘭分格衍生點位|內政部國土測繪中心|https://data.gov.tw/dataset/139250<br>https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-official-medical.geojson|EPSG:4326 → EPSG:3826<br>official_hospital_and_health_center_points|API 未提供診所完整名冊；僅納入經名稱核對為醫院與衛生所的兩類地標。|
-|iTaiwan 宜蘭政府機關熱點代理點|數位發展部|https://data.gov.tw/dataset/5962<br>https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-government-hotspot-proxies.geojson|EPSG:4326 → EPSG:3826<br>government_office_location_proxy_points_not_complete_roster|熱點位置僅可當政府機關位置代理點；以約10公尺精度座標聚合相同場址，可能合併同址不同機關；僅涵蓋設有 iTaiwan 熱點且名稱符合條件的機關，不是政府機關完整名冊。|
-|各級學校範圍圖_121分帶（宜蘭衍生點位快取）|內政部國土測繪中心（衍生）|https://data.gov.tw/dataset/174606<br>https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-official-schools.geojson|EPSG:4326 → EPSG:3826<br>official_school_campus_representative_points_cache|由 NLSC 1150409 版 121 分帶校地 polygon 依校碼、校名及資料月份合併後取 representative point；快取輸出為 EPSG:4326，校點不代表校門或校舍。|
-|救援與應變單位點位|內政部消防署|https://data.gov.tw/dataset/5969<br>https://opdadm.moi.gov.tw/api/v1/no-auth/resource/api/dataset/57F3DD1D-A40E-49A6-8410-57303B2FF87E/resource/C38B7AC2-E7F3-4DD5-A3F3-88E623B55924/download|EPSG:4326 → EPSG:3826<br>official_fire_station_points|僅取名稱含「分隊」的紀錄。此版 CSV 欄名為 X座標_TWD97TM121／Y座標_TWD97TM121，但數值約121／24，實際為經緯度；程式依數值範圍判讀為 EPSG:4326 並轉至 EPSG:3826，建議與消防署複核欄位詮釋。|
-|地質敏感區 G0003 宜蘭平原|經濟部地質調查及礦業管理中心|https://data.gov.tw/dataset/27744<br>https://www.gsmma.gov.tw/uploads/16954297739938pmMCvKe.rar|EPSG:3826 → EPSG:3826<br>official_geological_sensitive_area|數值範圍為規劃參考；實際範圍與法定判定以公告圖資、主管機關及專業程序為準。|
-|地質敏感區 H0010 龜山島火山碎屑堆積層|經濟部地質調查及礦業管理中心|https://data.gov.tw/dataset/27744<br>https://www.gsmma.gov.tw/uploads/1695430324140xr5WSRun.rar|EPSG:3826 → EPSG:3826<br>official_geological_sensitive_area|數值範圍為規劃參考；實際範圍與法定判定以公告圖資、主管機關及專業程序為準。|
-|地質敏感區 L0016 宜蘭縣|經濟部地質調查及礦業管理中心|https://data.gov.tw/dataset/27744<br>https://www.gsmma.gov.tw/uploads/1695431430595DvA364F1.rar|EPSG:3826 → EPSG:3826<br>official_geological_sensitive_area|數值範圍為規劃參考；實際範圍與法定判定以公告圖資、主管機關及專業程序為準。|
-|近5年淹水災點資料|國家科學及技術委員會|https://data.gov.tw/dataset/130016<br>https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-flood-points-2021-2025.csv|EPSG:3826 → EPSG:3826<br>official_historical_flood_points|本次官方檔案 year 欄位涵蓋全國2021–2025；宜蘭子集2023年沒有紀錄。資料集網頁仍註記2023年產製，與檔案年度不一致；2026年事件不在此檔。局部、零星都市道路或農漁塭淹水可能未納入。|
-|115年度1753條土石流潛勢溪流影響範圍圖|農業部農村發展及水土保持署|https://data.gov.tw/dataset/176526<br>https://data.moa.gov.tw/OpenData/GetOpenDataFile.aspx?FileType=SHP&RID=71085&id=J73|EPSG:3826 → EPSG:3826<br>official_debris_flow_impact_area|僅使用影響範圍幾何，未使用原始屬性中的風險分級欄位；潛勢／影響範圍不代表災害必然發生，也不取代現勘或法定審查。|
+以宜蘭縣內 **291 個公共設施點位**進行比對，**111 個**落在任一災害範圍內，或距離該範圍／歷史淹水點不超過 **300 公尺**。其中 23 個同時命中兩種以上災害資料群組；這只是『值得優先查核』的意思，**不是官方高風險等級**。
 
-## 結果統計
-{
-  "result_count": 111,
-  "high_risk_count": 23,
-  "by_facility_type": {
-    "醫療機構": 20,
-    "政府機關": 33,
-    "學校": 51,
-    "消防分隊": 7
-  },
-  "by_hazard_group": {
-    "土石流影響範圍": 28,
-    "地質敏感區": 67,
-    "近5年歷史淹水災點": 39
-  }
-}
+各類命中數：學校 51、醫療機構 20、政府機關 33、消防分隊 7。依災害群組計：地質敏感區 67、土石流影響範圍 28、近5年歷史淹水災點 39；**同一設施可能同時列入數個群組，不能把群組數相加當作設施總數**。
 
-## 替代與資料限制
+嚴格以學校代表點『直接落在』地質敏感區內來看，為 **11 筆校地點位、10 所學校**。這些點位命中的都是 **G0003 宜蘭平原地下水補注地質敏感區**，不是山崩、地滑區，也不能據此推論校舍危險。憲明國小在原始校地資料有兩筆相鄰圖徵，所以點位數比校名數多一筆。
+
+## 打開地圖：畫面上每層是什麼
+
+[開啟 GeoLibre 互動地圖](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-public-facility-hazard-exposure-2026-09%2Fmap.geolibre.json)。圖層與分析輸入不是同一回事：部分資料只用於比對，沒有另畫在地圖上。
+
+| 地圖圖層 | 畫面表示 | 對應的交付圖資與來源 |
+|---|---|---|
+| 公共設施複合災害暴露查核結果（紅點） | 111 個命中設施；包括相交與 300 公尺內鄰近點 | [result.geojson](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/result.geojson)；設施原點位來自下表四類來源，災害判定來自地質敏感區、土石流及歷史淹水資料 |
+| 位於地質敏感區內的學校（黃點） | 11 筆**直接相交**的校地代表點，是紅點中的子集合，不含僅鄰近敏感區的學校 | [sensitive-schools.geojson](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/sensitive-schools.geojson)；學校校地取自國土測繪中心，命中依官方地質敏感區公告向量檔判斷 |
+| 地下水補注地質敏感區（官方 WMS） | 供讀者目視對照的官方影像底圖 | 經濟部地質調查及礦業管理中心 WMS；**只供顯示**，實際點位相交判斷使用公告向量檔，不是依影像像素判讀 |
+| 宜蘭縣行政界 | 顯示分析範圍邊界，不是災害判定 | [scope.geojson](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/scope.geojson)；來自官方行政界或報告記載的替代來源 |
+
+**沒有獨立畫在此專案地圖上的分析圖資**：山崩與地滑等地質敏感區向量範圍、土石流影響範圍、歷史淹水點。它們確實參與空間計算；如需逐一顯示原始災害圖層，應另依來源授權、資料量與 GeoLibre 相容性製作，不可把紅點誤認為災害範圍面。
+
+## 設施點位從哪裡來
+
+| 類別 | 輸入點數 | 資料與定位方式 | 要注意的事 |
+|---|---:|---|---|
+| 學校 | 133 | 內政部國土測繪中心校地範圍；每筆校地取一個一定落在校地內的代表點 | 點落在敏感區，不等於整個校園或某棟校舍都在區內 |
+| 醫療機構 | 42 | 國土測繪中心地標／醫療設施 API，保留醫院、衛生所、衛生室 | 不含所有診所，不是完整醫療機構名冊 |
+| 消防分隊 | 18 | 內政部消防署開放資料中的分隊座標 | 原 CSV 的座標欄名與數值形式不一致，已按經緯度解讀，正式使用宜向提供者複核 |
+| 政府機關 | 98 | iTaiwan 公共熱點中名稱符合政府機關者，以熱點位置作代理點 | 不是機關正式駐地或完整機關名冊，可能位於樓層／櫃臺 |
+
+## 拿哪些災害資料比對、怎麼比
+
+1. **地質敏感區**：使用經濟部地質調查及礦業管理中心公告向量檔（本次納入 3 個來源圖層／類型）。設施點落在區內，或距區界 300 公尺內，列為命中。嚴格的區內學校清單只採『點直接落在區內』。在全部結果中，直接落在地質敏感區的設施點為 23 個。
+2. **土石流影響範圍**：使用農業部農村發展及水土保持署 115 年度資料；宜蘭範圍有 157 筆原始範圍圖徵。判斷點是否位於範圍內或距邊界 300 公尺內；直接落在影響範圍內為 7 個設施點。
+3. **歷史淹水災點**：使用國家科學及技術委員會提供的近五年災點；宜蘭子集 137 筆，實際年份為 2021, 2022, 2024, 2025。設施點距歷史災點 300 公尺內即列為命中；**這是歷史事件附近，不是淹水潛勢範圍，也不是未來淹水預測**。
+
+計算時把資料轉為臺灣適用的公尺座標系 EPSG:3826，才能量 300 公尺；輸出到網頁前再轉成經緯度 EPSG:4326。先用宜蘭縣界篩選資料，再逐一比對點與範圍或災點。若同一設施符合多種條件，成果保留一筆設施與各項命中明細。
+
+## 每個輸出檔案到底是什麼
+
+| 檔案 | 內容、對應圖層與用途 |
+|---|---|
+| [地圖入口 index.html](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/index.html)／[map.geolibre.json](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/map.geolibre.json) | 互動地圖入口與專案設定。專案內含上表四個可見圖層；紅點、黃點與縣界的 GeoJSON 已內嵌，地下水補注區由官方 WMS 顯示。**它不是原始災害資料全集**。 |
+| [result.geojson](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/result.geojson)／[result.csv](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/result.csv) | 111 筆命中設施的點位圖資／同內容表格。GeoJSON 對應地圖**紅點**；CSV 可篩選設施類別、命中群組及距離。包含區內及 300 公尺內鄰近者。 |
+| [sensitive-schools.geojson](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/sensitive-schools.geojson)／[sensitive-schools.csv](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/sensitive-schools.csv) | 11 筆直接位於地質敏感區內的學校代表點，對應地圖**黃點**；去重後 10 所，並非『所有附近學校』。 |
+| [scope.geojson](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/scope.geojson) | 宜蘭縣分析邊界，對應地圖**縣界**，不是災害範圍。 |
+| [result.xlsx](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/result.xlsx) | Excel：分析結果、統計摘要、分析參數、資料來源四個工作表；點位清單與 `result.csv` 對應，不另增加分析個案。 |
+| [summary.json](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/summary.json) | 給程式使用的統計、門檻、資料來源、替代資料與限制；不是另一張地圖。 |
+| [performance.json](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/performance.json) | 地圖檔容量與效能預算檢查；只驗大小，**不等於瀏覽器已成功畫出圖層**。 |
+| [report.md](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/report.md)／[report.html](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/report.html) | 本報告的 Markdown 原稿與適合在瀏覽器閱讀的 HTML 版本；不含新增圖資。 |
+
+## 區內學校清單
+
+以下以學校名稱去重；點位及每筆原始名稱、座標請看 `sensitive-schools.csv`。
+
+1. 宜蘭縣三星鄉三星國民小學
+2. 宜蘭縣三星鄉大隱國民小學
+3. 宜蘭縣三星鄉憲明國民小學
+4. 宜蘭縣三星鄉萬富國民小學
+5. 宜蘭縣冬山鄉大進國民小學
+6. 宜蘭縣大同鄉大同國民小學松羅分校
+7. 宜蘭縣大同鄉寒溪國民小學
+8. 宜蘭縣立三星國民中學
+9. 耕莘健康管理專科學校宜蘭校區
+10. 聖母醫護管理專科學校
+
+## 資料來源連結與採用依據
+
+下表是本次程式實際記錄的來源；『備援／快取』表示官方服務當時無法穩定取得時使用先前保存的衍生資料，不應誤說為當次重新下載。
+
+| 資料／圖層 | 提供者 | 官網或資料集 | 本次作用與限制 |
+|---|---|---|---|
+| 宜蘭縣縣界（NLSC鄉鎮市區界線衍生快取） | 內政部國土測繪中心（衍生） | [查看來源](https://data.gov.tw/dataset/7441) | 原始 NLSC 鄉鎮市區界線為 EPSG:3826；快取為 EPSG:4326，由宜蘭縣各鄉鎮市區聯集並以約100公尺容差簡化，僅供本次縣級範圍篩選。 |
+| 國土測繪中心醫療設施 API 宜蘭分格衍生點位 | 內政部國土測繪中心 | [查看來源](https://data.gov.tw/dataset/139250) | API 未提供診所完整名冊；僅納入經名稱核對為醫院與衛生所的兩類地標。 |
+| iTaiwan 宜蘭政府機關熱點代理點 | 數位發展部 | [查看來源](https://data.gov.tw/dataset/5962) | 熱點位置僅可當政府機關位置代理點；以約10公尺精度座標聚合相同場址，可能合併同址不同機關；僅涵蓋設有 iTaiwan 熱點且名稱符合條件的機關，不是政府機關完整名冊。 |
+| 各級學校範圍圖_121分帶（宜蘭衍生點位快取） | 內政部國土測繪中心（衍生） | [查看來源](https://data.gov.tw/dataset/174606) | 由 NLSC 1150409 版 121 分帶校地 polygon 依校碼、校名及資料月份合併後取 representative point；快取輸出為 EPSG:4326，校點不代表校門或校舍。 |
+| 救援與應變單位點位 | 內政部消防署 | [查看來源](https://data.gov.tw/dataset/5969) | 僅取名稱含「分隊」的紀錄。此版 CSV 欄名為 X座標_TWD97TM121／Y座標_TWD97TM121，但數值約121／24，實際為經緯度；程式依數值範圍判讀為 EPSG:4326 並轉至 EPSG:3826，建議與消防署複核欄位詮釋。 |
+| 地質敏感區 G0003 宜蘭平原 | 經濟部地質調查及礦業管理中心 | [查看來源](https://data.gov.tw/dataset/27744) | 數值範圍為規劃參考；實際範圍與法定判定以公告圖資、主管機關及專業程序為準。 |
+| 地質敏感區 H0010 龜山島火山碎屑堆積層 | 經濟部地質調查及礦業管理中心 | [查看來源](https://data.gov.tw/dataset/27744) | 數值範圍為規劃參考；實際範圍與法定判定以公告圖資、主管機關及專業程序為準。 |
+| 地質敏感區 L0016 宜蘭縣 | 經濟部地質調查及礦業管理中心 | [查看來源](https://data.gov.tw/dataset/27744) | 數值範圍為規劃參考；實際範圍與法定判定以公告圖資、主管機關及專業程序為準。 |
+| 近5年淹水災點資料 | 國家科學及技術委員會 | [查看來源](https://data.gov.tw/dataset/130016) | 本次官方檔案 year 欄位涵蓋全國2021–2025；宜蘭子集2023年沒有紀錄。資料集網頁仍註記2023年產製，與檔案年度不一致；2026年事件不在此檔。局部、零星都市道路或農漁塭淹水可能未納入。 |
+| 115年度1753條土石流潛勢溪流影響範圍圖 | 農業部農村發展及水土保持署 | [查看來源](https://data.gov.tw/dataset/176526) | 僅使用影響範圍幾何，未使用原始屬性中的風險分級欄位；潛勢／影響範圍不代表災害必然發生，也不取代現勘或法定審查。 |
+
+## 替代資料與使用界線
+
 - 官方 NLSC 縣市界線下載或解析失敗：403 Client Error: Forbidden for url: https://www.tgos.tw/tgos/VirtualDir/Product/1cd4f4c9-6b01-4cf9-bf6c-23a73aa17d24/%E7%9B%B4%E8%BD%84%E5%B8%82%E3%80%81%E7%B8%A3%28%E5%B8%82%29%E7%95%8C%E7%B7%9A1140318.zip
 - 使用已驗證的宜蘭縣範圍快取：由官方 NLSC 鄉鎮市區界線聯集並以約100公尺容差簡化
 - NLSC 學校範圍圖即時下載或解析失敗，使用同版官方校地衍生點位快取：403 Client Error: Forbidden for url: https://www.tgos.tw/tgos/VirtualDir/Product/5f346c6b-edde-4fe7-8685-5585c0fb7852/%E5%90%84%E7%B4%9A%E5%AD%B8%E6%A0%A1%E7%AF%84%E5%9C%8D%E5%9C%96_121_1150409.zip
 - 國科會淹水災點即時下載失敗，使用2026-09-25取得的同版官方CSV宜蘭子集快取：HTTPSConnectionPool(host='mas.nstc.gov.tw', port=443): Max retries exceeded with url: /OPENDATA/GetFile?fileodr=1&format=csv&serialno=455 (Caused by SSLError(SSLError(1, '[SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] sslv3 alert handshake failure (_ssl.c:1010)')))
-- `高風險`欄位在工作流中僅表示命中兩種以上災害群組，為查核排序用的複合暴露指標，不是官方風險分級。
-- 淹水資料集網頁仍註記2023年產製；本次取得的官方檔案 year 欄位實際涵蓋2021–2025，宜蘭子集2023年為0筆，2026年未納入。
-- NLSC 醫療設施 API 實測查詢半徑約限 5 公里，本次以 7 公里網格、5 公里半徑分格查詢去重；醫療類別只含醫院與衛生所，不代表完整診所名冊。
-- iTaiwan 點位僅定位設有熱點且名稱符合政府機關關鍵字的地點，部分為樓層／櫃臺，非正式機關駐地邊界或完整機關名冊。
-- 本次直接落在地質敏感區內的學校點位均命中 G0003 宜蘭平原地下水補注地質敏感區，非山崩與地滑區；此地質類型不能直接當作人身災害危險分級。憲明國小在官方校地圖有兩筆相鄰圖徵（其中一筆校名尾綴1），故點位數與去重學校數不同。
-- 消防署 CSV 座標欄名含 TWD97TM121，但數值約 121／24；本次按經緯度解讀並轉換，應向資料提供者複核欄位定義。
-- 地質敏感區、淹水災點與土石流影響範圍均為規劃／防災參考資料，不能取代法定公告、現地調查、專業簽證或工程安全鑑定。
+- 原資料集網頁的標示年度，不一定等於本次下載檔的每筆紀錄年度；本報告以實際欄位統計為準。
+- 點位交會只是初篩。校地代表點不等於校舍位置；熱點不等於正式機關地址；歷史淹水點不等於淹水潛勢圖。
+- 地質敏感區的『地下水補注』類型不等於山崩危險。需要作安全、工程或法定判定時，仍須調閱最新公告圖資並實地確認。
 
-## 交付檔案
-- `map.geolibre.json`：GeoLibre 預設互動地圖
-- `result.geojson`：完整命中設施點位
-- `result.csv`：逐設施清單
-- `sensitive-schools.geojson`／`sensitive-schools.csv`：代表點直接落在地質敏感區內的學校圖層及清單
-- `result.xlsx`：分析結果、統計摘要、分析參數、資料來源
-- `summary.json`：可機讀摘要
-- `performance.json`：GeoLibre 效能檢查（由 optimizer 產生）
-- `index.html`：穩定公開入口
+## 總結
+
+本次共比對 291 個公共設施點位，找出 111 個需進一步查看的點位；其中 10 所學校的 11 筆校地代表點直接落在 G0003 地下水補注地質敏感區。地圖紅點是全部命中設施，黃點是嚴格相交的學校子集；官方 WMS 僅作背景對照。建議先用 Excel／CSV 核對設施名稱與座標，再依官方最新公告、現地狀況與主管機關資料複核，勿直接把此圖當成風險分級或設施安全結論。
