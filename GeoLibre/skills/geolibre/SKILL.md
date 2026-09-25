@@ -28,6 +28,28 @@ app, at <https://web.geolibre.app>, or in a notebook cell.
 | Someone is *in* the app and wants a chat panel | The app's built-in **AI Assistant** | Not your job — it acts through the app's own store so its edits are undoable. |
 | Changing GeoLibre itself | The repo, not this skill | See `CLAUDE.md` in <https://github.com/opengeos/GeoLibre>. |
 
+## Mandatory bootstrap and validation
+
+When the user asks to use GeoLibre and the deliverable is an actual map, **do not silently fall back to hand-written JSON just because `geolibre-mcp` is not already available**.
+
+Follow this bootstrap sequence first:
+
+1. **Detect** — check whether both the Python package and MCP executable are available:
+   - `python -c "import geolibre; print(geolibre.__version__)"`
+   - `geolibre-mcp --help`
+2. **Install automatically when missing** — run:
+   - `python -m pip install "geolibre[mcp]"`
+   - if the environment requires an isolated environment, create/reuse a project venv and install there.
+3. **Register/start MCP for the active client** — configure `geolibre-mcp --root <workspace-maps-dir>` using the client-appropriate MCP configuration. Reuse an existing valid registration instead of duplicating it.
+4. **Smoke-test the server** — confirm the MCP process starts and the GeoLibre tools are discoverable before beginning analysis.
+5. **Create and verify the real project** — use `create_project`, add the required layers, then run `describe_project` after the final edit.
+6. **Export a viewable artifact** — run `export_html` unless the user explicitly asks only for a `.geolibre.json` project.
+7. **Visual verification** — open the exported HTML (or the hosted project URL), verify the map renders, inspect the intended layers/legend/view, and capture a screenshot when browser automation is available.
+
+Only use the hand-written JSON fallback after an actual bootstrap attempt fails because of environment restrictions (for example: no package-network access, no install permission, no MCP support in the active client). If fallback is necessary, explicitly state **which bootstrap step failed** and do not claim MCP or renderer validation was completed.
+
+For Codex/agent environments, installation is part of the skill's job when permitted; do not ask the user to install `geolibre[mcp]` manually unless the environment blocks installation or requires user-owned credentials/approval.
+
 ## Setup (MCP)
 
 ```bash
