@@ -17,5 +17,14 @@
   "last_verified_at": "2026-09-25T00:00:00Z",
   "notes": [],
   "web_root": "GeoLibre-Web",
-  "task_manifest_path": "GeoLibre-Web/tasks/current-task.json"
+  "task_manifest_path": "GeoLibre-Web/tasks/current-task.json",
+  "performance": {
+    "project_target_bytes": 2097152,
+    "project_hard_bytes": 5242880,
+    "inline_layer_max_bytes": 262144,
+    "initial_load_soft_bytes": 6291456,
+    "initial_load_hard_bytes": 12582912,
+    "large_result_feature_threshold": 2000,
+    "large_result_bytes_threshold": 5242880
+  }
 }
