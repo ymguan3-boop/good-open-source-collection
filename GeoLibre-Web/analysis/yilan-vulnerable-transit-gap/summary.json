@@ -1,0 +1,372 @@
+{
+  "task_id": "yilan-vulnerable-transit-gap",
+  "analysis_title": "宜蘭縣經濟弱勢高齡 × 公共運輸服務缺口",
+  "version": "1.0",
+  "status": "completed",
+  "period": "113Y (2024)",
+  "released_on_segis": "2026-04-23",
+  "spatial_unit": "village",
+  "result_count": 233,
+  "methodology": {
+    "economic_vulnerability": "G12 (middle-low income) + G13 (low income) elderly",
+    "transit_gap": "L13: home is >=500m from a bus stop",
+    "joint_pressure": "sqrt(vulnerable_rate * bus_gap_rate)",
+    "priority_score": "80% normalized joint pressure + 20% normalized log1p(vulnerable elderly count)",
+    "bands": {
+      "A_extreme": "score >= P90 (40.547)",
+      "B_high": "P75 (17.336) <= score < P90",
+      "C_medium": "P50 (0.000) <= score < P75",
+      "D_lower": "score < P50"
+    },
+    "suppressed_cells": "SEGIS NULL (<3 persons) imputed at midpoint 1.5 for screening; suppression counts retained."
+  },
+  "top_results": [
+    {
+      "rank": 1,
+      "town": "大同鄉",
+      "village": "英士村",
+      "priority_score": 90.57,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 7.27,
+      "bus_gap_rate_pct": 31.58,
+      "vulnerable_elderly_est": 4.0,
+      "bus_gap_elderly_est": 18.0
+    },
+    {
+      "rank": 2,
+      "town": "三星鄉",
+      "village": "尚武村",
+      "priority_score": 72.99,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 1.55,
+      "bus_gap_rate_pct": 94.21,
+      "vulnerable_elderly_est": 3.0,
+      "bus_gap_elderly_est": 179.0
+    },
+    {
+      "rank": 3,
+      "town": "三星鄉",
+      "village": "天山村",
+      "priority_score": 67.16,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 4.9,
+      "bus_gap_rate_pct": 20.98,
+      "vulnerable_elderly_est": 7.0,
+      "bus_gap_elderly_est": 30.0
+    },
+    {
+      "rank": 4,
+      "town": "冬山鄉",
+      "village": "武淵村",
+      "priority_score": 62.29,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 1.09,
+      "bus_gap_rate_pct": 92.7,
+      "vulnerable_elderly_est": 3.0,
+      "bus_gap_elderly_est": 254.0
+    },
+    {
+      "rank": 5,
+      "town": "員山鄉",
+      "village": "中華村",
+      "priority_score": 61.89,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 5.32,
+      "bus_gap_rate_pct": 14.36,
+      "vulnerable_elderly_est": 10.0,
+      "bus_gap_elderly_est": 28.0
+    },
+    {
+      "rank": 6,
+      "town": "南澳鄉",
+      "village": "澳花村",
+      "priority_score": 61.65,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 11.11,
+      "bus_gap_rate_pct": 6.48,
+      "vulnerable_elderly_est": 12.0,
+      "bus_gap_elderly_est": 7.0
+    },
+    {
+      "rank": 7,
+      "town": "大同鄉",
+      "village": "寒溪村",
+      "priority_score": 55.41,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 4.88,
+      "bus_gap_rate_pct": 12.35,
+      "vulnerable_elderly_est": 8.0,
+      "bus_gap_elderly_est": 21.0
+    },
+    {
+      "rank": 8,
+      "town": "三星鄉",
+      "village": "行健村",
+      "priority_score": 54.59,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 1.47,
+      "bus_gap_rate_pct": 50.49,
+      "vulnerable_elderly_est": 3.0,
+      "bus_gap_elderly_est": 103.0
+    },
+    {
+      "rank": 9,
+      "town": "南澳鄉",
+      "village": "東岳村",
+      "priority_score": 51.74,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 10.47,
+      "bus_gap_rate_pct": 4.6,
+      "vulnerable_elderly_est": 9.0,
+      "bus_gap_elderly_est": 4.0
+    },
+    {
+      "rank": 10,
+      "town": "蘇澳鎮",
+      "village": "永春里",
+      "priority_score": 50.16,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 2.7,
+      "bus_gap_rate_pct": 20.81,
+      "vulnerable_elderly_est": 4.0,
+      "bus_gap_elderly_est": 31.0
+    },
+    {
+      "rank": 11,
+      "town": "三星鄉",
+      "village": "拱照村",
+      "priority_score": 50.02,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 1.37,
+      "bus_gap_rate_pct": 40.61,
+      "vulnerable_elderly_est": 4.0,
+      "bus_gap_elderly_est": 119.0
+    },
+    {
+      "rank": 12,
+      "town": "冬山鄉",
+      "village": "太和村",
+      "priority_score": 49.27,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 0.84,
+      "bus_gap_rate_pct": 68.89,
+      "vulnerable_elderly_est": 3.0,
+      "bus_gap_elderly_est": 248.0
+    },
+    {
+      "rank": 13,
+      "town": "冬山鄉",
+      "village": "大進村",
+      "priority_score": 49.01,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 1.35,
+      "bus_gap_rate_pct": 42.48,
+      "vulnerable_elderly_est": 3.0,
+      "bus_gap_elderly_est": 96.0
+    },
+    {
+      "rank": 14,
+      "town": "礁溪鄉",
+      "village": "德陽村",
+      "priority_score": 46.99,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 2.04,
+      "bus_gap_rate_pct": 12.78,
+      "vulnerable_elderly_est": 20.0,
+      "bus_gap_elderly_est": 125.0
+    },
+    {
+      "rank": 15,
+      "town": "三星鄉",
+      "village": "大隱村",
+      "priority_score": 45.6,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 0.91,
+      "bus_gap_rate_pct": 38.47,
+      "vulnerable_elderly_est": 8.0,
+      "bus_gap_elderly_est": 342.0
+    },
+    {
+      "rank": 16,
+      "town": "礁溪鄉",
+      "village": "匏崙村",
+      "priority_score": 44.61,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 2.24,
+      "bus_gap_rate_pct": 17.26,
+      "vulnerable_elderly_est": 5.0,
+      "bus_gap_elderly_est": 39.0
+    },
+    {
+      "rank": 17,
+      "town": "壯圍鄉",
+      "village": "功勞村",
+      "priority_score": 44.6,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 1.46,
+      "bus_gap_rate_pct": 28.47,
+      "vulnerable_elderly_est": 4.0,
+      "bus_gap_elderly_est": 78.0
+    },
+    {
+      "rank": 18,
+      "town": "羅東鎮",
+      "village": "北成里",
+      "priority_score": 44.24,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 2.1,
+      "bus_gap_rate_pct": 12.81,
+      "vulnerable_elderly_est": 12.0,
+      "bus_gap_elderly_est": 73.0
+    },
+    {
+      "rank": 19,
+      "town": "頭城鎮",
+      "village": "更新里",
+      "priority_score": 43.35,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 1.64,
+      "bus_gap_rate_pct": 21.82,
+      "vulnerable_elderly_est": 5.0,
+      "bus_gap_elderly_est": 67.0
+    },
+    {
+      "rank": 20,
+      "town": "壯圍鄉",
+      "village": "新南村",
+      "priority_score": 43.16,
+      "priority_band": "A 極高優先",
+      "vulnerable_rate_pct": 1.44,
+      "bus_gap_rate_pct": 28.85,
+      "vulnerable_elderly_est": 3.0,
+      "bus_gap_elderly_est": 60.0
+    }
+  ],
+  "township_summary": [
+    {
+      "rank": 1,
+      "town": "南澳鄉",
+      "vulnerable_rate_pct": 5.46,
+      "bus_gap_rate_pct": 6.18,
+      "a_priority_villages": 2,
+      "b_priority_villages": 1
+    },
+    {
+      "rank": 2,
+      "town": "三星鄉",
+      "vulnerable_rate_pct": 1.21,
+      "bus_gap_rate_pct": 25.52,
+      "a_priority_villages": 6,
+      "b_priority_villages": 3
+    },
+    {
+      "rank": 3,
+      "town": "大同鄉",
+      "vulnerable_rate_pct": 1.58,
+      "bus_gap_rate_pct": 17.57,
+      "a_priority_villages": 2,
+      "b_priority_villages": 0
+    },
+    {
+      "rank": 4,
+      "town": "礁溪鄉",
+      "vulnerable_rate_pct": 0.79,
+      "bus_gap_rate_pct": 21.95,
+      "a_priority_villages": 3,
+      "b_priority_villages": 5
+    },
+    {
+      "rank": 5,
+      "town": "冬山鄉",
+      "vulnerable_rate_pct": 0.34,
+      "bus_gap_rate_pct": 45.25,
+      "a_priority_villages": 3,
+      "b_priority_villages": 4
+    },
+    {
+      "rank": 6,
+      "town": "壯圍鄉",
+      "vulnerable_rate_pct": 0.63,
+      "bus_gap_rate_pct": 20.41,
+      "a_priority_villages": 2,
+      "b_priority_villages": 1
+    },
+    {
+      "rank": 7,
+      "town": "頭城鎮",
+      "vulnerable_rate_pct": 0.42,
+      "bus_gap_rate_pct": 19.64,
+      "a_priority_villages": 1,
+      "b_priority_villages": 0
+    },
+    {
+      "rank": 8,
+      "town": "員山鄉",
+      "vulnerable_rate_pct": 0.7,
+      "bus_gap_rate_pct": 10.6,
+      "a_priority_villages": 2,
+      "b_priority_villages": 6
+    },
+    {
+      "rank": 9,
+      "town": "羅東鎮",
+      "vulnerable_rate_pct": 0.95,
+      "bus_gap_rate_pct": 7.82,
+      "a_priority_villages": 1,
+      "b_priority_villages": 7
+    },
+    {
+      "rank": 10,
+      "town": "蘇澳鎮",
+      "vulnerable_rate_pct": 1.03,
+      "bus_gap_rate_pct": 1.57,
+      "a_priority_villages": 1,
+      "b_priority_villages": 5
+    },
+    {
+      "rank": 11,
+      "town": "宜蘭市",
+      "vulnerable_rate_pct": 0.55,
+      "bus_gap_rate_pct": 2.75,
+      "a_priority_villages": 1,
+      "b_priority_villages": 0
+    },
+    {
+      "rank": 12,
+      "town": "五結鄉",
+      "vulnerable_rate_pct": 0.54,
+      "bus_gap_rate_pct": 2.29,
+      "a_priority_villages": 0,
+      "b_priority_villages": 4
+    }
+  ],
+  "caveats": [
+    "Area-level screening; not a person-level intersection of vulnerability and bus distance.",
+    "Bus gap measures stop distance only, not frequency or service quality.",
+    "Source period is 2024; subsequent network changes are not included."
+  ],
+  "sources": {
+    "economic_metadata": "https://segis.moi.gov.tw/STATCloud/QueryInterfaceView?COL=aQN%252fHCX5M1xcy0qa5dIGIw%253d%253d&MCOL=jKBRvLmz4PSIl8kKYNJmZw%253d%253d",
+    "convenience_metadata": "https://segis.moi.gov.tw/STATCloud/QueryInterfaceView?COL=XstSF3HYqIa8C%252bcHRT4OZQ%253d%253d&MCOL=rJKUJpShFsKhAOJqtLtzkw%253d%253d",
+    "code_definition": "https://segis.moi.gov.tw/STATCloud/template/%E9%8A%80%E9%AB%AE%E5%AE%89%E5%B1%85%E9%9C%80%E6%B1%82%E6%8C%87%E6%95%B8%E4%BB%A3%E7%A2%BC%E8%AA%AA%E6%98%8E.pdf"
+  },
+  "files": {
+    "geolibre_project": "map.geolibre.json",
+    "excel": "result.xlsx",
+    "csv": "result.csv",
+    "report": "report.md",
+    "summary": "summary.json"
+  },
+  "public_project_url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-vulnerable-transit-gap/map.geolibre.json",
+  "primary_platform": "self-hosted GeoLibre-Web on GitHub Pages",
+  "primary_geolibre_url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-vulnerable-transit-gap%2Fmap.geolibre.json",
+  "compatibility_fallback_url": "https://web.geolibre.app/?url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-vulnerable-transit-gap%2Fmap.geolibre.json",
+  "mcp_validation": {
+    "status": "pass",
+    "layer_count": 1,
+    "feature_count": 233,
+    "map_controls": [
+      "legend"
+    ]
+  }
+}
