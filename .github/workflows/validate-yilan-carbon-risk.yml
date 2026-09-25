@@ -66,27 +66,37 @@ jobs:
           print("Standalone HTML bridge markers OK:", p.stat().st_size, "bytes")
           PY
 
-      - name: Headless Chrome render
-        continue-on-error: true
+      - name: Headless Chrome render from GitHub Pages
         run: |
           OUT="GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated"
-          HTML="$(python - <<'PY'
-          from pathlib import Path
-          print((Path.cwd() / "GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated/map.html").resolve().as_uri())
-          PY
-          )"
-          google-chrome --headless --disable-gpu --no-sandbox             --window-size=1440,1000 --virtual-time-budget=15000             --screenshot="$OUT/render.png" "$HTML" || true
-          if [ -f "$OUT/render.png" ]; then
-            python - <<'PY'
+          URL="https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated/map.html"
+
+          # The Pages deployment may still be finishing. Wait until the file is reachable.
+          for i in {1..18}; do
+            if curl -fsS "$URL" -o /tmp/yilan-map.html; then
+              echo "Pages URL reachable on attempt $i"
+              break
+            fi
+            sleep 5
+          done
+          test -s /tmp/yilan-map.html
+
+          # GeoLibre uses WebGL. Use Chromium's software WebGL path in headless CI.
+          google-chrome --headless=new --no-sandbox \
+            --window-size=1440,1000 --virtual-time-budget=20000 \
+            --enable-webgl --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
+            --screenshot="$OUT/render.png" "$URL"
+
+          python - <<'PY'
           from pathlib import Path
           from PIL import Image, ImageStat
           import json
           p = Path("GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated/render.png")
           im = Image.open(p).convert("RGB")
-          stat = ImageStat.Stat(im)
-          variance = sum(stat.var)
+          variance = sum(ImageStat.Stat(im).var)
           result = {
               "exists": True,
+              "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated/map.html",
               "width": im.width,
               "height": im.height,
               "bytes": p.stat().st_size,
@@ -97,10 +107,9 @@ jobs:
               json.dumps(result, indent=2), encoding="utf-8"
           )
           print(result)
+          if not result["non_blank"]:
+              raise SystemExit("Visual validation failed: screenshot is blank")
           PY
-          else
-            echo '{"exists": false, "non_blank": false}' > "$OUT/render-validation.json"
-          fi
 
       - name: Commit MCP validation outputs
         run: |
