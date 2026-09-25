@@ -37,8 +37,8 @@
     }
   },
   "execution_metadata": {
-    "rerun_revision": 1,
-    "reason": "使用者確認執行且要求詳細資料來源，補齊四類設施與嚴格區內學校清單",
+    "rerun_revision": 2,
+    "reason": "更正預設地下水補注圖層並區分11個校地點位與10所學校",
     "confirmed_at": "2026-09-25"
   }
 }
