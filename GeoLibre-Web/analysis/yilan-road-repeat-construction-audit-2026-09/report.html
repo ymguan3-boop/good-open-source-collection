@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>宜蘭縣道路工程重複施工查核分析</title>
+<style>
+body{font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif;max-width:1100px;margin:40px auto;padding:0 24px;line-height:1.75;color:#1f2937}
+h1,h2,h3{line-height:1.35;color:#111827}h1{border-bottom:3px solid #2563eb;padding-bottom:12px}
+table{border-collapse:collapse;width:100%;margin:16px 0 28px}th,td{border:1px solid #d1d5db;padding:9px;vertical-align:top}th{background:#f3f4f6;text-align:left}
+code{background:#f3f4f6;padding:2px 5px;border-radius:4px;word-break:break-all}.note{background:#fff7ed;border-left:4px solid #f59e0b;padding:12px 16px}
+.ok{background:#ecfdf5;border-left:4px solid #10b981;padding:12px 16px}.muted{color:#6b7280}
+</style></head><body>
+<h1>宜蘭縣道路工程重複施工查核分析</h1>
+<h2>主要發現</h2>
+<p>分析期間為 <strong>2023-09-25 至 2026-09-25</strong>。公開來源共解析 <strong>66 筆</strong>，其中 <strong>53 筆</strong>具備期間內日期與可計算空間幾何。依「50 公尺內至少 2 件施工」規則，共找到 <strong>2 處</strong>查核熱點；其中 <strong>0 處</strong>符合「前案完工後 180 天內再次施工」。</p>
+<div class="note">本成果是審計選案與查核篩選，不代表已認定浪費、違失或不當施工。</div>
+<h3>RC-0001</h3><ul><li>5 件施工、4 組 50 公尺關聯</li><li>期間：2026-07-20～2026-09-07</li><li>道路：光榮、東宜二、東榮、羅榮</li><li>類型：管線工程</li><li>180 天短期再次施工：0 組</li><li>查核優先：中</li></ul>
+<h3>RC-0002</h3><ul><li>2 件施工、1 組 50 公尺關聯</li><li>日期：2024-11-27</li><li>道路：三鬮、尚惠</li><li>類型：管線工程</li><li>180 天短期再次施工：0 組</li><li>查核優先：一般</li></ul>
+<h2>資料與方法</h2>
+<p>核心資料為宜蘭縣道路挖掘公開 XML，透過 ODPortal resourcedata 端點取得。資料包含案件、道路、日期、單位及 GML 施工多邊形／中心點；此次內容可見更新至 2026-09-24。</p>
+<p>分析直接使用 EPSG:3826 施工幾何。任兩件施工距離 ≤50 公尺即建立空間關聯，連通群聚至少 2 件才列入。再檢查後案開工日是否落在前案完工後 0～180 天。道路名稱優先採官方 DG_ROAD / DG_ROAD2 欄位。</p>
+<h2>圖層—圖資—檔案對照表</h2>
+<table><thead><tr><th>角色</th><th>圖資</th><th>檔案</th><th>筆數</th><th>用途</th></tr></thead><tbody>
+<tr><td>預設可見主題圖層</td><td>重複施工查核熱點</td><td><code>overview.geojson</code></td><td>2</td><td>GeoLibre 首頁顯示</td></tr>
+<tr><td>隱藏證據圖層</td><td>施工案件</td><td><code>events.geojson</code></td><td>53</td><td>查看構成熱點的案件與施工幾何</td></tr>
+<tr><td>正式完整結果</td><td>正式熱點 feature</td><td><code>result.geojson</code></td><td>2</td><td>GIS／程式重用的權威結果</td></tr>
+<tr><td>CSV</td><td>查核熱點清單</td><td><code>result.csv</code></td><td>2</td><td>交換與快速檢視</td></tr>
+<tr><td>Excel</td><td>熱點、案件明細、統計、參數、來源</td><td><code>result.xlsx</code></td><td>分析結果 2 列</td><td>查核工作底稿</td></tr>
+<tr><td>OSM 輔助</td><td>道路中心線</td><td><code>roads-context.geojson</code></td><td>0</td><td>本次未啟用，不參與判定</td></tr>
+<tr><td>來源快照</td><td>公開案件解析快照</td><td><code>source-snapshot.json</code></td><td>66</td><td>可重現分析與備援</td></tr>
+</tbody></table>
+<h2>效能與發布</h2>
+<div class="ok">Project 2,432 bytes；初始載入估計 4,048 bytes。Project、inline、可見圖層、mobile soft / hard budgets 均通過。GitHub Actions 分析、最佳化、驗證、成果 commit 與 GitHub Pages build / deploy 均成功。</div>
+<h2>截圖與視覺驗證</h2>
+<p>目前執行環境沒有可用的瀏覽器自動化工具，因此 <strong>尚未完成 GeoLibre 實際畫面交叉驗證，也沒有產生 map-overview.png</strong>。未以其他靜態地圖冒充 GeoLibre 截圖。</p>
+<h2>資料限制</h2><ol><li>66 筆公開 XML 不代表縣府內部近 3 年完整母體只有 66 筆。</li><li>工程類型部分依文字分類，正式查核應回查原始案件。</li><li>50 公尺表示幾何鄰近，不代表完全相同施工面。</li><li>2 個熱點都未命中 180 天短期再次施工。</li><li>違失或浪費仍需查閱施工必要性、契約、許可、整合施工與現場資料。</li></ol>
+<h2>總結</h2>
+<p>目前公開資料共找到 <strong>2 處</strong> 50 公尺內重複施工空間群聚，<strong>0 處</strong>命中 180 天短期再次施工。RC-0001 因 5 件施工集中於相近範圍，較適合作為後續人工調卷的優先對象；RC-0002 則應先確認是否為同一工程、相鄰工區或同日整合施工。本成果定位為審計查核篩選工具，而非違失結論。</p>
+</body></html>
