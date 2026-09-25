@@ -13,10 +13,11 @@
     "joint_pressure": "sqrt(vulnerable_rate * bus_gap_rate)",
     "priority_score": "80% normalized joint pressure + 20% normalized log1p(vulnerable elderly count)",
     "bands": {
-      "A_extreme": "score >= P90 (40.547)",
-      "B_high": "P75 (17.336) <= score < P90",
-      "C_medium": "P50 (0.000) <= score < P75",
-      "D_lower": "score < P50"
+      "classification_population": "villages with priority_score > 0; zero scores remain in D",
+      "A_extreme": "score >= positive-score P90 (49.142)",
+      "B_high": "positive-score P75 (33.622) <= score < P90",
+      "C_medium": "positive-score P50 (17.336) <= score < P75",
+      "D_lower": "score < positive-score P50 (17.336), including zero"
     },
     "suppressed_cells": "SEGIS NULL (<3 persons) imputed at midpoint 1.5 for screening; suppression counts retained."
   },
@@ -158,7 +159,7 @@
       "town": "冬山鄉",
       "village": "大進村",
       "priority_score": 49.01,
-      "priority_band": "A 極高優先",
+      "priority_band": "B 高優先",
       "vulnerable_rate_pct": 1.35,
       "bus_gap_rate_pct": 42.48,
       "vulnerable_elderly_est": 3.0,
@@ -169,7 +170,7 @@
       "town": "礁溪鄉",
       "village": "德陽村",
       "priority_score": 46.99,
-      "priority_band": "A 極高優先",
+      "priority_band": "B 高優先",
       "vulnerable_rate_pct": 2.04,
       "bus_gap_rate_pct": 12.78,
       "vulnerable_elderly_est": 20.0,
@@ -180,7 +181,7 @@
       "town": "三星鄉",
       "village": "大隱村",
       "priority_score": 45.6,
-      "priority_band": "A 極高優先",
+      "priority_band": "B 高優先",
       "vulnerable_rate_pct": 0.91,
       "bus_gap_rate_pct": 38.47,
       "vulnerable_elderly_est": 8.0,
@@ -191,7 +192,7 @@
       "town": "礁溪鄉",
       "village": "匏崙村",
       "priority_score": 44.61,
-      "priority_band": "A 極高優先",
+      "priority_band": "B 高優先",
       "vulnerable_rate_pct": 2.24,
       "bus_gap_rate_pct": 17.26,
       "vulnerable_elderly_est": 5.0,
@@ -202,7 +203,7 @@
       "town": "壯圍鄉",
       "village": "功勞村",
       "priority_score": 44.6,
-      "priority_band": "A 極高優先",
+      "priority_band": "B 高優先",
       "vulnerable_rate_pct": 1.46,
       "bus_gap_rate_pct": 28.47,
       "vulnerable_elderly_est": 4.0,
@@ -213,7 +214,7 @@
       "town": "羅東鎮",
       "village": "北成里",
       "priority_score": 44.24,
-      "priority_band": "A 極高優先",
+      "priority_band": "B 高優先",
       "vulnerable_rate_pct": 2.1,
       "bus_gap_rate_pct": 12.81,
       "vulnerable_elderly_est": 12.0,
@@ -224,7 +225,7 @@
       "town": "頭城鎮",
       "village": "更新里",
       "priority_score": 43.35,
-      "priority_band": "A 極高優先",
+      "priority_band": "B 高優先",
       "vulnerable_rate_pct": 1.64,
       "bus_gap_rate_pct": 21.82,
       "vulnerable_elderly_est": 5.0,
@@ -235,7 +236,7 @@
       "town": "壯圍鄉",
       "village": "新南村",
       "priority_score": 43.16,
-      "priority_band": "A 極高優先",
+      "priority_band": "B 高優先",
       "vulnerable_rate_pct": 1.44,
       "bus_gap_rate_pct": 28.85,
       "vulnerable_elderly_est": 3.0,
@@ -249,15 +250,15 @@
       "vulnerable_rate_pct": 5.46,
       "bus_gap_rate_pct": 6.18,
       "a_priority_villages": 2,
-      "b_priority_villages": 1
+      "b_priority_villages": 0
     },
     {
       "rank": 2,
       "town": "三星鄉",
       "vulnerable_rate_pct": 1.21,
       "bus_gap_rate_pct": 25.52,
-      "a_priority_villages": 6,
-      "b_priority_villages": 3
+      "a_priority_villages": 4,
+      "b_priority_villages": 2
     },
     {
       "rank": 3,
@@ -272,48 +273,48 @@
       "town": "礁溪鄉",
       "vulnerable_rate_pct": 0.79,
       "bus_gap_rate_pct": 21.95,
-      "a_priority_villages": 3,
-      "b_priority_villages": 5
+      "a_priority_villages": 0,
+      "b_priority_villages": 4
     },
     {
       "rank": 5,
       "town": "冬山鄉",
       "vulnerable_rate_pct": 0.34,
       "bus_gap_rate_pct": 45.25,
-      "a_priority_villages": 3,
-      "b_priority_villages": 4
+      "a_priority_villages": 2,
+      "b_priority_villages": 3
     },
     {
       "rank": 6,
       "town": "壯圍鄉",
       "vulnerable_rate_pct": 0.63,
       "bus_gap_rate_pct": 20.41,
-      "a_priority_villages": 2,
-      "b_priority_villages": 1
+      "a_priority_villages": 0,
+      "b_priority_villages": 2
     },
     {
       "rank": 7,
       "town": "頭城鎮",
       "vulnerable_rate_pct": 0.42,
       "bus_gap_rate_pct": 19.64,
-      "a_priority_villages": 1,
-      "b_priority_villages": 0
+      "a_priority_villages": 0,
+      "b_priority_villages": 1
     },
     {
       "rank": 8,
       "town": "員山鄉",
       "vulnerable_rate_pct": 0.7,
       "bus_gap_rate_pct": 10.6,
-      "a_priority_villages": 2,
-      "b_priority_villages": 6
+      "a_priority_villages": 1,
+      "b_priority_villages": 2
     },
     {
       "rank": 9,
       "town": "羅東鎮",
       "vulnerable_rate_pct": 0.95,
       "bus_gap_rate_pct": 7.82,
-      "a_priority_villages": 1,
-      "b_priority_villages": 7
+      "a_priority_villages": 0,
+      "b_priority_villages": 2
     },
     {
       "rank": 10,
@@ -321,15 +322,15 @@
       "vulnerable_rate_pct": 1.03,
       "bus_gap_rate_pct": 1.57,
       "a_priority_villages": 1,
-      "b_priority_villages": 5
+      "b_priority_villages": 0
     },
     {
       "rank": 11,
       "town": "宜蘭市",
       "vulnerable_rate_pct": 0.55,
       "bus_gap_rate_pct": 2.75,
-      "a_priority_villages": 1,
-      "b_priority_villages": 0
+      "a_priority_villages": 0,
+      "b_priority_villages": 1
     },
     {
       "rank": 12,
@@ -337,7 +338,7 @@
       "vulnerable_rate_pct": 0.54,
       "bus_gap_rate_pct": 2.29,
       "a_priority_villages": 0,
-      "b_priority_villages": 4
+      "b_priority_villages": 0
     }
   ],
   "caveats": [

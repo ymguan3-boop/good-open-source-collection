@@ -15,7 +15,7 @@
   "basemapOpacity": 1,
   "layers": [
     {
-      "id": "f3f7618b-56de-4cd7-8f4e-bf96aba42dc0",
+      "id": "c4de19c1-6f77-48c7-8411-d5329dd7a990",
       "name": "\u6751\u91cc\u5f31\u52e2\u9ad8\u9f61\u516c\u5171\u904b\u8f38\u7f3a\u53e3",
       "type": "geojson",
       "visible": true,
@@ -52,15 +52,15 @@
             "color": "#1a9850"
           },
           {
-            "value": 0.0,
+            "value": 17.336,
             "color": "#fee08b"
           },
           {
-            "value": 17.336,
+            "value": 33.622,
             "color": "#f46d43"
           },
           {
-            "value": 40.547,
+            "value": 49.142,
             "color": "#d73027"
           }
         ],
@@ -146,7 +146,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -198,7 +198,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -310,7 +310,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 14.43,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -426,7 +426,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 11.77,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -530,7 +530,7 @@
               "bus_gap_elderly_est": 43.0,
               "bus_gap_rate_pct": 11.62,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -898,7 +898,7 @@
               "bus_gap_elderly_est": 219.0,
               "bus_gap_rate_pct": 92.41,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -1178,7 +1178,7 @@
               "bus_gap_elderly_est": 241.0,
               "bus_gap_rate_pct": 57.24,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -1250,7 +1250,7 @@
               "bus_gap_elderly_est": 158.0,
               "bus_gap_rate_pct": 100.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -1334,7 +1334,7 @@
               "bus_gap_elderly_est": 21.0,
               "bus_gap_rate_pct": 6.29,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -1434,7 +1434,7 @@
               "bus_gap_elderly_est": 164.0,
               "bus_gap_rate_pct": 78.85,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -1578,7 +1578,7 @@
               "bus_gap_elderly_est": 176.0,
               "bus_gap_rate_pct": 72.73,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -1910,7 +1910,7 @@
               "bus_gap_elderly_est": 21.0,
               "bus_gap_rate_pct": 8.17,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -2094,7 +2094,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -2310,7 +2310,7 @@
               "bus_gap_elderly_est": 63.0,
               "bus_gap_rate_pct": 17.8,
               "priority_score": 29.78,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -2574,7 +2574,7 @@
               "bus_gap_elderly_est": 15.0,
               "bus_gap_rate_pct": 2.99,
               "priority_score": 18.73,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -2698,7 +2698,7 @@
               "bus_gap_elderly_est": 125.0,
               "bus_gap_rate_pct": 12.78,
               "priority_score": 46.99,
-              "priority_band": "A \u6975\u9ad8\u512a\u5148",
+              "priority_band": "B \u9ad8\u512a\u5148",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -2998,7 +2998,7 @@
               "bus_gap_elderly_est": 3.0,
               "bus_gap_rate_pct": 0.53,
               "priority_score": 19.04,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -3054,7 +3054,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -3130,7 +3130,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -3278,7 +3278,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 10.57,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -3442,7 +3442,7 @@
               "bus_gap_elderly_est": 4.0,
               "bus_gap_rate_pct": 100.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -3646,7 +3646,7 @@
               "bus_gap_elderly_est": 213.0,
               "bus_gap_rate_pct": 45.22,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -4130,7 +4130,7 @@
               "bus_gap_elderly_est": 81.0,
               "bus_gap_rate_pct": 32.79,
               "priority_score": 42.56,
-              "priority_band": "A \u6975\u9ad8\u512a\u5148",
+              "priority_band": "B \u9ad8\u512a\u5148",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -4262,7 +4262,7 @@
               "bus_gap_elderly_est": 147.0,
               "bus_gap_rate_pct": 77.78,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -4390,7 +4390,7 @@
               "bus_gap_elderly_est": 163.0,
               "bus_gap_rate_pct": 61.98,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -4554,7 +4554,7 @@
               "bus_gap_elderly_est": 200.0,
               "bus_gap_rate_pct": 72.46,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -4658,7 +4658,7 @@
               "bus_gap_elderly_est": 132.0,
               "bus_gap_rate_pct": 22.11,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -4878,7 +4878,7 @@
               "bus_gap_elderly_est": 71.0,
               "bus_gap_rate_pct": 10.35,
               "priority_score": 20.39,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -5262,7 +5262,7 @@
               "bus_gap_elderly_est": 39.0,
               "bus_gap_rate_pct": 17.26,
               "priority_score": 44.61,
-              "priority_band": "A \u6975\u9ad8\u512a\u5148",
+              "priority_band": "B \u9ad8\u512a\u5148",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -5702,7 +5702,7 @@
               "bus_gap_elderly_est": 15.0,
               "bus_gap_rate_pct": 13.89,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -5834,7 +5834,7 @@
               "bus_gap_elderly_est": 25.0,
               "bus_gap_rate_pct": 4.69,
               "priority_score": 26.73,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -5970,7 +5970,7 @@
               "bus_gap_elderly_est": 143.0,
               "bus_gap_rate_pct": 35.31,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -6138,7 +6138,7 @@
               "bus_gap_elderly_est": 60.0,
               "bus_gap_rate_pct": 28.85,
               "priority_score": 43.16,
-              "priority_band": "A \u6975\u9ad8\u512a\u5148",
+              "priority_band": "B \u9ad8\u512a\u5148",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -6226,7 +6226,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -6354,7 +6354,7 @@
               "bus_gap_elderly_est": 38.0,
               "bus_gap_rate_pct": 10.44,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -6422,7 +6422,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -6486,7 +6486,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -6630,7 +6630,7 @@
               "bus_gap_elderly_est": 233.0,
               "bus_gap_rate_pct": 48.04,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -6802,7 +6802,7 @@
               "bus_gap_elderly_est": 162.0,
               "bus_gap_rate_pct": 46.96,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -6994,7 +6994,7 @@
               "bus_gap_elderly_est": 78.0,
               "bus_gap_rate_pct": 28.47,
               "priority_score": 44.6,
-              "priority_band": "A \u6975\u9ad8\u512a\u5148",
+              "priority_band": "B \u9ad8\u512a\u5148",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -7210,7 +7210,7 @@
               "bus_gap_elderly_est": 93.0,
               "bus_gap_rate_pct": 17.88,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -7310,7 +7310,7 @@
               "bus_gap_elderly_est": 81.0,
               "bus_gap_rate_pct": 29.45,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -7406,7 +7406,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 13.66,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -7554,7 +7554,7 @@
               "bus_gap_elderly_est": 61.0,
               "bus_gap_rate_pct": 27.48,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -7686,7 +7686,7 @@
               "bus_gap_elderly_est": 33.0,
               "bus_gap_rate_pct": 2.92,
               "priority_score": 17.77,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -7842,7 +7842,7 @@
               "bus_gap_elderly_est": 75.0,
               "bus_gap_rate_pct": 15.59,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -7958,7 +7958,7 @@
               "bus_gap_elderly_est": 120.0,
               "bus_gap_rate_pct": 33.15,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -8094,7 +8094,7 @@
               "bus_gap_elderly_est": 35.0,
               "bus_gap_rate_pct": 14.58,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -8210,7 +8210,7 @@
               "bus_gap_elderly_est": 55.0,
               "bus_gap_rate_pct": 13.55,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -8314,7 +8314,7 @@
               "bus_gap_elderly_est": 46.0,
               "bus_gap_rate_pct": 16.08,
               "priority_score": 30.71,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -8442,7 +8442,7 @@
               "bus_gap_elderly_est": 39.0,
               "bus_gap_rate_pct": 12.34,
               "priority_score": 41.39,
-              "priority_band": "A \u6975\u9ad8\u512a\u5148",
+              "priority_band": "B \u9ad8\u512a\u5148",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -8982,7 +8982,7 @@
               "bus_gap_elderly_est": 11.0,
               "bus_gap_rate_pct": 2.91,
               "priority_score": 19.85,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -9074,7 +9074,7 @@
               "bus_gap_elderly_est": 22.0,
               "bus_gap_rate_pct": 9.48,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -9402,7 +9402,7 @@
               "bus_gap_elderly_est": 18.0,
               "bus_gap_rate_pct": 3.15,
               "priority_score": 20.56,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -9518,7 +9518,7 @@
               "bus_gap_elderly_est": 11.0,
               "bus_gap_rate_pct": 2.09,
               "priority_score": 14.89,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -9738,7 +9738,7 @@
               "bus_gap_elderly_est": 45.0,
               "bus_gap_rate_pct": 22.61,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -9882,7 +9882,7 @@
               "bus_gap_elderly_est": 13.0,
               "bus_gap_rate_pct": 5.99,
               "priority_score": 24.4,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -10030,7 +10030,7 @@
               "bus_gap_elderly_est": 3.0,
               "bus_gap_rate_pct": 1.2,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -10794,7 +10794,7 @@
               "bus_gap_elderly_est": 184.0,
               "bus_gap_rate_pct": 53.18,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -10930,7 +10930,7 @@
               "bus_gap_elderly_est": 236.0,
               "bus_gap_rate_pct": 100.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -11110,7 +11110,7 @@
               "bus_gap_elderly_est": 129.0,
               "bus_gap_rate_pct": 64.82,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -11242,7 +11242,7 @@
               "bus_gap_elderly_est": 235.0,
               "bus_gap_rate_pct": 100.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -11390,7 +11390,7 @@
               "bus_gap_elderly_est": 108.0,
               "bus_gap_rate_pct": 33.33,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -11494,7 +11494,7 @@
               "bus_gap_elderly_est": 88.0,
               "bus_gap_rate_pct": 16.09,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -11622,7 +11622,7 @@
               "bus_gap_elderly_est": 28.0,
               "bus_gap_rate_pct": 4.67,
               "priority_score": 17.22,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -11698,7 +11698,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -11918,7 +11918,7 @@
               "bus_gap_elderly_est": 110.0,
               "bus_gap_rate_pct": 63.58,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -12250,7 +12250,7 @@
               "bus_gap_elderly_est": 19.0,
               "bus_gap_rate_pct": 5.37,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -12418,7 +12418,7 @@
               "bus_gap_elderly_est": 10.0,
               "bus_gap_rate_pct": 2.41,
               "priority_score": 16.1,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -12538,7 +12538,7 @@
               "bus_gap_elderly_est": 8.0,
               "bus_gap_rate_pct": 1.25,
               "priority_score": 17.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -12746,7 +12746,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -13226,7 +13226,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -13638,7 +13638,7 @@
               "bus_gap_elderly_est": 26.0,
               "bus_gap_rate_pct": 12.75,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -13838,7 +13838,7 @@
               "bus_gap_elderly_est": 14.0,
               "bus_gap_rate_pct": 8.09,
               "priority_score": 29.06,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -14014,7 +14014,7 @@
               "bus_gap_elderly_est": 109.0,
               "bus_gap_rate_pct": 91.6,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -14346,7 +14346,7 @@
               "bus_gap_elderly_est": 12.0,
               "bus_gap_rate_pct": 4.0,
               "priority_score": 27.74,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -14454,7 +14454,7 @@
               "bus_gap_elderly_est": 15.0,
               "bus_gap_rate_pct": 4.69,
               "priority_score": 32.45,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -14534,7 +14534,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 10.57,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -15086,7 +15086,7 @@
               "bus_gap_elderly_est": 342.0,
               "bus_gap_rate_pct": 38.47,
               "priority_score": 45.6,
-              "priority_band": "A \u6975\u9ad8\u512a\u5148",
+              "priority_band": "B \u9ad8\u512a\u5148",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -15438,7 +15438,7 @@
               "bus_gap_elderly_est": 29.0,
               "bus_gap_rate_pct": 19.33,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -15662,7 +15662,7 @@
               "bus_gap_elderly_est": 63.0,
               "bus_gap_rate_pct": 54.31,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -15830,7 +15830,7 @@
               "bus_gap_elderly_est": 25.0,
               "bus_gap_rate_pct": 11.74,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -16034,7 +16034,7 @@
               "bus_gap_elderly_est": 31.0,
               "bus_gap_rate_pct": 9.75,
               "priority_score": 42.9,
-              "priority_band": "A \u6975\u9ad8\u512a\u5148",
+              "priority_band": "B \u9ad8\u512a\u5148",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -16438,7 +16438,7 @@
               "bus_gap_elderly_est": 14.0,
               "bus_gap_rate_pct": 3.68,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -16602,7 +16602,7 @@
               "bus_gap_elderly_est": 52.0,
               "bus_gap_rate_pct": 15.9,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -17810,7 +17810,7 @@
               "bus_gap_elderly_est": 25.0,
               "bus_gap_rate_pct": 32.89,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -18170,7 +18170,7 @@
               "bus_gap_elderly_est": 16.0,
               "bus_gap_rate_pct": 14.16,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -18698,7 +18698,7 @@
               "bus_gap_elderly_est": 27.0,
               "bus_gap_rate_pct": 43.55,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -19634,7 +19634,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -20582,7 +20582,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -21210,7 +21210,7 @@
               "bus_gap_elderly_est": 23.0,
               "bus_gap_rate_pct": 17.83,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -21730,7 +21730,7 @@
               "bus_gap_elderly_est": 6.0,
               "bus_gap_rate_pct": 8.11,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -22246,7 +22246,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -22714,7 +22714,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 13.66,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -23002,7 +23002,7 @@
               "bus_gap_elderly_est": 6.0,
               "bus_gap_rate_pct": 4.17,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -24458,7 +24458,7 @@
               "bus_gap_elderly_est": 15.0,
               "bus_gap_rate_pct": 25.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -25238,7 +25238,7 @@
               "bus_gap_elderly_est": 15.0,
               "bus_gap_rate_pct": 17.05,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -26646,7 +26646,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 17.34,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -27198,7 +27198,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -27742,7 +27742,7 @@
               "bus_gap_elderly_est": 6.0,
               "bus_gap_rate_pct": 6.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -27794,7 +27794,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 10.57,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -27898,7 +27898,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 10.57,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -27950,7 +27950,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -28006,7 +28006,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 17.34,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -28058,7 +28058,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -28294,7 +28294,7 @@
               "bus_gap_elderly_est": 8.0,
               "bus_gap_rate_pct": 2.55,
               "priority_score": 22.44,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -28630,7 +28630,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -28798,7 +28798,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 11.77,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -29122,7 +29122,7 @@
               "bus_gap_elderly_est": 10.0,
               "bus_gap_rate_pct": 5.05,
               "priority_score": 23.6,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -29306,7 +29306,7 @@
               "bus_gap_elderly_est": 7.0,
               "bus_gap_rate_pct": 1.04,
               "priority_score": 20.31,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -29586,7 +29586,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -29886,7 +29886,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -30242,7 +30242,7 @@
               "bus_gap_elderly_est": 8.0,
               "bus_gap_rate_pct": 4.42,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -30478,7 +30478,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -30726,7 +30726,7 @@
               "bus_gap_elderly_est": 67.0,
               "bus_gap_rate_pct": 21.82,
               "priority_score": 43.35,
-              "priority_band": "A \u6975\u9ad8\u512a\u5148",
+              "priority_band": "B \u9ad8\u512a\u5148",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -31006,7 +31006,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -31206,7 +31206,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -31406,7 +31406,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -31526,7 +31526,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -31582,7 +31582,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -31646,7 +31646,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -31786,7 +31786,7 @@
               "bus_gap_elderly_est": 175.0,
               "bus_gap_rate_pct": 96.15,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -31938,7 +31938,7 @@
               "bus_gap_elderly_est": 272.0,
               "bus_gap_rate_pct": 85.8,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -32250,7 +32250,7 @@
               "bus_gap_elderly_est": 32.0,
               "bus_gap_rate_pct": 24.81,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -32470,7 +32470,7 @@
               "bus_gap_elderly_est": 197.0,
               "bus_gap_rate_pct": 30.17,
               "priority_score": 33.27,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -32638,7 +32638,7 @@
               "bus_gap_elderly_est": 116.0,
               "bus_gap_rate_pct": 9.56,
               "priority_score": 19.95,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -32838,7 +32838,7 @@
               "bus_gap_elderly_est": 444.0,
               "bus_gap_rate_pct": 79.29,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -32978,7 +32978,7 @@
               "bus_gap_elderly_est": 9.0,
               "bus_gap_rate_pct": 3.6,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -33098,7 +33098,7 @@
               "bus_gap_elderly_est": 7.0,
               "bus_gap_rate_pct": 1.1,
               "priority_score": 14.95,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -33214,7 +33214,7 @@
               "bus_gap_elderly_est": 93.0,
               "bus_gap_rate_pct": 26.35,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -33394,7 +33394,7 @@
               "bus_gap_elderly_est": 260.0,
               "bus_gap_rate_pct": 69.33,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -33730,7 +33730,7 @@
               "bus_gap_elderly_est": 96.0,
               "bus_gap_rate_pct": 42.48,
               "priority_score": 49.01,
-              "priority_band": "A \u6975\u9ad8\u512a\u5148",
+              "priority_band": "B \u9ad8\u512a\u5148",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -33838,7 +33838,7 @@
               "bus_gap_elderly_est": 20.0,
               "bus_gap_rate_pct": 4.22,
               "priority_score": 25.02,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -33914,7 +33914,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -34058,7 +34058,7 @@
               "bus_gap_elderly_est": 33.0,
               "bus_gap_rate_pct": 5.72,
               "priority_score": 18.21,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -34226,7 +34226,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -34422,7 +34422,7 @@
               "bus_gap_elderly_est": 25.0,
               "bus_gap_rate_pct": 8.53,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -34530,7 +34530,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 14.43,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -34686,7 +34686,7 @@
               "bus_gap_elderly_est": 21.0,
               "bus_gap_rate_pct": 4.88,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -34846,7 +34846,7 @@
               "bus_gap_elderly_est": 19.0,
               "bus_gap_rate_pct": 2.43,
               "priority_score": 20.01,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -34974,7 +34974,7 @@
               "bus_gap_elderly_est": 24.0,
               "bus_gap_rate_pct": 3.59,
               "priority_score": 20.4,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -35226,7 +35226,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -35354,7 +35354,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -35438,7 +35438,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 10.57,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -35514,7 +35514,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -35642,7 +35642,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -35774,7 +35774,7 @@
               "bus_gap_elderly_est": 30.0,
               "bus_gap_rate_pct": 10.64,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -35898,7 +35898,7 @@
               "bus_gap_elderly_est": 17.0,
               "bus_gap_rate_pct": 4.16,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -35994,7 +35994,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -36090,7 +36090,7 @@
               "bus_gap_elderly_est": 26.0,
               "bus_gap_rate_pct": 10.7,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -36222,7 +36222,7 @@
               "bus_gap_elderly_est": 200.0,
               "bus_gap_rate_pct": 55.1,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -36286,7 +36286,7 @@
               "bus_gap_elderly_est": 18.0,
               "bus_gap_rate_pct": 4.62,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -36382,7 +36382,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -36558,7 +36558,7 @@
               "bus_gap_elderly_est": 16.0,
               "bus_gap_rate_pct": 5.37,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -36622,7 +36622,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -36670,7 +36670,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 13.66,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -36726,7 +36726,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -36786,7 +36786,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -36850,7 +36850,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 11.77,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -36906,7 +36906,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -37062,7 +37062,7 @@
               "bus_gap_elderly_est": 38.0,
               "bus_gap_rate_pct": 6.16,
               "priority_score": 40.73,
-              "priority_band": "A \u6975\u9ad8\u512a\u5148",
+              "priority_band": "B \u9ad8\u512a\u5148",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -37162,7 +37162,7 @@
               "bus_gap_elderly_est": 12.0,
               "bus_gap_rate_pct": 3.07,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -37218,7 +37218,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -37450,7 +37450,7 @@
               "bus_gap_elderly_est": 115.0,
               "bus_gap_rate_pct": 18.79,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -37502,7 +37502,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -37546,7 +37546,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -37602,7 +37602,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 16.32,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -37666,7 +37666,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -37738,7 +37738,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 12.78,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -37786,7 +37786,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -37834,7 +37834,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -37902,7 +37902,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 14.43,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -37950,7 +37950,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 12.78,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -38010,7 +38010,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -38090,7 +38090,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -38162,7 +38162,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 15.13,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -38206,7 +38206,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -38298,7 +38298,7 @@
               "bus_gap_elderly_est": 4.0,
               "bus_gap_rate_pct": 0.99,
               "priority_score": 13.62,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -38362,7 +38362,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -38422,7 +38422,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -38482,7 +38482,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -38538,7 +38538,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -38674,7 +38674,7 @@
               "bus_gap_elderly_est": 59.0,
               "bus_gap_rate_pct": 8.91,
               "priority_score": 25.48,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -38862,7 +38862,7 @@
               "bus_gap_elderly_est": 482.0,
               "bus_gap_rate_pct": 89.76,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -38982,7 +38982,7 @@
               "bus_gap_elderly_est": 71.0,
               "bus_gap_rate_pct": 12.28,
               "priority_score": 31.67,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -39054,7 +39054,7 @@
               "bus_gap_elderly_est": 9.0,
               "bus_gap_rate_pct": 1.59,
               "priority_score": 27.43,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -39110,7 +39110,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 10.57,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -39186,7 +39186,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -39242,7 +39242,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 17.34,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -39322,7 +39322,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 16.32,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -39434,7 +39434,7 @@
               "bus_gap_elderly_est": 8.0,
               "bus_gap_rate_pct": 1.22,
               "priority_score": 13.07,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -39606,7 +39606,7 @@
               "bus_gap_elderly_est": 73.0,
               "bus_gap_rate_pct": 12.81,
               "priority_score": 44.24,
-              "priority_band": "A \u6975\u9ad8\u512a\u5148",
+              "priority_band": "B \u9ad8\u512a\u5148",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -39662,7 +39662,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 17.34,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -39722,7 +39722,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 12.78,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -39774,7 +39774,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 11.77,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -39854,7 +39854,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -40074,7 +40074,7 @@
               "bus_gap_elderly_est": 191.0,
               "bus_gap_rate_pct": 26.27,
               "priority_score": 26.5,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -40150,7 +40150,7 @@
               "bus_gap_elderly_est": 4.0,
               "bus_gap_rate_pct": 0.5,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -40230,7 +40230,7 @@
               "bus_gap_elderly_est": 3.0,
               "bus_gap_rate_pct": 0.3,
               "priority_score": 16.1,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -40298,7 +40298,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 13.66,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -40366,7 +40366,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 12.78,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -40426,7 +40426,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -40478,7 +40478,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 11.77,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -40658,7 +40658,7 @@
               "bus_gap_elderly_est": 36.0,
               "bus_gap_rate_pct": 5.01,
               "priority_score": 16.74,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -40734,7 +40734,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -40846,7 +40846,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -40938,7 +40938,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 9.11,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -41166,7 +41166,7 @@
               "bus_gap_elderly_est": 3.0,
               "bus_gap_rate_pct": 0.92,
               "priority_score": 18.08,
-              "priority_band": "B \u9ad8\u512a\u5148",
+              "priority_band": "C \u4e2d\u5ea6",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -41286,7 +41286,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -41538,7 +41538,7 @@
               "bus_gap_elderly_est": 32.0,
               "bus_gap_rate_pct": 10.42,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -41622,7 +41622,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 13.66,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -41738,7 +41738,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 10.57,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -41870,7 +41870,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -41942,7 +41942,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 0.0,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -42150,7 +42150,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 11.77,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           },
@@ -42302,7 +42302,7 @@
               "bus_gap_elderly_est": 0.0,
               "bus_gap_rate_pct": 0.0,
               "priority_score": 14.43,
-              "priority_band": "C \u4e2d\u5ea6",
+              "priority_band": "D \u8f03\u4f4e",
               "data_quality": "\u8f03\u9ad8"
             }
           }
@@ -42411,22 +42411,22 @@
           "title": "\u5f31\u52e2\u9ad8\u9f61 \u00d7 \u516c\u8eca\u53ef\u8fd1\u6027\u7f3a\u53e3",
           "items": [
             {
-              "label": "D \u8f03\u4f4e\uff08<0.0\uff09",
+              "label": "D \u8f03\u4f4e\uff08<17.3\uff09",
               "color": "#1a9850",
               "shape": "square"
             },
             {
-              "label": "C \u4e2d\u5ea6\uff080.0\u201317.3\uff09",
+              "label": "C \u4e2d\u5ea6\uff0817.3\u201333.6\uff09",
               "color": "#fee08b",
               "shape": "square"
             },
             {
-              "label": "B \u9ad8\u512a\u5148\uff0817.3\u201340.5\uff09",
+              "label": "B \u9ad8\u512a\u5148\uff0833.6\u201349.1\uff09",
               "color": "#f46d43",
               "shape": "square"
             },
             {
-              "label": "A \u6975\u9ad8\u512a\u5148\uff08\u226540.5\uff09",
+              "label": "A \u6975\u9ad8\u512a\u5148\uff08\u226549.1\uff09",
               "color": "#d73027",
               "shape": "square"
             }
@@ -42441,22 +42441,22 @@
               "title": "\u5f31\u52e2\u9ad8\u9f61 \u00d7 \u516c\u8eca\u53ef\u8fd1\u6027\u7f3a\u53e3",
               "items": [
                 {
-                  "label": "D \u8f03\u4f4e\uff08<0.0\uff09",
+                  "label": "D \u8f03\u4f4e\uff08<17.3\uff09",
                   "color": "#1a9850",
                   "shape": "square"
                 },
                 {
-                  "label": "C \u4e2d\u5ea6\uff080.0\u201317.3\uff09",
+                  "label": "C \u4e2d\u5ea6\uff0817.3\u201333.6\uff09",
                   "color": "#fee08b",
                   "shape": "square"
                 },
                 {
-                  "label": "B \u9ad8\u512a\u5148\uff0817.3\u201340.5\uff09",
+                  "label": "B \u9ad8\u512a\u5148\uff0833.6\u201349.1\uff09",
                   "color": "#f46d43",
                   "shape": "square"
                 },
                 {
-                  "label": "A \u6975\u9ad8\u512a\u5148\uff08\u226540.5\uff09",
+                  "label": "A \u6975\u9ad8\u512a\u5148\uff08\u226549.1\uff09",
                   "color": "#d73027",
                   "shape": "square"
                 }
