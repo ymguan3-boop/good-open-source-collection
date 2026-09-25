@@ -1,6 +1,6 @@
 ---
 name: geolibre-analysis
-description: Universal interactive GeoLibre GIS analysis skill for Codex. On first use, resolve or onboard the user's own GitHub-hosted GeoLibre installation, bootstrap the latest official open-source GeoLibre from opengeos/GeoLibre, deploy it to GitHub Pages, persist the binding, then guide the user through GIS topic selection, progressive parameter questions, explicit confirmation, GitHub MCP execution, and verified GeoLibre-ready outputs. Reuse the saved binding on later runs instead of asking for the GitHub path again.
+description: Universal GeoLibre GIS analysis skill for Codex. Use when the user asks to use GeoLibre, perform GIS/spatial analysis, find risk locations, or needs a map plus structured results. If the user has no idea, first offer 16+ topic categories, then 3-5 analysis-ready ideas for the selected topic. Resolve/onboard the user's own GitHub-hosted GeoLibre, progressively confirm the analysis specification, execute reproducibly through GitHub MCP/Python/GeoLibre tooling, then deliver a verified GeoLibre map, real GeoLibre screenshots when browser automation is available, XLSX/GeoJSON, summary and report. Reuse the saved binding on later runs instead of asking for the GitHub path again.
 ---
 
 # GeoLibre Analysis Skill
@@ -112,9 +112,26 @@ Maintain an internal `analysis_spec` with:
 
 Do not ask again for a field the user already supplied.
 
+## 3A. Entry behavior
+
+When the request is vague, such as "使用 GeoLibre 技能", "幫我做 GIS 分析", or "我沒想法",
+do not immediately start coding.
+
+If the user already supplied a concrete GIS question, skip idea discovery and continue from the
+missing fields in the analysis specification.
+
+If the user has not supplied a concrete question, ask only:
+
+- **A. 有，我直接描述需求**
+- **B. 還沒有，請先給我主題讓我選**
+
+If the user chooses B, show the compact topic menu from `references/topic-catalog.md`.
+After the topic is selected, give 3-5 complete analysis-ready ideas and let the user choose one
+or enter their own. Once an idea is selected, do not return to the topic menu unless the user asks.
+
 ## 4. When the user has no idea
 
-If the user says they have no idea, present the compact numbered topic menu from `references/topic-catalog.md`.
+If the user says they have no idea, or chooses option B in the entry flow, present the compact numbered topic menu from `references/topic-catalog.md`. Show 12-17 short topic names first; do not dump every example at once.
 
 After topic selection:
 
@@ -169,9 +186,10 @@ A topic choice or intermediate “可以” is not sufficient unless it clearly 
 
 ## 7. Execution after confirmation
 
-After `confirmed=true`, load both:
+After `confirmed=true`, load:
 - `references/github-mcp-protocol.md`
 - `references/performance-and-publishing.md`
+- `references/output-contract.md`
 
 Apply the performance rules while generating the task script; do not treat optimization as an afterthought.
 
@@ -185,20 +203,35 @@ Reuse existing project data and code when safe. Never overwrite unrelated analys
 
 ## 8. Required result contract
 
-Under `<analysis_root>/<task_id>/`, aim to produce. Do not derive `analysis_root` from `source_path` when the profile explicitly provides a separate `web_root` or `analysis_root`:
+Under `<analysis_root>/<task_id>/`, aim to produce the complete result package defined in
+`references/output-contract.md`.
+
+Minimum deliverables:
 
 - `map.geolibre.json` — lightweight default viewing project
 - `overview.geojson` when the result crosses the large-result threshold
 - `result.geojson` — authoritative full vector result
 - `result.csv`
 - `result.xlsx` when tabular output is meaningful
-- `report.md`
 - `summary.json`
-- `performance.json` — generated/updated by the performance optimizer
+- `report.md`
+- `performance.json`
+- `index.html` — stable public entrypoint that opens the project with correct URL encoding
+- `map-overview.png` — a screenshot from the real GeoLibre page when browser automation is available
+- optional `map-detail-01.png`, `map-detail-02.png` for important clusters/details
 
-The GeoLibre map must open with a useful initial extent and a high-value overview/result layer visible. For large results, the default project must not embed the entire analytical dataset.
+The GeoLibre map must open with a useful initial extent and a high-value overview/result layer visible.
+For large results, the default project must not embed the entire analytical dataset.
 
-The result table should include readable names, administrative area where available, coordinates/geometry identifiers, decision values, and a clear reason field.
+For XLSX, use at least these worksheets when applicable:
+- 分析結果
+- 統計摘要
+- 分析參數
+- 資料來源
+
+The result table should include readable names, administrative area where available,
+coordinates/geometry identifiers, decision values, and a clear reason field explaining why
+each feature was selected.
 
 ## 9. Verification
 
@@ -212,8 +245,12 @@ Before saying the analysis is complete:
 4. Confirm `map.geolibre.json` contains/references the intended result.
 5. Inspect `performance.json`; require the hard project-size, inline-layer, and initial-load budgets to pass.
 6. For large results, verify the default map uses `overview.geojson` or another deliberately lightweight overview rather than the complete analytical dataset.
-7. Verify the saved GitHub Pages URL still loads when Pages is part of the deliverable.
-8. Report data limitations/substitutions and any display-only simplification.
+7. Verify the saved public GeoLibre URL still loads when public deployment is part of the deliverable.
+8. When browser automation is available, open the actual GeoLibre URL with `loading=true`, wait for
+   `data-geolibre-load-state=ready`, inspect `data-geolibre-load-errors`, then capture the screenshot.
+   Never use a separately drawn matplotlib/static map as a substitute for a claimed GeoLibre screenshot.
+9. Cross-check XLSX result-row count against the authoritative GeoJSON result count, or explain the difference.
+10. Report data limitations/substitutions and any display-only simplification.
 
 If execution fails, inspect logs, make the smallest necessary fix, and retry without weakening confirmed criteria.
 
