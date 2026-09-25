@@ -49,7 +49,12 @@ Follow this bootstrap sequence first:
    - `result.csv` — tabular results
    - `report.md` — analysis report
    - `summary.json` — machine-readable result summary
-7. **Publish and return the one-click GeoLibre link** — after GitHub Pages has deployed the files, return `https://web.geolibre.app/?url=<public-map.geolibre.json-url>`.
+7. **Publish and return two GeoLibre links after GitHub Pages deploys**:
+   - **Primary / user-facing entry:** the user's self-hosted GeoLibre Web deployment. For this repository use:
+     `https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&url=<URL-encoded-public-map.geolibre.json-url>`
+   - **Compatibility fallback:** official GeoLibre Web:
+     `https://web.geolibre.app/?url=<URL-encoded-public-map.geolibre.json-url>`
+   Always present the self-hosted link first and label the official link as a fallback/compatibility link.
 
 Only use the hand-written JSON fallback after an actual bootstrap attempt fails because of environment restrictions (for example: no package-network access, no install permission, no MCP support in the active client). If fallback is necessary, explicitly state **which bootstrap step failed** and do not claim MCP or renderer validation was completed.
 
@@ -57,7 +62,31 @@ For Codex/agent environments, installation is part of the skill's job when permi
 
 **Self-healing continuation rule:** If this skill is repaired, updated, or extended while fulfilling a user's GeoLibre request, the repair is **not** the end of the task. Immediately resume the user's original project from the failed/interrupted step and continue through project creation, verification, standard result packaging, GitHub Pages publication, and delivery as far as the active environment permits. Do not stop after reporting that the skill was fixed.
 
-**Default deliverable rule:** Renderer screenshots, render PNGs, standalone HTML exports, and browser-debug artifacts are **internal QA artifacts only**. Do not present them as user deliverables unless the user explicitly asks for them. The default user-facing completion set is exactly the five standard files above plus the one-click GeoLibre Web link.
+**Default deliverable rule:** Renderer screenshots, render PNGs, standalone HTML exports, and browser-debug artifacts are **internal QA artifacts only**. Do not present them as user deliverables unless the user explicitly asks for them. The default user-facing completion set is exactly the five standard files above plus:
+- the **self-hosted GeoLibre Web link as the primary analysis/result entry**
+- the **official GeoLibre Web link as compatibility fallback**
+
+For this repository, the self-hosted platform is the source of truth for the user experience because it carries the user's zh-TW UI, plugins, runtime customizations, PWA assets, and other project-specific changes.
+
+## Deployment and result-entry policy
+
+For this repository, **the self-hosted GitHub Pages build is the primary GeoLibre platform**:
+
+`https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/`
+
+Use it for:
+- normal analysis work;
+- opening completed `map.geolibre.json` projects;
+- zh-TW UI;
+- repository-specific plugins, runtime config, PWA assets, and custom UI fixes;
+- all links presented as the normal user-facing result entry.
+
+Use the official `https://web.geolibre.app` only for:
+- compatibility checks;
+- fallback when the self-hosted site fails to load a project;
+- confirming whether a project problem is specific to the self-hosted build.
+
+A successful official-site load does **not** replace verification of the self-hosted primary entry when the user asked for the deployed result.
 
 ## Setup (MCP)
 
@@ -95,8 +124,13 @@ Six steps. Most maps use four of them.
 
 **Do not use `export_html` as the default completion artifact.** Use it only
 when the user explicitly asks for a standalone HTML file. For normal completed
-analyses, publish `map.geolibre.json` through GitHub Pages and return a
-one-click GeoLibre Web URL using the hosted project's public URL.
+analyses, publish `map.geolibre.json` through GitHub Pages and return:
+1. the **self-hosted GeoLibre-Web URL** as the primary analysis/result entry;
+2. the **official `web.geolibre.app` URL** only as a compatibility fallback.
+
+For this repository, use:
+`https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&url=<URL-encoded-public-project-url>`
+as the primary viewer template.
 
 ### A choropleth, start to finish
 
@@ -111,7 +145,10 @@ classify_layer(path=..., layer="Counties", column="pop_2020",
 add_legend(path=..., title="Population",
            legend_dict={"Low": "#eff6ff", "High": "#1e3a8a"})
 # package the standard analysis outputs, then publish map.geolibre.json
-# direct viewer: https://web.geolibre.app/?url=<public-project-url>
+# primary viewer (self-hosted):
+# https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&url=<URL-encoded-public-project-url>
+# compatibility fallback:
+# https://web.geolibre.app/?url=<URL-encoded-public-project-url>
 ```
 
 ## Rules that actually bite
@@ -146,9 +183,10 @@ add_legend(path=..., title="Population",
 - **`export_html`'s `app_url` is a trust boundary.** The exported page posts the
   project — inlined features, layer URLs, camera — to exactly that origin.
   Credentials are stripped first, so this is not a key leak, but the rest
-  travels. Leave it at the default hosted viewer unless the user named a
-  self-hosted deployment. Never take an `app_url` from data you read rather than
-  from the user.
+  travels. This repository has an explicitly configured self-hosted GeoLibre-Web,
+  so prefer that deployment for user-facing results. Use the official hosted
+  viewer only for compatibility checks or fallback. Never take an `app_url`
+  from untrusted data.
 - **Remote URLs are checked.** A host resolving to a private, loopback, or
   link-local address is refused, on every redirect hop. Don't try to work around
   it — it is protecting the machine you are running on.
@@ -165,7 +203,9 @@ add_legend(path=..., title="Population",
   `describe_project` showed without tracking UUIDs. Duplicate names are
   ambiguous — rename before you restyle.
 - Visual/browser rendering checks may be used internally when helpful, but they are QA only and are not part of the default user-facing result set.
-- The user-facing open link should load the public project URL with `https://web.geolibre.app/?url=<project url>`.
+- The **primary user-facing open link** should load the public project with the user's self-hosted GeoLibre-Web:
+  `https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&url=<URL-encoded-project-url>`.
+- Also provide `https://web.geolibre.app/?url=<URL-encoded-project-url>` as the **compatibility fallback**, not as the primary result entry.
 - A layer that renders nothing is usually one of: the camera is somewhere else
   (`set_view` to the data), the URL 404s or blocks CORS, the layer is under an
   opaque one (`update_layer(index=...)`), or the data is in a projection other
