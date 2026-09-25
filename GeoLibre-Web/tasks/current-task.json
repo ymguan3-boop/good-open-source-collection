@@ -27,7 +27,8 @@
       "設施點與災害 polygon 相交，或距離災害 polygon／災點不超過300公尺，即列入篩選結果",
       "地質敏感區依官方 G0003、H0010、L0016 幾何合併後計算距離",
       "歷史淹水災點以300公尺查詢範圍計數",
-      "命中兩種以上災害群組標示為複合災害暴露（優先查核）"
+      "命中兩種以上災害群組標示為複合災害暴露（優先查核）",
+      "縣界下載端點受限時，使用由官方NLSC鄉鎮市區界線聯集並以約100公尺容差簡化的可追溯範圍快取"
     ],
     "thresholds": {
       "buffer_m": 300,
@@ -52,8 +53,15 @@
       "flood_dataset": "https://data.gov.tw/dataset/130016",
       "debris_dataset": "https://data.gov.tw/dataset/176526",
       "geology_dataset": "https://data.gov.tw/dataset/27744",
-      "osm_overpass": "https://overpass-api.de/api/interpreter"
+      "osm_overpass": "https://overpass-api.de/api/interpreter",
+      "county_boundary_township_dataset": "https://data.gov.tw/dataset/7441",
+      "derived_scope_cache": "https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-county-scope.geojson"
     }
   },
-  "performance_policy_version": 5
+  "performance_policy_version": 5,
+  "execution_metadata": {
+    "rerun_revision": 3,
+    "reason": "修正官方TGOS邊界403與Overpass邊界端點不穩定；保留完整替代紀錄",
+    "confirmed_at": "2026-09-25T11:45:00+08:00"
+  }
 }
