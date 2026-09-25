@@ -368,6 +368,40 @@ def build_official_schools(session: requests.Session, scope: Any, temp: Path) ->
     }
 
 
+def build_cached_official_schools(scope: Any) -> tuple[gpd.GeoDataFrame, dict[str, Any]]:
+    cache_path = Path("GeoLibre-Web/analysis-inputs/yilan-official-schools.geojson")
+    payload = json.loads(cache_path.read_text(encoding="utf-8"))
+    frame = gpd.GeoDataFrame.from_features(payload.get("features", []), crs=WEB_CRS).to_crs(ANALYSIS_CRS)
+    frame = frame[frame.geometry.within(scope.buffer(1))].copy()
+    if frame.empty:
+        raise RuntimeError("NLSC 宜蘭學校點位快取無範圍內資料")
+    frame["facility_id"] = "NLSC-121-" + frame["school_id"].astype(str)
+    frame["facility_name"] = frame["school_name"].astype(str)
+    frame["facility_type"] = "學校"
+    frame["facility_source"] = "內政部國土測繪中心（官方衍生快取）"
+    frame["source_record_id"] = frame["school_id"].astype(str)
+    frame["source_date"] = frame["source_month"].astype(str)
+    frame["admin_area"] = COUNTY
+    frame["osm_amenity"] = ""
+    frame["osm_office"] = ""
+    return frame[[
+        "facility_id", "facility_name", "facility_type", "facility_source",
+        "source_record_id", "source_date", "admin_area", "osm_amenity",
+        "osm_office", "geometry",
+    ]], {
+        "name": "各級學校範圍圖_121分帶（宜蘭衍生點位快取）",
+        "provider": "內政部國土測繪中心（衍生）",
+        "dataset_url": URLS["school_dataset"],
+        "download_url": "https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-official-schools.geojson",
+        "retrieved_at": now_utc(),
+        "source_crs": WEB_CRS,
+        "analysis_crs": ANALYSIS_CRS,
+        "role": "official_school_campus_representative_points_cache",
+        "scope_records": int(len(frame)),
+        "limitation": "由 NLSC 1150409 版 121 分帶校地 polygon 依校碼、校名及資料月份合併後取 representative point；快取輸出為 EPSG:4326，校點不代表校門或校舍。",
+    }
+
+
 def build_official_fire(session: requests.Session, scope: Any) -> tuple[gpd.GeoDataFrame, dict[str, Any]]:
     payload = download_bytes(URLS["fire_download"], session)
     last_error: Exception | None = None
@@ -458,8 +492,15 @@ def load_geology(session: requests.Session, temp: Path) -> tuple[dict[str, Any],
     return unions, source_records
 
 
-def load_flood_points(session: requests.Session, scope: Any) -> tuple[gpd.GeoDataFrame, dict[str, Any]]:
-    payload = download_bytes(URLS["flood_download"], session)
+def load_flood_points(session: requests.Session, scope: Any, substitutions: list[str]) -> tuple[gpd.GeoDataFrame, dict[str, Any]]:
+    source_url = URLS["flood_download"]
+    try:
+        payload = download_bytes(source_url, session)
+    except Exception as exc:
+        cache_path = Path("GeoLibre-Web/analysis-inputs/yilan-flood-points-2021-2025.csv")
+        payload = cache_path.read_bytes()
+        source_url = "https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-flood-points-2021-2025.csv"
+        substitutions.append(f"國科會淹水災點即時下載失敗，使用2026-09-25取得的同版官方CSV宜蘭子集快取：{exc}")
     frame = None
     last_error: Exception | None = None
     for encoding in ("utf-8-sig", "utf-8", "cp950", "big5"):
@@ -484,13 +525,14 @@ def load_flood_points(session: requests.Session, scope: Any) -> tuple[gpd.GeoDat
         "name": "近5年淹水災點資料",
         "provider": "國家科學及技術委員會",
         "dataset_url": URLS["flood_dataset"],
-        "download_url": URLS["flood_download"],
+        "download_url": source_url,
+        "original_download_url": URLS["flood_download"],
         "retrieved_at": now_utc(),
         "source_crs": ANALYSIS_CRS,
         "analysis_crs": ANALYSIS_CRS,
         "role": "official_historical_flood_points",
         "record_years_in_yilan": years,
-        "limitation": "資料集備註為 2023 年產製；雖標示近5年，實際涵蓋年度以資料欄位為準，可能未涵蓋 2024-2026 最新事件。官方亦說明局部、零星都市道路或農漁塭淹水可能未納入。",
+        "limitation": "本次官方檔案 year 欄位涵蓋全國2021–2025；宜蘭子集2023年沒有紀錄。資料集網頁仍註記2023年產製，與檔案年度不一致；2026年事件不在此檔。局部、零星都市道路或農漁塭淹水可能未納入。",
     }
 
 
@@ -637,7 +679,7 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
         "topic": "審計／稽核專題",
         "analysis_goal": "找出宜蘭縣學校、醫院、消防分隊、政府機關位於或鄰近複合災害圖層的公共設施，形成查核優先清單。",
         "geographic_scope": COUNTY,
-        "time_range": "官方近5年淹水災點資料集（實際年度以資料欄位與資料集產製註記為準）；115年度土石流影響範圍；現行官方地質敏感區公告數值檔。",
+        "time_range": "國科會官方近5年淹水災點實際檔案年度2021–2025；115年度土石流影響範圍；現行官方地質敏感區公告數值檔。",
         "spatial_rules": [
             f"公共設施點位與災害 polygon 相交，或距離災害 geometry／淹水災點不超過 {BUFFER_M} 公尺。",
             "學校位置使用官方校地 polygon representative point；其他設施使用官方座標或 OSM point/center。",
@@ -732,7 +774,7 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
         report_lines.append("- 本次未使用替代範圍資料。")
     report_lines += [
         "- `高風險`欄位在工作流中僅表示命中兩種以上災害群組，為查核排序用的複合暴露指標，不是官方風險分級。",
-        "- 淹水資料集雖標示近5年，但資料集備註為 2023 年產製；實際年度以下載檔 year 欄位為準。",
+        "- 淹水資料集網頁仍註記2023年產製；本次取得的官方檔案 year 欄位實際涵蓋2021–2025，宜蘭子集2023年為0筆，2026年未納入。",
         "- OSM 醫療機構與政府機關資料屬補充性點位，不能解讀為完整官方名冊；應與衛生福利部、地方政府機關名冊複核。",
         "- 地質敏感區、淹水災點與土石流影響範圍均為規劃／防災參考資料，不能取代法定公告、現地調查、專業簽證或工程安全鑑定。",
         "",
@@ -775,7 +817,10 @@ def main() -> None:
             source_records.append(source)
             osm = osm[osm["facility_type"] != "學校"].copy()
         except Exception as exc:
-            substitutions.append(f"NLSC 學校範圍圖下載或解析失敗，保留 OSM 學校補充資料：{exc}")
+            substitutions.append(f"NLSC 學校範圍圖即時下載或解析失敗，使用同版官方校地衍生點位快取：{exc}")
+            schools, source = build_cached_official_schools(scope)
+            source_records.append(source)
+            osm = osm[osm["facility_type"] != "學校"].copy()
         try:
             fire, source = build_official_fire(session, scope)
             source_records.append(source)
@@ -790,7 +835,7 @@ def main() -> None:
         facilities = facilities.drop_duplicates(subset=["facility_id"]).reset_index(drop=True)
         geology, geology_sources = load_geology(session, temp)
         source_records.extend(geology_sources)
-        flood, flood_source = load_flood_points(session, scope)
+        flood, flood_source = load_flood_points(session, scope, substitutions)
         source_records.append(flood_source)
         debris, debris_source = load_debris(session, scope, temp)
         source_records.append(debris_source)
