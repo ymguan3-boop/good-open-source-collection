@@ -1,114 +1,15 @@
 {
-  "project_original_bytes": 9610936,
+  "project_original_bytes": 8554,
   "project_final_bytes": 8554,
   "project_target_bytes": 2097152,
   "project_hard_bytes": 5242880,
-  "externalized_layer_count": 14,
-  "externalized_layers": [
-    {
-      "id": "boundary",
-      "name": "宜蘭縣界",
-      "file": "layers/boundary.geojson",
-      "bytes": 176310,
-      "visible": true
-    },
-    {
-      "id": "all-high",
-      "name": "綜合－高破碎化區",
-      "file": "layers/all-high.geojson",
-      "bytes": 2362410,
-      "visible": true
-    },
-    {
-      "id": "forest-高",
-      "name": "森林－高破碎化",
-      "file": "layers/forest.geojson",
-      "bytes": 1015055,
-      "visible": true
-    },
-    {
-      "id": "forest-中",
-      "name": "森林－中破碎化",
-      "file": "layers/forest-2.geojson",
-      "bytes": 1063384,
-      "visible": false
-    },
-    {
-      "id": "forest-低",
-      "name": "森林－低破碎化",
-      "file": "layers/forest-3.geojson",
-      "bytes": 952097,
-      "visible": false
-    },
-    {
-      "id": "agriculture-高",
-      "name": "農地－高破碎化",
-      "file": "layers/agriculture.geojson",
-      "bytes": 197707,
-      "visible": true
-    },
-    {
-      "id": "agriculture-中",
-      "name": "農地－中破碎化",
-      "file": "layers/agriculture-2.geojson",
-      "bytes": 196423,
-      "visible": false
-    },
-    {
-      "id": "agriculture-低",
-      "name": "農地－低破碎化",
-      "file": "layers/agriculture-3.geojson",
-      "bytes": 197486,
-      "visible": false
-    },
-    {
-      "id": "urban-green-高",
-      "name": "公園／都市綠地－高破碎化",
-      "file": "layers/urban-green.geojson",
-      "bytes": 114957,
-      "visible": true
-    },
-    {
-      "id": "urban-green-中",
-      "name": "公園／都市綠地－中破碎化",
-      "file": "layers/urban-green-2.geojson",
-      "bytes": 112868,
-      "visible": false
-    },
-    {
-      "id": "urban-green-低",
-      "name": "公園／都市綠地－低破碎化",
-      "file": "layers/urban-green-3.geojson",
-      "bytes": 110140,
-      "visible": false
-    },
-    {
-      "id": "riparian-高",
-      "name": "河川沿岸自然地表－高破碎化",
-      "file": "layers/riparian.geojson",
-      "bytes": 1034814,
-      "visible": true
-    },
-    {
-      "id": "riparian-中",
-      "name": "河川沿岸自然地表－中破碎化",
-      "file": "layers/riparian-2.geojson",
-      "bytes": 1058532,
-      "visible": false
-    },
-    {
-      "id": "riparian-低",
-      "name": "河川沿岸自然地表－低破碎化",
-      "file": "layers/riparian-3.geojson",
-      "bytes": 1013107,
-      "visible": false
-    }
-  ],
+  "externalized_layer_count": 0,
+  "externalized_layers": [],
   "remaining_inline_layer_count": 0,
   "largest_remaining_inline_bytes": 0,
   "inline_layer_max_bytes": 262144,
-  "visible_external_payload_bytes_estimate": 4901253,
-  "initial_load_bytes_estimate": 4909807,
+  "visible_external_payload_bytes_estimate": 0,
+  "initial_load_bytes_estimate": 8554,
   "initial_load_soft_bytes": 6291456,
   "initial_load_hard_bytes": 12582912,
   "project_budget_ok": true,
