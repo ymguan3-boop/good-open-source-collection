@@ -32,6 +32,7 @@ USER_AGENT = "GeoLibre-analysis/yilan-public-facility-hazard-exposure-2026-09 (+
 URLS = {
     "county_boundary_dataset": "https://data.gov.tw/dataset/7442",
     "county_boundary_download": "https://www.tgos.tw/tgos/VirtualDir/Product/1cd4f4c9-6b01-4cf9-bf6c-23a73aa17d24/%E7%9B%B4%E8%BD%84%E5%B8%82%E3%80%81%E7%B8%A3%28%E5%B8%82%29%E7%95%8C%E7%B7%9A1140318.zip",
+    "county_boundary_arcgis_query": "https://dwgis1.ncdr.nat.gov.tw/server/rest/services/MAP0751/Coastline2025/MapServer/35/query",
     "school_dataset": "https://data.gov.tw/dataset/174606",
     "school_download": "https://www.tgos.tw/tgos/VirtualDir/Product/5f346c6b-edde-4fe7-8685-5585c0fb7852/%E5%90%84%E7%B4%9A%E5%AD%B8%E6%A0%A1%E7%AF%84%E5%9C%8D%E5%9C%96_121_1150409.zip",
     "fire_dataset": "https://data.gov.tw/dataset/5969",
@@ -44,6 +45,12 @@ URLS = {
     "geology_index": "https://www.gsmma.gov.tw/uploads/1719480931378tHI9XTJa.csv",
     "osm_overpass": "https://overpass-api.de/api/interpreter",
 }
+
+OVERPASS_ENDPOINTS = [
+    URLS["osm_overpass"],
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+]
 
 OSM_QUERY = """[out:json][timeout:180];
 area["name"="宜蘭縣"]["boundary"="administrative"]["admin_level"="6"]->.a;
@@ -153,37 +160,86 @@ def scope_from_official_boundary(session: requests.Session, temp: Path, substitu
             "limitation": "行政界線供本次範圍篩選與地圖定位，不代表地籍界址判定。",
         }
     except Exception as exc:
-        substitutions.append(f"官方 NLSC 縣市界線下載或解析失敗，改用 OSM 宜蘭縣行政關係作範圍替代：{exc}")
+        substitutions.append(f"官方 NLSC 縣市界線下載或解析失敗：{exc}")
+        try:
+            response = session.get(
+                URLS["county_boundary_arcgis_query"],
+                params={"where": "1=1", "outFields": "*", "returnGeometry": "true", "outSR": "3826", "f": "geojson"},
+                timeout=180,
+                headers={"User-Agent": USER_AGENT},
+            )
+            response.raise_for_status()
+            payload = response.json()
+            frame = gpd.GeoDataFrame.from_features(payload.get("features", []), crs=ANALYSIS_CRS)
+            name_col = first_existing(list(frame.columns), ["CITYNAME", "CITYNAME2", "縣市名稱"])
+            if not name_col:
+                raise RuntimeError("NCDR 邊界服務缺少縣市名稱欄位")
+            selected = frame[frame[name_col].astype(str).str.contains(COUNTY, na=False)]
+            if selected.empty:
+                raise RuntimeError("NCDR 邊界服務找不到宜蘭縣")
+            return unary_union(selected.geometry), {
+                "name": "縣市界線（NCDR ArcGIS REST替代服務）",
+                "provider": "國家災害防救科技中心",
+                "dataset_url": "https://data.gov.tw/dataset/32158",
+                "download_url": URLS["county_boundary_arcgis_query"],
+                "retrieved_at": now_utc(),
+                "source_crs": ANALYSIS_CRS,
+                "analysis_crs": ANALYSIS_CRS,
+                "role": "official_scope_boundary_substitute",
+                "limitation": "因 NLSC TGOS ZIP 端點回傳403，本次以公開官方 GIS REST 查詢服務取得縣市界線；仍建議以資料集7442正式下載檔複核。",
+            }
+        except Exception as arcgis_exc:
+            substitutions.append(f"NCDR 官方 GIS REST 邊界替代也失敗：{arcgis_exc}")
         query = '[out:json][timeout:180];rel["boundary"="administrative"]["name"="宜蘭縣"]["admin_level"="6"];out geom;'
-        response = session.post(URLS["osm_overpass"], data={"data": query}, timeout=240, headers={"User-Agent": USER_AGENT})
-        response.raise_for_status()
-        elements = response.json().get("elements", [])
-        if not elements:
-            raise RuntimeError("無法取得宜蘭縣 OSM 行政關係")
-        geometry = elements[0].get("geometry", [])
-        coords = [(p["lon"], p["lat"]) for p in geometry if "lon" in p and "lat" in p]
-        if len(coords) < 4:
-            raise RuntimeError("OSM 宜蘭縣行政關係缺少可用邊界座標")
-        polygon = Polygon(coords)
-        if not polygon.is_valid:
-            polygon = polygon.make_valid()
-        return gpd.GeoSeries([polygon], crs=WEB_CRS).to_crs(ANALYSIS_CRS).iloc[0], {
-            "name": "OpenStreetMap 宜蘭縣行政關係（替代）",
-            "provider": "OpenStreetMap contributors",
-            "dataset_url": "https://www.openstreetmap.org/relation/2386982",
-            "download_url": URLS["osm_overpass"],
-            "retrieved_at": now_utc(),
-            "source_crs": WEB_CRS,
-            "analysis_crs": ANALYSIS_CRS,
-            "role": "supplemental_scope_boundary",
-            "limitation": "僅作為官方行政界線下載失敗時的範圍替代，應以官方界線複核。",
-        }
+        last_error: Exception | None = None
+        for endpoint in OVERPASS_ENDPOINTS:
+            try:
+                response = session.post(endpoint, data={"data": query}, timeout=240, headers={"User-Agent": USER_AGENT})
+                response.raise_for_status()
+                elements = response.json().get("elements", [])
+                if not elements:
+                    raise RuntimeError("無法取得宜蘭縣 OSM 行政關係")
+                geometry = elements[0].get("geometry", [])
+                coords = [(p["lon"], p["lat"]) for p in geometry if "lon" in p and "lat" in p]
+                if len(coords) < 4:
+                    raise RuntimeError("OSM 宜蘭縣行政關係缺少可用邊界座標")
+                polygon = Polygon(coords)
+                if not polygon.is_valid:
+                    polygon = polygon.make_valid()
+                substitutions.append(f"使用 OSM 宜蘭縣行政關係作範圍替代：{endpoint}")
+                return gpd.GeoSeries([polygon], crs=WEB_CRS).to_crs(ANALYSIS_CRS).iloc[0], {
+                    "name": "OpenStreetMap 宜蘭縣行政關係（替代）",
+                    "provider": "OpenStreetMap contributors",
+                    "dataset_url": "https://www.openstreetmap.org/relation/2386982",
+                    "download_url": endpoint,
+                    "retrieved_at": now_utc(),
+                    "source_crs": WEB_CRS,
+                    "analysis_crs": ANALYSIS_CRS,
+                    "role": "supplemental_scope_boundary",
+                    "limitation": "僅作為官方行政界線與官方 GIS REST 替代均失敗時的範圍替代，應以官方界線複核。",
+                }
+            except Exception as endpoint_exc:
+                last_error = endpoint_exc
+        raise RuntimeError(f"所有行政範圍替代端點均失敗：{last_error}")
 
 
 def build_osm_facilities(session: requests.Session, scope: Any) -> tuple[gpd.GeoDataFrame, dict[str, Any]]:
-    response = session.post(URLS["osm_overpass"], data={"data": OSM_QUERY}, timeout=300, headers={"User-Agent": USER_AGENT})
-    response.raise_for_status()
-    elements = response.json().get("elements", [])
+    last_error: Exception | None = None
+    elements: list[dict[str, Any]] = []
+    endpoint_used = URLS["osm_overpass"]
+    for endpoint in OVERPASS_ENDPOINTS:
+        try:
+            response = session.post(endpoint, data={"data": OSM_QUERY}, timeout=300, headers={"User-Agent": USER_AGENT})
+            response.raise_for_status()
+            elements = response.json().get("elements", [])
+            if elements:
+                endpoint_used = endpoint
+                break
+            raise RuntimeError("Overpass 未回傳設施元素")
+        except Exception as exc:
+            last_error = exc
+    if not elements:
+        raise RuntimeError(f"所有 Overpass 設施端點均失敗：{last_error}")
     records: list[dict[str, Any]] = []
     for element in elements:
         tags = element.get("tags", {})
@@ -227,7 +283,7 @@ def build_osm_facilities(session: requests.Session, scope: Any) -> tuple[gpd.Geo
         "name": "OpenStreetMap 宜蘭縣公共設施點位",
         "provider": "OpenStreetMap contributors",
         "dataset_url": "https://www.openstreetmap.org/",
-        "download_url": URLS["osm_overpass"],
+        "download_url": endpoint_used,
         "query": OSM_QUERY,
         "retrieved_at": now_utc(),
         "source_crs": WEB_CRS,
@@ -676,8 +732,13 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="geolibre-yilan-") as temp_dir:
         temp = Path(temp_dir)
         scope, scope_source = scope_from_official_boundary(session, temp, substitutions)
-        osm, osm_source = build_osm_facilities(session, scope)
-        source_records = [scope_source, osm_source]
+        source_records = [scope_source]
+        osm = gpd.GeoDataFrame(columns=["facility_id", "facility_name", "facility_type", "facility_source", "source_record_id", "source_date", "admin_area", "osm_amenity", "osm_office", "geometry"], geometry="geometry", crs=ANALYSIS_CRS)
+        try:
+            osm, osm_source = build_osm_facilities(session, scope)
+            source_records.append(osm_source)
+        except Exception as exc:
+            substitutions.append(f"OSM／Overpass 設施補充資料下載失敗，後續僅使用可取得的官方學校／消防資料：{exc}")
         schools = gpd.GeoDataFrame(columns=["facility_id", "facility_name", "facility_type", "source", "geometry"], geometry="geometry", crs=ANALYSIS_CRS)
         fire = gpd.GeoDataFrame(columns=["facility_id", "facility_name", "facility_type", "source", "geometry"], geometry="geometry", crs=ANALYSIS_CRS)
         try:
