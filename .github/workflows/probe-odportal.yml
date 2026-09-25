@@ -21,6 +21,7 @@ jobs:
               "https://odportal.tw/dataset/DSNTMGUM",
               "https://cdn.odportal.tw/dataset/DSNTMGUM",
               "https://cdn.odportal.tw/dataset/DtFMeuTB",
+              "https://mntengmgt.e-land.gov.tw/YilanDigweb/Download/XML/dig.xml",
           ]
           s = requests.Session()
           s.headers["User-Agent"] = "Mozilla/5.0"
@@ -29,6 +30,8 @@ jobs:
                   r = s.get(u, timeout=30)
                   print("\n=== PAGE ===", u, r.status_code, r.url, r.headers.get("content-type"), len(r.content))
                   text = html.unescape(r.text).replace("\\/","/")
+                  if "xml" in (r.headers.get("content-type") or "").lower() or text.lstrip().startswith("<?xml"):
+                      print("XML_HEAD", text[:6000].replace("\n"," ")[:6000])
                   hrefs = set()
                   for h in re.findall("href\\\\s*=\\\\s*[\\\"']([^\\\"']+)[\\\"']", text, flags=re.I):
                       hrefs.add(urljoin(r.url,h))
