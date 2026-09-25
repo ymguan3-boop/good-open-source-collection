@@ -1,0 +1,47 @@
+name: Probe ODPortal Yilan download
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/probe-odportal.yml"
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Probe ODPortal page
+        shell: bash
+        run: |
+          python - <<'PY'
+          import requests, re, html, json
+          from urllib.parse import urljoin, urlparse
+          urls = [
+              "https://odportal.tw/dataset/DSNTMGUM",
+              "https://cdn.odportal.tw/dataset/DSNTMGUM",
+              "https://cdn.odportal.tw/dataset/DtFMeuTB",
+          ]
+          s = requests.Session()
+          s.headers["User-Agent"] = "Mozilla/5.0"
+          for u in urls:
+              try:
+                  r = s.get(u, timeout=30)
+                  print("\n=== PAGE ===", u, r.status_code, r.url, r.headers.get("content-type"), len(r.content))
+                  text = html.unescape(r.text).replace("\\/","/")
+                  hrefs = set()
+                  for h in re.findall(r'href\\s*=\\s*["\\']([^"\\']+)["\\']', text, flags=re.I):
+                      hrefs.add(urljoin(r.url,h))
+                  for h in re.findall(r'https?://[^"\\'<>\\s]+', text):
+                      hrefs.add(h.rstrip(");,"))
+                  for h in sorted(hrefs):
+                      low=h.lower()
+                      if any(k in low for k in ("dsntmgum","dtfmeutb","download","snapshot","resource","xml","api","dataset")):
+                          print("LINK", h[:1500])
+                  for pat in ("2025/09/07","2025-09-07","DSNTMGUM","download","snapshot"):
+                      idx=text.find(pat)
+                      if idx>=0:
+                          print("CONTEXT",pat, text[max(0,idx-1000):idx+2500].replace("\n"," ")[:4000])
+              except Exception as e:
+                  print("ERROR",u,repr(e))
+          PY
