@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import sys
 import time
@@ -67,15 +68,46 @@ def verify_view(out: Path, browser, viewer: str, key: str, mode: str, mobile: bo
             "document.documentElement.dataset.geolibreLoadState || "
             "document.documentElement.getAttribute('data-geolibre-load-state') || 'missing'"
         )
-        result["load_errors"] = page.evaluate(
+        raw_load_errors = page.evaluate(
             "document.documentElement.getAttribute('data-geolibre-load-errors') || "
             "document.documentElement.dataset.geolibreLoadErrors || ''"
         )
+        try:
+            parsed_load_errors = json.loads(raw_load_errors) if raw_load_errors.strip() else []
+        except (TypeError, json.JSONDecodeError):
+            parsed_load_errors = [raw_load_errors.strip()] if raw_load_errors.strip() else []
+        if not isinstance(parsed_load_errors, list):
+            parsed_load_errors = [parsed_load_errors]
+        result["load_errors"] = parsed_load_errors
         result["canvas_visible"] = page.locator("canvas").evaluate_all(
             "els => els.some(el => { const r=el.getBoundingClientRect(); "
             "return r.width>100 && r.height>100 && getComputedStyle(el).visibility!=='hidden'; })"
         )
-        result["layer_listed"] = "公共設施複合災害暴露查核結果" in page.locator("body").inner_text(timeout=20000)
+        expected_layer = "公共設施複合災害暴露查核結果"
+
+        def has_expected_layer() -> bool:
+            return expected_layer in page.locator("body").inner_text(timeout=20000)
+
+        result["layer_listed"] = has_expected_layer()
+        if not result["layer_listed"]:
+            controls = page.locator("button, [role='button'], [aria-label], [title]")
+            control_labels = controls.evaluate_all(
+                "els => els.map(el => ({label: [el.getAttribute('aria-label'), el.getAttribute('title'), "
+                "el.innerText].filter(Boolean).join(' ').trim(), visible: !!(el.offsetWidth || el.offsetHeight)}))"
+            )
+            result["layer_controls"] = [item for item in control_labels if item["label"]][:30]
+            layer_control_pattern = re.compile(r"layer\s*control|layers?|圖層(控制|清單|面板|展開)?|展開圖層", re.I)
+            for index, item in enumerate(control_labels):
+                if not item["visible"] or not layer_control_pattern.search(item["label"]):
+                    continue
+                try:
+                    controls.nth(index).click(timeout=2500)
+                    page.wait_for_timeout(900)
+                except Exception:
+                    continue
+                if has_expected_layer():
+                    result["layer_listed"] = True
+                    break
         page.screenshot(path=str(shot_path), full_page=True, animations="disabled")
         image = Image.open(shot_path).convert("RGB")
         pixels = image.resize((min(360, image.width), min(360, image.height)))
@@ -86,7 +118,7 @@ def verify_view(out: Path, browser, viewer: str, key: str, mode: str, mobile: bo
         result["screenshot"] = shot_rel.as_posix()
         result["passed"] = bool(
             result["load_state"] == "ready"
-            and not errors.strip()
+            and not errors
             and result["canvas_visible"]
             and result["layer_listed"]
             and result["colored_pixel_ratio"] >= 0.02
