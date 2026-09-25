@@ -9,7 +9,7 @@
     "geographic_scope": "宜蘭縣全縣",
     "target_features": [
       "學校",
-      "醫療機構（醫院與衛生所）",
+      "醫療機構（醫院、衛生所與衛生室）",
       "消防分隊",
       "政府機關（iTaiwan 熱點代理點）"
     ],
@@ -37,8 +37,8 @@
     }
   },
   "execution_metadata": {
-    "rerun_revision": 5,
-    "reason": "將備援資料說明改寫為白話，避免在公開報告直接列出下載例外堆疊",
+    "rerun_revision": 6,
+    "reason": "同步修正醫療來源實際納入衛生室之說明，並發布無技術錯誤堆疊的白話報告",
     "confirmed_at": "2026-09-25"
   }
 }
