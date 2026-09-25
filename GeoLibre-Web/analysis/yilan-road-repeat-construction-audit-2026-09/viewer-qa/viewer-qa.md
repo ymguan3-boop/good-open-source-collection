@@ -2,10 +2,15 @@
 
 - Task: yilan-road-repeat-construction-audit-2026-09
 - Overall: **PASS**
+- Rule: at least one endpoint must pass both desktop and Android mobile.
 
 ## 自架 GitHub Pages
+- Endpoint result: **PASS**
+- Desktop: PASS
+- Android mobile: PASS
+
+### desktop
 - Result: **PASS**
-- URL: https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&layout=viewer&loading=true&url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-road-repeat-construction-audit-2026-09%2Fmap.geolibre.json%3Fv%3D89e1b9b&qa=1790350794081
 - State: ready
 - Visible canvases: 5
 - Expected layer text: yes
@@ -13,12 +18,34 @@
 - Map canvas non-white ratio: 0.9951
 - Load errors: []
 
-## 官方 GeoLibre 備援
+### mobile
 - Result: **PASS**
-- URL: https://web.geolibre.app/?locale=zh-TW&layout=viewer&loading=true&url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-road-repeat-construction-audit-2026-09%2Fmap.geolibre.json%3Fv%3D89e1b9b&qa=1790350794081
+- State: ready
+- Visible canvases: 5
+- Expected layer text: yes
+- Full screenshot non-white ratio: 0.7772
+- Map canvas non-white ratio: 0.9742
+- Load errors: []
+
+## 官方 GeoLibre 備援
+- Endpoint result: **PASS**
+- Desktop: PASS
+- Android mobile: PASS
+
+### desktop
+- Result: **PASS**
 - State: ready
 - Visible canvases: 5
 - Expected layer text: yes
 - Full screenshot non-white ratio: 0.7296
 - Map canvas non-white ratio: 0.9951
+- Load errors: []
+
+### mobile
+- Result: **PASS**
+- State: ready
+- Visible canvases: 5
+- Expected layer text: yes
+- Full screenshot non-white ratio: 0.7770
+- Map canvas non-white ratio: 0.9742
 - Load errors: []
