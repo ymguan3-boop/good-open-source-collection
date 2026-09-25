@@ -1,24 +1,155 @@
 {
   "project_original_bytes": 8554,
-  "project_final_bytes": 8554,
+  "project_original_bytes_peak": 18621728,
+  "project_final_bytes": 8556,
   "project_target_bytes": 2097152,
   "project_hard_bytes": 5242880,
-  "externalized_layer_count": 0,
-  "externalized_layers": [],
+  "externalized_layer_count_this_run": 0,
+  "externalized_layers_this_run": [],
+  "url_backed_layer_count": 14,
+  "url_backed_layers": [
+    {
+      "id": "boundary",
+      "name": "宜蘭縣界",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-green-fragmentation-2020-2024/layers/boundary.geojson",
+      "local_file": "layers/boundary.geojson",
+      "bytes": 176310,
+      "visible": true
+    },
+    {
+      "id": "all-high",
+      "name": "綜合－高破碎化區",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-green-fragmentation-2020-2024/layers/all-high.geojson",
+      "local_file": "layers/all-high.geojson",
+      "bytes": 2362410,
+      "visible": true
+    },
+    {
+      "id": "forest-高",
+      "name": "森林－高破碎化",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-green-fragmentation-2020-2024/layers/forest.geojson",
+      "local_file": "layers/forest.geojson",
+      "bytes": 1015055,
+      "visible": true
+    },
+    {
+      "id": "forest-中",
+      "name": "森林－中破碎化",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-green-fragmentation-2020-2024/layers/forest-2.geojson",
+      "local_file": "layers/forest-2.geojson",
+      "bytes": 1063384,
+      "visible": false
+    },
+    {
+      "id": "forest-低",
+      "name": "森林－低破碎化",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-green-fragmentation-2020-2024/layers/forest-3.geojson",
+      "local_file": "layers/forest-3.geojson",
+      "bytes": 952097,
+      "visible": false
+    },
+    {
+      "id": "agriculture-高",
+      "name": "農地－高破碎化",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-green-fragmentation-2020-2024/layers/agriculture.geojson",
+      "local_file": "layers/agriculture.geojson",
+      "bytes": 197707,
+      "visible": true
+    },
+    {
+      "id": "agriculture-中",
+      "name": "農地－中破碎化",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-green-fragmentation-2020-2024/layers/agriculture-2.geojson",
+      "local_file": "layers/agriculture-2.geojson",
+      "bytes": 196423,
+      "visible": false
+    },
+    {
+      "id": "agriculture-低",
+      "name": "農地－低破碎化",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-green-fragmentation-2020-2024/layers/agriculture-3.geojson",
+      "local_file": "layers/agriculture-3.geojson",
+      "bytes": 197486,
+      "visible": false
+    },
+    {
+      "id": "urban-green-高",
+      "name": "公園／都市綠地－高破碎化",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-green-fragmentation-2020-2024/layers/urban-green.geojson",
+      "local_file": "layers/urban-green.geojson",
+      "bytes": 114957,
+      "visible": false
+    },
+    {
+      "id": "urban-green-中",
+      "name": "公園／都市綠地－中破碎化",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-green-fragmentation-2020-2024/layers/urban-green-2.geojson",
+      "local_file": "layers/urban-green-2.geojson",
+      "bytes": 112868,
+      "visible": false
+    },
+    {
+      "id": "urban-green-低",
+      "name": "公園／都市綠地－低破碎化",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-green-fragmentation-2020-2024/layers/urban-green-3.geojson",
+      "local_file": "layers/urban-green-3.geojson",
+      "bytes": 110140,
+      "visible": false
+    },
+    {
+      "id": "riparian-高",
+      "name": "河川沿岸自然地表－高破碎化",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-green-fragmentation-2020-2024/layers/riparian.geojson",
+      "local_file": "layers/riparian.geojson",
+      "bytes": 1034814,
+      "visible": false
+    },
+    {
+      "id": "riparian-中",
+      "name": "河川沿岸自然地表－中破碎化",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-green-fragmentation-2020-2024/layers/riparian-2.geojson",
+      "local_file": "layers/riparian-2.geojson",
+      "bytes": 1058532,
+      "visible": false
+    },
+    {
+      "id": "riparian-低",
+      "name": "河川沿岸自然地表－低破碎化",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-green-fragmentation-2020-2024/layers/riparian-3.geojson",
+      "local_file": "layers/riparian-3.geojson",
+      "bytes": 1013107,
+      "visible": false
+    }
+  ],
   "remaining_inline_layer_count": 0,
   "largest_remaining_inline_bytes": 0,
   "inline_layer_max_bytes": 262144,
-  "visible_external_payload_bytes_estimate": 0,
-  "initial_load_bytes_estimate": 8554,
+  "max_visible_thematic_layers": 3,
+  "visible_thematic_layer_count": 3,
+  "visibility_adjustments": [
+    {
+      "id": "urban-green-高",
+      "name": "公園／都市綠地－高破碎化",
+      "reason": "default-visible thematic layer cap (3)"
+    },
+    {
+      "id": "riparian-高",
+      "name": "河川沿岸自然地表－高破碎化",
+      "reason": "default-visible thematic layer cap (3)"
+    }
+  ],
+  "visible_external_payload_bytes_estimate": 3751482,
+  "initial_load_bytes_estimate": 3760038,
   "initial_load_soft_bytes": 6291456,
   "initial_load_hard_bytes": 12582912,
   "project_budget_ok": true,
   "inline_budget_ok": true,
+  "visible_layer_budget_ok": true,
   "mobile_soft_budget_ok": true,
   "mobile_hard_budget_ok": true,
   "notes": [
-    "Initial-load estimate includes project JSON plus optimizer-created visible GeoJSON files only.",
-    "Hidden layers and third-party/service URLs may still have runtime costs not estimated here."
-  ],
-  "project_original_bytes_peak": 18621728
+    "Initial-load estimate includes project JSON plus visible URL-backed GeoJSON files that map back to files in this analysis output.",
+    "Hidden layers and third-party/service URLs may still have runtime costs not fully estimated here.",
+    "Visibility adjustments affect presentation only; analytical outputs are unchanged."
+  ]
 }
