@@ -48,6 +48,7 @@ When absent, create it from the current skill's generic analysis workflow asset 
 {
   "enabled": true,
   "task_id": "<task_id>",
+  "execution_mode": "analysis",
   "script": "<resolved task script path>",
   "topic": "<topic>",
   "goal": "<analysis_goal>",
@@ -64,6 +65,10 @@ When absent, create it from the current skill's generic analysis workflow asset 
 ```
 
 The manifest is the execution trigger. **Write/update it last.**
+
+`execution_mode`:
+- `analysis` (default): run the GIS task script, optimize, validate, publish.
+- `postprocess_only`: reuse already-generated outputs and run only optimization/validation/publication. Use this for styling, externalization, mobile-performance fixes, or republishing when analytical criteria/data have not changed. Do not rerun expensive GIS computation merely to change presentation.
 
 ## Script requirements
 
@@ -103,7 +108,7 @@ Do not introduce paid services or secret API requirements without explicit appro
 3. Create/update `<task_script_root>/<task_id>.py`.
 4. Ensure `.geolibre/tools/optimize-project.py` exists from the skill asset and ensure the profile-aware `.github/workflows/geolibre-analysis.yml` calls it after analysis.
 5. Only after code is ready, create/update the resolved `current-task.json`.
-6. Let the manifest commit trigger the Action.
+6. Let the manifest commit trigger the Action. Use `postprocess_only` when only output presentation/performance changed; use `analysis` whenever data, criteria, thresholds, calculations, or requested outputs changed.
 7. Inspect Action result/logs when available.
 8. Fetch and validate generated outputs.
 9. When appropriate, publish/link the result from the user's existing Pages deployment without replacing GeoLibre itself.
