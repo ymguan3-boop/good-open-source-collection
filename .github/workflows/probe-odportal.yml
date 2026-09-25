@@ -1,4 +1,4 @@
-name: Probe ODPortal resource API
+name: Probe ODPortal cached Yilan resource
 
 on:
   push:
@@ -11,47 +11,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Probe resource endpoints
+      - name: Probe cached Yilan XML
         shell: bash
         run: |
           python - <<'PY'
-          import requests,re,json
-          s=requests.Session()
-          s.headers["User-Agent"]="Mozilla/5.0"
-          js="https://cdn.odportal.tw/_next/static/chunks/pages/dataset/%5Bid%5D-ab2baa68733e5d60.js"
-          r=s.get(js,timeout=30)
-          print("JS",r.status_code,len(r.content))
-          txt=r.text
-          for needle in ("/api/v1/resource/","versions.map","B.versions","href:"):
-              start=0
-              while True:
-                  i=txt.find(needle,start)
-                  if i<0: break
-                  print("\nCTX",needle,txt[max(0,i-1200):i+2200])
-                  start=i+len(needle)
-          resource_id="61b504bb6e97860024674b09"
-          dataset_id="5f6c5153fe9a64664bbafc40"
-          nano="DSNTMGUM"
-          version_id="68bcd29f8b91b49ca3d0c296"
-          version="11.0.0"
-          base="https://odportal.tw"
-          candidates=[
-            f"{base}/api/v1/resource/{resource_id}",
-            f"{base}/api/v1/resource/{resource_id}?version={version}",
-            f"{base}/api/v1/resource/{resource_id}?versionId={version_id}",
-            f"{base}/api/v1/resource/{resource_id}/{version}",
-            f"{base}/api/v1/resource/{resource_id}/{version_id}",
-            f"{base}/api/v1/dataset/{nano}",
-            f"{base}/api/v1/dataset/{dataset_id}",
-            f"{base}/api/v1/dataset/{nano}/version/{version}",
-            f"{base}/api/v1/dataset/{dataset_id}/version/{version_id}",
-            f"{base}/api/v1/version/{version_id}",
+          import requests,hashlib
+          s=requests.Session(); s.headers["User-Agent"]="Mozilla/5.0"
+          urls=[
+            "https://cdn.odportal.tw/api/v1/resource/DSNTMGUM/61b504bb6e97860024674b09",
+            "https://odportal.tw/api/v1/resource/DSNTMGUM/61b504bb6e97860024674b09",
+            "https://cdn.odportal.tw/playground/DSNTMGUM?r=61b504bb6e97860024674b09",
           ]
-          for u in candidates:
+          for u in urls:
               try:
-                  rr=s.get(u,timeout=30,allow_redirects=False)
-                  body=rr.text[:1800].replace("\n"," ")
-                  print("\nTEST",rr.status_code,u,"CT",rr.headers.get("content-type"),"LOC",rr.headers.get("location"),"BODY",body)
+                  r=s.get(u,timeout=60,allow_redirects=False)
+                  print("\nTEST",r.status_code,u)
+                  print("CT",r.headers.get("content-type"),"LOC",r.headers.get("location"),"LEN",len(r.content),"SHA256",hashlib.sha256(r.content).hexdigest())
+                  print("HEAD",r.text[:7000].replace("\n"," ")[:7000])
               except Exception as e:
                   print("ERR",u,repr(e))
           PY
