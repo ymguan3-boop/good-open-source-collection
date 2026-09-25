@@ -248,7 +248,27 @@ def fetch_candidate_rows(session):
     diagnostics = []
     candidates = []
     seen = set()
-    queue = list(SOURCE_PAGES)
+
+    # Fast path: ODPortal resourcedata is the working proxy/preview endpoint.
+    # When it returns verified Yilan CASE_DETAIL records, stop immediately and
+    # do not probe the known-slow origin server or unrelated dataset links.
+    for page in SOURCE_PAGES[:2]:
+        try:
+            r = session.get(page, timeout=60, allow_redirects=True)
+            diagnostics.append({"url":page,"final_url":r.url,"status":r.status_code,"bytes":len(r.content),"content_type":r.headers.get("content-type",""),"mode":"fast_path"})
+            if not r.ok:
+                continue
+            body = r.text
+            if not (body.lstrip().startswith("<?xml") or "<CASE_DETAIL" in body):
+                continue
+            rows = flatten_xml_records(body)
+            sample_text = " ".join(" ".join(map(str,row.values())) for row in rows[:100])
+            if len(rows) >= 2 and any(name in sample_text for name in YILAN_PLACES):
+                return rows, diagnostics, r.url
+        except Exception as exc:
+            diagnostics.append({"url":page,"error":str(exc)[:300],"mode":"fast_path"})
+
+    queue = list(SOURCE_PAGES[2:])
     for page in list(queue):
         try:
             timeout = 90 if "YilanDigweb/Download/XML/dig.xml" in page else 35
