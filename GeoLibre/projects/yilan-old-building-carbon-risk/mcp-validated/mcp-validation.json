@@ -33,7 +33,7 @@
     "layerCount": 2,
     "layers": [
       {
-        "id": "b0e62665-b2c7-4df4-841f-64bff53b3d8a",
+        "id": "e0a9bd7e-01d7-48d6-802c-bdbf9a76c29b",
         "name": "綜合碳排風險潛勢初篩（2019基線）",
         "type": "geojson",
         "visible": true,
@@ -46,7 +46,7 @@
         }
       },
       {
-        "id": "ff47d3c2-de1c-4a9d-a786-f5aff0c6bc42",
+        "id": "ccb73a37-f503-47df-a597-1779d9a54b40",
         "name": "30年以上住宅占比（2019基線）",
         "type": "geojson",
         "visible": false,

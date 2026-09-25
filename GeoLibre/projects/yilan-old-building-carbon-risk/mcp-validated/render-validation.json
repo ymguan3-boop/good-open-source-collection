@@ -1,8 +1,73 @@
 {
-  "exists": true,
-  "width": 1440,
-  "height": 1000,
-  "bytes": 6489,
-  "rgb_variance_sum": 0.0,
-  "non_blank": false
+  "wrapper_url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated/map.html",
+  "direct_url": "https://web.geolibre.app/?embed=1",
+  "console": [
+    "warning: WARNING: Multiple instances of Three.js being imported.",
+    "warning: WARNING: Multiple instances of Three.js being imported.",
+    "warning: WARNING: Multiple instances of Three.js being imported.",
+    "warning: WARNING: Multiple instances of Three.js being imported.",
+    "warning: THREE.WARNING: Multiple instances of Three.js being imported.",
+    "warning: Allow attribute will take precedence over 'allowfullscreen'.",
+    "warning: WARNING: Multiple instances of Three.js being imported.",
+    "warning: WARNING: Multiple instances of Three.js being imported.",
+    "warning: WARNING: Multiple instances of Three.js being imported.",
+    "warning: WARNING: Multiple instances of Three.js being imported.",
+    "error: Failed to load resource: the server responded with a status of 404 ()",
+    "warning: THREE.WARNING: Multiple instances of Three.js being imported.",
+    "warning: layers[boundary_3].filter[1]: Expected value to be of type number, but found null instead. Falling back to false."
+  ],
+  "errors": [],
+  "direct": {
+    "width": 1440,
+    "height": 1000,
+    "bytes": 786411,
+    "rgb_variance_sum": 27934.190297461788,
+    "extrema": [
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ]
+    ],
+    "non_blank": true
+  },
+  "frames": [
+    "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated/map.html",
+    "https://web.geolibre.app/?embed=1"
+  ],
+  "iframe_count": 1,
+  "iframe_box": {
+    "x": 0,
+    "y": 0,
+    "width": 1440,
+    "height": 900
+  },
+  "wrapper": {
+    "width": 1440,
+    "height": 1000,
+    "bytes": 361401,
+    "rgb_variance_sum": 4801.5860303356385,
+    "extrema": [
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ],
+      [
+        0,
+        255
+      ]
+    ],
+    "non_blank": true
+  }
 }
