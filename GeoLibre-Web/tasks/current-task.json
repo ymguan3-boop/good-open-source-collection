@@ -54,6 +54,6 @@
       "summary.json"
     ]
   },
-  "performance_policy_version": 3,
+  "performance_policy_version": 4,
   "execution_mode": "postprocess_only"
 }
