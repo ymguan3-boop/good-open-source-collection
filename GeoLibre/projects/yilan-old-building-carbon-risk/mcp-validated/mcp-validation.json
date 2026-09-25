@@ -1,0 +1,72 @@
+{
+  "status": "pass",
+  "validation_mode": "GeoLibre MCP tool surface via build_server/Workspace",
+  "catalog_has_positron": true,
+  "mcp_tools_called": [
+    "list_catalog",
+    "create_project",
+    "add_geojson_layer",
+    "list_layer_properties",
+    "classify_layer",
+    "style_layer",
+    "update_layer",
+    "set_layer_popup",
+    "set_view",
+    "add_legend",
+    "describe_project",
+    "export_html"
+  ],
+  "describe_project": {
+    "path": "/home/runner/work/good-open-source-collection/good-open-source-collection/GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated/map.geolibre.json",
+    "name": "宜蘭縣既有住宅碳排風險潛勢初篩 v0.2 — MCP validated",
+    "version": "0.1.0",
+    "mapView": {
+      "center": [
+        121.72,
+        24.69
+      ],
+      "zoom": 9.15,
+      "bearing": 0.0,
+      "pitch": 0.0
+    },
+    "basemapStyleUrl": "https://tiles.openfreemap.org/styles/positron",
+    "layerCount": 2,
+    "layers": [
+      {
+        "id": "b0e62665-b2c7-4df4-841f-64bff53b3d8a",
+        "name": "綜合碳排風險潛勢初篩（2019基線）",
+        "type": "geojson",
+        "visible": true,
+        "opacity": 1,
+        "featureCount": 12,
+        "symbology": {
+          "mode": "graduated",
+          "property": "screeningScoreV02",
+          "colorRamp": "rdylgn"
+        }
+      },
+      {
+        "id": "ff47d3c2-de1c-4a9d-a786-f5aff0c6bc42",
+        "name": "30年以上住宅占比（2019基線）",
+        "type": "geojson",
+        "visible": false,
+        "opacity": 1,
+        "featureCount": 12,
+        "symbology": {
+          "mode": "graduated",
+          "property": "oldShare2019",
+          "colorRamp": "rdylbu"
+        }
+      }
+    ],
+    "mapControls": [
+      "legend"
+    ]
+  },
+  "export_html": {
+    "path": "/home/runner/work/good-open-source-collection/good-open-source-collection/GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated/map.html",
+    "sourceProject": "/home/runner/work/good-open-source-collection/good-open-source-collection/GeoLibre/projects/yilan-old-building-carbon-risk/mcp-validated/map.geolibre.json",
+    "bytes": 236413
+  },
+  "source_project": "yilan-old-building-carbon-risk.geolibre.json"
+}
