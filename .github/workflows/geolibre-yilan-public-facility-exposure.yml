@@ -181,7 +181,7 @@ jobs:
               if len(layer.get("geojson", {}).get("features", [])) != count:
                   raise SystemExit(f"Map layer {layer_id} does not embed the expected features")
           report = (out / "report.md").read_text(encoding="utf-8")
-          for section in ["## 先看結果", "## 打開地圖", "## 每個輸出檔案到底是什麼", "## 資料來源連結與採用依據", "## 總結"]:
+          for section in ["## 方法", "## 分類", "## 資料品質", "## 重要限制", "## 資料來源", "## 交付檔案"]:
               if section not in report:
                   raise SystemExit(f"Human-readable report is missing: {section}")
           if "<table>" not in (out / "report.html").read_text(encoding="utf-8"):
@@ -209,3 +209,114 @@ jobs:
             git rebase "origin/${GITHUB_REF_NAME}"
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
+
+      - name: Wait for the published GeoLibre project
+        shell: bash
+        env:
+          OUTPUT_DIR: ${{ steps.task.outputs.output_dir }}
+        run: |
+          python - <<'PY'
+          import json, os, time
+          from urllib.request import Request, urlopen
+          from pathlib import Path
+
+          out = Path(os.environ["OUTPUT_DIR"])
+          project = json.loads((out / "map.geolibre.json").read_text(encoding="utf-8"))
+          url = project["metadata"]["projectUrl"]
+          expected = project["metadata"]["generatedAt"]
+          check_url = url + "?qa=" + str(int(time.time()))
+          for attempt in range(40):
+              try:
+                  req = Request(check_url, headers={"Cache-Control": "no-cache", "User-Agent": "GeoLibre-viewer-QA"})
+                  with urlopen(req, timeout=25) as response:
+                      published = json.loads(response.read().decode("utf-8"))
+                  actual = published.get("metadata", {}).get("generatedAt")
+                  if actual == expected:
+                      print("Pages now serves this run's map project:", actual)
+                      break
+                  print(f"Waiting for Pages deployment ({attempt + 1}/40): {actual!r} != {expected!r}")
+              except Exception as exc:
+                  print(f"Waiting for Pages deployment ({attempt + 1}/40): {exc}")
+              time.sleep(15)
+          else:
+              raise SystemExit("GitHub Pages did not publish the map project produced by this run")
+          PY
+
+      - name: Install Playwright browser for dual-entry QA
+        run: |
+          python -m pip install playwright pillow
+          python -m playwright install --with-deps chromium
+
+      - name: Verify self-hosted and official GeoLibre on desktop and Android viewport
+        env:
+          OUTPUT_DIR: ${{ steps.task.outputs.output_dir }}
+        run: python scripts/geolibre_tasks/verify_yilan_viewers.py "${OUTPUT_DIR}"
+
+      - name: Regenerate report with final browser QA status
+        shell: bash
+        env:
+          OUTPUT_DIR: ${{ steps.task.outputs.output_dir }}
+        run: |
+          PYTHONPATH=scripts/geolibre_tasks python - <<'PY'
+          import os
+          from pathlib import Path
+          from build_yilan_full_report import build_report
+          build_report(Path(os.environ["OUTPUT_DIR"]))
+          PY
+
+      - name: Commit browser QA evidence and final report
+        shell: bash
+        run: |
+          OUT="${{ steps.task.outputs.output_dir }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${OUT}"
+          if git diff --cached --quiet; then
+            echo "No QA evidence or report changes."
+          else
+            git commit -m "docs(gis): publish viewer QA and complete report"
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase "origin/${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+      - name: Validate final report, workbook and viewer QA gate
+        shell: bash
+        env:
+          OUTPUT_DIR: ${{ steps.task.outputs.output_dir }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from openpyxl import load_workbook
+
+          out = Path(os.environ["OUTPUT_DIR"])
+          required = ["report.md", "report.html", "viewer-qa/viewer-qa.json", "map-overview.png"]
+          missing = [name for name in required if not (out / name).is_file()]
+          if missing:
+              raise SystemExit("Missing final report/QA outputs: " + ", ".join(missing))
+          summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+          qa = json.loads((out / "viewer-qa/viewer-qa.json").read_text(encoding="utf-8"))
+          if not qa.get("overall_pass"):
+              raise SystemExit("No GeoLibre entry passed both desktop and Android viewport checks")
+          report = (out / "report.md").read_text(encoding="utf-8")
+          required_sections = ["## 方法", "## 分類", "## 資料品質", "## 重要限制", "## 資料來源", "## 交付檔案", "## 圖層—圖資—檔案對照", "## 瀏覽器畫面驗證", "## 總結"]
+          if any(section not in report for section in required_sections):
+              raise SystemExit("Final report is missing a required section")
+          if "尚未取得雙入口桌面／手機驗收結果" in report:
+              raise SystemExit("Final report still contains a pending QA status")
+          for name in ["self_hosted", "official"]:
+              for mode in ["desktop", "android"]:
+                  check = qa["checks"][name][mode]
+                  screenshot = out / check.get("screenshot", "")
+                  if not screenshot.is_file():
+                      raise SystemExit(f"Missing screenshot for {name}/{mode}")
+          wb = load_workbook(out / "result.xlsx", read_only=True, data_only=True)
+          sheet = wb["分析結果"]
+          row_count = max(0, sheet.max_row - 1)
+          wb.close()
+          if row_count != summary["result_count"]:
+              raise SystemExit(f"XLSX result rows {row_count} != result_count {summary['result_count']}")
+          print("Final QA PASS:", qa["overall_pass"])
+          print("XLSX result rows:", row_count)
+          PY
