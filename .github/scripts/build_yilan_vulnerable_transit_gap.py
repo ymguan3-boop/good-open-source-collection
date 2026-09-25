@@ -161,7 +161,18 @@ def main():
         r["priority_score"] = 100 * (0.80 * pressure_norm + 0.20 * scale_norm)
 
     scores = [r["priority_score"] for r in records]
-    p50, p75, p90 = percentile(scores, .50), percentile(scores, .75), percentile(scores, .90)
+    positive_scores = [s for s in scores if s > 0]
+    if not positive_scores:
+        raise RuntimeError("All priority scores are zero; cannot classify")
+    # Many villages legitimately have zero combined pressure. If percentiles are
+    # computed over all villages, P50 collapses to zero and the D class loses
+    # meaning. Classify positive-score villages by their own distribution while
+    # keeping zero/low-positive villages in D.
+    p50, p75, p90 = (
+        percentile(positive_scores, .50),
+        percentile(positive_scores, .75),
+        percentile(positive_scores, .90),
+    )
 
     for r in records:
         s = r["priority_score"]
@@ -367,10 +378,11 @@ def main():
 4. **相對優先分數** = 80% × 雙重壓力在宜蘭各村里的 min-max 正規化 + 20% × 經濟弱勢高齡人數(log1p)的 min-max 正規化。
 
 分級採宜蘭縣內相對分位：
-- A 極高優先：P90 以上（分數 ≥ {p90:.2f}）
-- B 高優先：P75–P90
-- C 中度：P50–P75
-- D 較低：P50 以下
+分級門檻是在**優先分數大於 0 的村里**中計算，以避免大量 0 分村里使 P50 退化為 0：
+- A 極高優先：正分數村里 P90 以上（分數 ≥ {p90:.2f}）
+- B 高優先：正分數村里 P75–P90
+- C 中度：正分數村里 P50–P75
+- D 較低：低於正分數村里 P50（包含 0 分）
 
 **這不是政府官方指數，也不能解讀為同一個人同時具有低收入與距公車站≥500m。** 兩套資料是村里層級交叉指標，因此本分析反映的是「區域雙重需求壓力」。
 
@@ -418,10 +430,11 @@ SEGIS 對小於 3 人的格位以 NULL 抑制；本分析為避免將 NULL 當 0
             "joint_pressure": "sqrt(vulnerable_rate * bus_gap_rate)",
             "priority_score": "80% normalized joint pressure + 20% normalized log1p(vulnerable elderly count)",
             "bands": {
-                "A_extreme": f"score >= P90 ({p90:.3f})",
-                "B_high": f"P75 ({p75:.3f}) <= score < P90",
-                "C_medium": f"P50 ({p50:.3f}) <= score < P75",
-                "D_lower": f"score < P50",
+                "classification_population": "villages with priority_score > 0; zero scores remain in D",
+                "A_extreme": f"score >= positive-score P90 ({p90:.3f})",
+                "B_high": f"positive-score P75 ({p75:.3f}) <= score < P90",
+                "C_medium": f"positive-score P50 ({p50:.3f}) <= score < P75",
+                "D_lower": f"score < positive-score P50 ({p50:.3f}), including zero",
             },
             "suppressed_cells": "SEGIS NULL (<3 persons) imputed at midpoint 1.5 for screening; suppression counts retained."
         },
