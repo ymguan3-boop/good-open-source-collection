@@ -122,6 +122,7 @@ jobs:
           GEOLIBRE_INLINE_LAYER_MAX_BYTES: 262144
           GEOLIBRE_INITIAL_LOAD_SOFT_BYTES: 6291456
           GEOLIBRE_INITIAL_LOAD_HARD_BYTES: 12582912
+          GEOLIBRE_MAX_VISIBLE_THEMATIC_LAYERS: 3
         run: |
           if [ ! -f ".geolibre/tools/optimize-project.py" ]; then
             echo "Missing .geolibre/tools/optimize-project.py"
@@ -157,6 +158,8 @@ jobs:
               raise SystemExit("Project-size hard budget failed")
           if not perf.get("inline_budget_ok", False):
               raise SystemExit("Inline GeoJSON budget failed")
+          if not perf.get("visible_layer_budget_ok", False):
+              raise SystemExit("Default-visible thematic layer budget failed")
           if not perf.get("mobile_hard_budget_ok", False):
               raise SystemExit("Mobile initial-load hard budget failed")
           print("Result count:", summary.get("result_count", "unknown"))
