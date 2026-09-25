@@ -87,5 +87,11 @@
     "summary": "summary.json"
   },
   "public_project_url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-old-building-carbon-risk/map.geolibre.json",
-  "direct_geolibre_url": "https://web.geolibre.app/?url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-old-building-carbon-risk%2Fmap.geolibre.json"
+  "primary_platform": "self-hosted GeoLibre-Web on GitHub Pages",
+  "primary_geolibre_url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-old-building-carbon-risk%2Fmap.geolibre.json",
+  "compatibility_fallback_url": "https://web.geolibre.app/?url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-old-building-carbon-risk%2Fmap.geolibre.json",
+  "entry_policy": {
+    "primary": "Use the self-hosted GeoLibre-Web for normal analysis and result viewing.",
+    "fallback": "Use official web.geolibre.app only for compatibility checks or when the self-hosted site cannot load the project."
+  }
 }
