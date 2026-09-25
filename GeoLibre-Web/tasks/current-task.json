@@ -62,8 +62,8 @@
   },
   "performance_policy_version": 5,
   "execution_metadata": {
-    "rerun_revision": 5,
-    "reason": "已驗證 ODPortal resourcedata 可直接回傳宜蘭道路挖掘 XML，含 2026-09-24 案件；改用該端點、解析 CASE_DETAIL/GML 施工多邊形並建立 source-snapshot.json 備援",
+    "rerun_revision": 6,
+    "reason": "ODPortal resourcedata 已驗證可回傳完整宜蘭 CASE_DETAIL/GML，改為驗證成功即短路使用，停止探測已知逾時的官方來源",
     "confirmed_at": "2026-09-25T20:17:00+08:00"
   }
 }
