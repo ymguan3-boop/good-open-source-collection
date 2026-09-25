@@ -30,27 +30,24 @@ jobs:
             if t.startswith("<"):
               root=ET.fromstring(t); t="".join(root.itertext()).strip()
             x=json.loads(t)
-            if isinstance(x,str):
-              x=json.loads(x)
+            if isinstance(x,str): x=json.loads(x)
             return x
           for name,url in urls.items():
             r=requests.get(url,headers={"User-Agent":"Mozilla/5.0"},timeout=60)
             print("\n==",name,r.status_code,len(r.content),r.headers.get("content-type"))
             r.raise_for_status()
             obj=unwrap(r.text)
-            print("TYPE",type(obj).__name__)
-            if isinstance(obj,dict):
-              print("KEYS",list(obj)[:30])
-              rows=obj.get("Data") or obj.get("data") or obj.get("rows") or obj.get("Rows") or obj.get("features") or []
-            else: rows=obj
+            print("INFO",json.dumps(obj.get("Info",{}),ensure_ascii=False)[:4000])
+            print("COLUMNS",json.dumps(obj.get("ColumnList",[]),ensure_ascii=False)[:12000])
+            rows=obj.get("RowDataList") or []
             print("ROWS",len(rows))
+            print("FIRST_ROW",json.dumps(rows[0] if rows else None,ensure_ascii=False)[:8000])
             y=[]
             for row in rows:
-              p=row.get("properties",row) if isinstance(row,dict) else {}
-              if any("宜蘭" in str(v) for v in p.values()):
-                y.append(p)
+              if isinstance(row,dict) and any("宜蘭" in str(v) for v in row.values()):
+                y.append(row)
+              elif isinstance(row,list) and any("宜蘭" in str(v) for v in row):
+                y.append(row)
             print("YILAN",len(y))
-            if y:
-              print("FIELDS",list(y[0]))
-              for p in y[:10]: print("SAMPLE",json.dumps(p,ensure_ascii=False))
+            for p in y[:10]: print("SAMPLE",json.dumps(p,ensure_ascii=False)[:8000])
           PY
