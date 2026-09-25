@@ -102,6 +102,8 @@ jobs:
       - name: Install GIS dependencies
         if: steps.task.outputs.execution_mode != 'postprocess_only'
         run: |
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full unrar-free
           python -m pip install --upgrade pip
           pip install numpy pandas requests pillow pyproj shapely geopandas rasterio scipy scikit-learn openpyxl
 
