@@ -433,21 +433,43 @@ def canonicalize_rows(rows, source_url):
 
 
 def fetch_osm_roads(session):
+    # Split Yilan into four tiles to avoid a single county-wide Overpass timeout.
+    endpoints = ("https://overpass.kumi.systems/api/interpreter", OVERPASS)
     s,w,n,e = YILAN_BBOX
-    query = f"""[out:json][timeout:180];way["highway"]["name"]({s},{w},{n},{e});out tags geom;"""
-    r = session.post(OVERPASS, data={"data":query}, timeout=240)
-    r.raise_for_status()
-    data = r.json()
-    feats = []
-    for el in data.get("elements",[]):
-        geom = el.get("geometry") or []
-        if len(geom) < 2: continue
-        try:
-            line = LineString([(p["lon"],p["lat"]) for p in geom])
-        except Exception:
+    mid_lat=(s+n)/2
+    mid_lon=(w+e)/2
+    tiles=[(s,w,mid_lat,mid_lon),(s,mid_lon,mid_lat,e),(mid_lat,w,n,mid_lon),(mid_lat,mid_lon,n,e)]
+    by_id={}
+    failures=[]
+    for tile_no,(ts,tw,tn,te) in enumerate(tiles,1):
+        query = f"""[out:json][timeout:90];way["highway"]["name"]({ts},{tw},{tn},{te});out tags geom;"""
+        tile_data=None
+        last_err=None
+        for endpoint in endpoints:
+            try:
+                r=session.post(endpoint,data={"data":query},timeout=120)
+                r.raise_for_status()
+                tile_data=r.json()
+                break
+            except Exception as exc:
+                last_err=f"{endpoint}: {exc}"
+        if tile_data is None:
+            failures.append({"tile":tile_no,"bbox":[ts,tw,tn,te],"error":last_err})
             continue
-        tags = el.get("tags") or {}
-        feats.append({"road_id":f"osm-way-{el.get('id')}","road_name":tags.get("name",""),"highway":tags.get("highway",""),"geometry":line})
+        for el in tile_data.get("elements",[]):
+            geom=el.get("geometry") or []
+            if len(geom)<2:
+                continue
+            try:
+                line=LineString([(p["lon"],p["lat"]) for p in geom])
+            except Exception:
+                continue
+            tags=el.get("tags") or {}
+            rid=f"osm-way-{el.get('id')}"
+            by_id[rid]={"road_id":rid,"road_name":tags.get("name",""),"highway":tags.get("highway",""),"geometry":line}
+    if failures:
+        raise RuntimeError("OpenStreetMap／Overpass 分割查詢仍有區塊失敗，為避免道路中心線不完整而停止分析：" + json.dumps(failures,ensure_ascii=False))
+    feats=list(by_id.values())
     if not feats:
         raise RuntimeError("OpenStreetMap／Overpass 未取得道路中心線")
     return gpd.GeoDataFrame(feats, geometry="geometry", crs=WEB_CRS).to_crs(ANALYSIS_CRS)
