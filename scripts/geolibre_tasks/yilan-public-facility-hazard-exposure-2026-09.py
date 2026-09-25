@@ -211,7 +211,7 @@ def scope_from_official_boundary(session: requests.Session, temp: Path, substitu
         last_error: Exception | None = None
         for endpoint in OVERPASS_ENDPOINTS:
             try:
-                response = session.post(endpoint, data={"data": query}, timeout=240, headers={"User-Agent": USER_AGENT})
+                response = session.post(endpoint, data={"data": query}, timeout=90, headers={"User-Agent": USER_AGENT})
                 response.raise_for_status()
                 elements = response.json().get("elements", [])
                 if not elements:
@@ -246,7 +246,7 @@ def build_osm_facilities(session: requests.Session, scope: Any) -> tuple[gpd.Geo
     endpoint_used = URLS["osm_overpass"]
     for endpoint in OVERPASS_ENDPOINTS:
         try:
-            response = session.post(endpoint, data={"data": OSM_QUERY}, timeout=300, headers={"User-Agent": USER_AGENT})
+            response = session.post(endpoint, data={"data": OSM_QUERY}, timeout=90, headers={"User-Agent": USER_AGENT})
             response.raise_for_status()
             elements = response.json().get("elements", [])
             if elements:
