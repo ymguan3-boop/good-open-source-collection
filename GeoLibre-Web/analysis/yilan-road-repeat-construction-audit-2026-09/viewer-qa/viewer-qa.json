@@ -1,0 +1,182 @@
+{
+  "taskId": "yilan-road-repeat-construction-audit-2026-09",
+  "projectUrl": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-road-repeat-construction-audit-2026-09/map.geolibre.json?v=89e1b9b",
+  "generatedAt": "2026-09-25T15:37:36.355Z",
+  "minimumPassRule": "At least one of self-hosted or official fallback must render the intended project with ready state, no load errors, a nonblank map canvas, and expected layer text.",
+  "pass": true,
+  "results": [
+    {
+      "key": "self-hosted",
+      "label": "自架 GitHub Pages",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&layout=viewer&loading=true&url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-road-repeat-construction-audit-2026-09%2Fmap.geolibre.json%3Fv%3D89e1b9b&qa=1790350644019",
+      "startedAt": "2026-09-25T15:37:25.513Z",
+      "pass": true,
+      "checks": {
+        "httpOk": true,
+        "appMounted": true,
+        "ready": true,
+        "noLoadErrors": true,
+        "visibleCanvas": true,
+        "notWhiteScreen": true,
+        "canvasHasPixels": true,
+        "expectedLayerVisibleInUi": true
+      },
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "httpStatus": 200,
+      "dom": {
+        "title": "GeoLibre",
+        "state": "ready",
+        "pending": "[]",
+        "errors": "[]",
+        "bodyTextLength": 104,
+        "rootTextLength": 104,
+        "rootWidth": 1365,
+        "rootHeight": 900,
+        "canvasCount": 5,
+        "visibleCanvasCount": 5,
+        "canvases": [
+          {
+            "width": 1077,
+            "height": 828,
+            "visible": true,
+            "cls": "maplibregl-canvas"
+          },
+          {
+            "width": 1077,
+            "height": 828,
+            "visible": true,
+            "cls": "geolibre-effects-canvas"
+          },
+          {
+            "width": 1077,
+            "height": 828,
+            "visible": true,
+            "cls": "geolibre-effects-canvas"
+          },
+          {
+            "width": 1077,
+            "height": 828,
+            "visible": true,
+            "cls": "geolibre-effects-canvas"
+          },
+          {
+            "width": 1077,
+            "height": 828,
+            "visible": true,
+            "cls": "geolibre-effects-canvas"
+          }
+        ],
+        "hasExpectedLayerName": true,
+        "bodyPreview": "圖層\n施工案件證據\n重複施工查核熱點\nGeoLibre 地圖工作區\nN\n3 km\nXY: —\nZoom: 11.00\n視點高度: 43 km\nBearing: 0.0°\nPitch: 0.0°\nDiag: 0"
+      },
+      "screenshot": "self-hosted.png",
+      "image": {
+        "width": 1365,
+        "height": 900,
+        "nonWhiteRatio": 0.7296695156695157,
+        "coloredRatio": 0.544901098901099,
+        "darkRatio": 0.5793984533984534
+      },
+      "canvasScreenshot": "self-hosted-canvas.png",
+      "canvasImage": {
+        "width": 1077,
+        "height": 828,
+        "nonWhiteRatio": 0.9950625507425798,
+        "coloredRatio": 0.7458374263812074,
+        "darkRatio": 0.7886069732079178
+      },
+      "completedAt": "2026-09-25T15:37:31.543Z"
+    },
+    {
+      "key": "official-fallback",
+      "label": "官方 GeoLibre 備援",
+      "url": "https://web.geolibre.app/?locale=zh-TW&layout=viewer&loading=true&url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-road-repeat-construction-audit-2026-09%2Fmap.geolibre.json%3Fv%3D89e1b9b&qa=1790350644019",
+      "startedAt": "2026-09-25T15:37:31.617Z",
+      "pass": true,
+      "checks": {
+        "httpOk": true,
+        "appMounted": true,
+        "ready": true,
+        "noLoadErrors": true,
+        "visibleCanvas": true,
+        "notWhiteScreen": true,
+        "canvasHasPixels": true,
+        "expectedLayerVisibleInUi": true
+      },
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "url": "https://www.google-analytics.com/g/collect?v=2&tid=G-6W3EV109T9&gtm=45je69n1v9262061663za200zd9262061663xf1&_p=1790350651929&gcd=13l3l3l3l1l1&npa=0&dma=0&cid=770727373.1790350652&frm=0&ngs=1&pscdl=noapi&rcb=15&sr=1365x900&uaa=x86&uab=64&uafvl=HeadlessChrome%3B153.0.8010.12%7CNot_A%2520Brand%3B8.0.0.0%7CChromium%3B153.0.8010.12&uam=&uamb=0&uap=Linux&uapv=&uaw=0&ul=en-us&_s=1&tag_exp=115616985~115938465~115938469~118897920~118897930~120213116~120385423~120469145~120469153&dl=https%3A%2F%2Fweb.geolibre.app%2F&sid=1790350652&sct=1&seg=0&dt=GeoLibre&en=page_view&_fv=1&_nsi=1&_ss=1&_ee=1&tfd=646",
+          "error": "net::ERR_ABORTED"
+        }
+      ],
+      "httpStatus": 200,
+      "dom": {
+        "title": "GeoLibre",
+        "state": "ready",
+        "pending": "[]",
+        "errors": "[]",
+        "bodyTextLength": 104,
+        "rootTextLength": 104,
+        "rootWidth": 1365,
+        "rootHeight": 900,
+        "canvasCount": 5,
+        "visibleCanvasCount": 5,
+        "canvases": [
+          {
+            "width": 1077,
+            "height": 828,
+            "visible": true,
+            "cls": "maplibregl-canvas"
+          },
+          {
+            "width": 1077,
+            "height": 828,
+            "visible": true,
+            "cls": "geolibre-effects-canvas"
+          },
+          {
+            "width": 1077,
+            "height": 828,
+            "visible": true,
+            "cls": "geolibre-effects-canvas"
+          },
+          {
+            "width": 1077,
+            "height": 828,
+            "visible": true,
+            "cls": "geolibre-effects-canvas"
+          },
+          {
+            "width": 1077,
+            "height": 828,
+            "visible": true,
+            "cls": "geolibre-effects-canvas"
+          }
+        ],
+        "hasExpectedLayerName": true,
+        "bodyPreview": "图层\n施工案件證據\n重複施工查核熱點\nGeoLibre 地图工作区\nN\n3 km\nXY: —\nZoom: 11.00\n视点高度: 43 km\nBearing: 0.0°\nPitch: 0.0°\nDiag: 0"
+      },
+      "screenshot": "official-fallback.png",
+      "image": {
+        "width": 1365,
+        "height": 900,
+        "nonWhiteRatio": 0.7296475376475376,
+        "coloredRatio": 0.5448905168905169,
+        "darkRatio": 0.5793740333740334
+      },
+      "canvasScreenshot": "official-fallback-canvas.png",
+      "canvasImage": {
+        "width": 1077,
+        "height": 828,
+        "nonWhiteRatio": 0.9950625507425798,
+        "coloredRatio": 0.7458374263812074,
+        "darkRatio": 0.7886069732079178
+      },
+      "completedAt": "2026-09-25T15:37:36.262Z"
+    }
+  ]
+}
