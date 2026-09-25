@@ -1,0 +1,48 @@
+{
+  "project_original_bytes": 8645,
+  "project_original_bytes_peak": 8645,
+  "project_final_bytes": 8645,
+  "project_target_bytes": 2097152,
+  "project_hard_bytes": 5242880,
+  "externalized_layer_count_this_run": 0,
+  "externalized_layers_this_run": [],
+  "url_backed_layer_count": 2,
+  "url_backed_layers": [
+    {
+      "id": "yilan-public-facility-exposure",
+      "name": "公共設施複合災害暴露查核結果",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/result.geojson",
+      "local_file": "result.geojson",
+      "bytes": 44386,
+      "visible": true
+    },
+    {
+      "id": "yilan-county-boundary",
+      "name": "宜蘭縣行政界",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/scope.geojson",
+      "local_file": "scope.geojson",
+      "bytes": 71695,
+      "visible": true
+    }
+  ],
+  "remaining_inline_layer_count": 0,
+  "largest_remaining_inline_bytes": 0,
+  "inline_layer_max_bytes": 262144,
+  "max_visible_thematic_layers": 3,
+  "visible_thematic_layer_count": 1,
+  "visibility_adjustments": [],
+  "visible_external_payload_bytes_estimate": 116081,
+  "initial_load_bytes_estimate": 124726,
+  "initial_load_soft_bytes": 6291456,
+  "initial_load_hard_bytes": 12582912,
+  "project_budget_ok": true,
+  "inline_budget_ok": true,
+  "visible_layer_budget_ok": true,
+  "mobile_soft_budget_ok": true,
+  "mobile_hard_budget_ok": true,
+  "notes": [
+    "Initial-load estimate includes project JSON plus visible URL-backed GeoJSON files that map back to files in this analysis output.",
+    "Hidden layers and third-party/service URLs may still have runtime costs not fully estimated here.",
+    "Visibility adjustments affect presentation only; analytical outputs are unchanged."
+  ]
+}

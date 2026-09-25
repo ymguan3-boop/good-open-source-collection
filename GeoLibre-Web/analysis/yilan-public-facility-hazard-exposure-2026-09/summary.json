@@ -1,0 +1,145 @@
+{
+  "task_id": "yilan-public-facility-hazard-exposure-2026-09",
+  "topic": "審計／稽核專題",
+  "analysis_goal": "找出宜蘭縣學校、醫院、消防分隊、政府機關位於或鄰近複合災害圖層的公共設施，形成查核優先清單。",
+  "geographic_scope": "宜蘭縣",
+  "time_range": "國科會官方近5年淹水災點實際檔案年度2021–2025；115年度土石流影響範圍；現行官方地質敏感區公告數值檔。",
+  "spatial_rules": [
+    "公共設施點位與災害 polygon 相交，或距離災害 geometry／淹水災點不超過 300 公尺。",
+    "學校位置使用官方校地 polygon representative point；其他設施使用官方座標或 OSM point/center。"
+  ],
+  "thresholds": {
+    "buffer_m": 300,
+    "compound_exposure_groups": 2
+  },
+  "input_facility_count": 133,
+  "result_count": 51,
+  "unique_facility_count": 51,
+  "high_risk_count": 13,
+  "screening_priority_definition": "high_risk_count 僅代表同一設施命中兩種以上災害群組，不是官方風險等級。",
+  "result_count_by_facility_type": {
+    "學校": 51
+  },
+  "result_count_by_hazard_group": {
+    "土石流影響範圍": 16,
+    "地質敏感區": 31,
+    "近5年歷史淹水災點": 17
+  },
+  "data_sources": [
+    {
+      "name": "宜蘭縣縣界（NLSC鄉鎮市區界線衍生快取）",
+      "provider": "內政部國土測繪中心（衍生）",
+      "dataset_url": "https://data.gov.tw/dataset/7441",
+      "download_url": "https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-county-scope.geojson",
+      "retrieved_at": "2026-09-25T12:17:23+00:00",
+      "source_crs": "EPSG:4326",
+      "analysis_crs": "EPSG:3826",
+      "role": "derived_scope_boundary_cache",
+      "limitation": "原始 NLSC 鄉鎮市區界線為 EPSG:3826；快取為 EPSG:4326，由宜蘭縣各鄉鎮市區聯集並以約100公尺容差簡化，僅供本次縣級範圍篩選。"
+    },
+    {
+      "name": "各級學校範圍圖_121分帶（宜蘭衍生點位快取）",
+      "provider": "內政部國土測繪中心（衍生）",
+      "dataset_url": "https://data.gov.tw/dataset/174606",
+      "download_url": "https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-official-schools.geojson",
+      "retrieved_at": "2026-09-25T12:20:36+00:00",
+      "source_crs": "EPSG:4326",
+      "analysis_crs": "EPSG:3826",
+      "role": "official_school_campus_representative_points_cache",
+      "scope_records": 133,
+      "limitation": "由 NLSC 1150409 版 121 分帶校地 polygon 依校碼、校名及資料月份合併後取 representative point；快取輸出為 EPSG:4326，校點不代表校門或校舍。"
+    },
+    {
+      "name": "地質敏感區 G0003 宜蘭平原",
+      "provider": "經濟部地質調查及礦業管理中心",
+      "dataset_url": "https://data.gov.tw/dataset/27744",
+      "download_url": "https://www.gsmma.gov.tw/uploads/16954297739938pmMCvKe.rar",
+      "retrieved_at": "2026-09-25T12:20:39+00:00",
+      "source_crs": "EPSG:3826",
+      "analysis_crs": "EPSG:3826",
+      "role": "official_geological_sensitive_area",
+      "official_id": "G0003",
+      "category": "地下水補注地質敏感區",
+      "announcement_date": "103年12月26日",
+      "limitation": "數值範圍為規劃參考；實際範圍與法定判定以公告圖資、主管機關及專業程序為準。"
+    },
+    {
+      "name": "地質敏感區 H0010 龜山島火山碎屑堆積層",
+      "provider": "經濟部地質調查及礦業管理中心",
+      "dataset_url": "https://data.gov.tw/dataset/27744",
+      "download_url": "https://www.gsmma.gov.tw/uploads/1695430324140xr5WSRun.rar",
+      "retrieved_at": "2026-09-25T12:20:39+00:00",
+      "source_crs": "EPSG:3826",
+      "analysis_crs": "EPSG:3826",
+      "role": "official_geological_sensitive_area",
+      "official_id": "H0010",
+      "category": "地質遺跡地質敏感區",
+      "announcement_date": "104年6月26日",
+      "limitation": "數值範圍為規劃參考；實際範圍與法定判定以公告圖資、主管機關及專業程序為準。"
+    },
+    {
+      "name": "地質敏感區 L0016 宜蘭縣",
+      "provider": "經濟部地質調查及礦業管理中心",
+      "dataset_url": "https://data.gov.tw/dataset/27744",
+      "download_url": "https://www.gsmma.gov.tw/uploads/1695431430595DvA364F1.rar",
+      "retrieved_at": "2026-09-25T12:20:44+00:00",
+      "source_crs": "EPSG:3826",
+      "analysis_crs": "EPSG:3826",
+      "role": "official_geological_sensitive_area",
+      "official_id": "L0016",
+      "category": "山崩與地滑地質敏感區",
+      "announcement_date": "105年8月29日",
+      "limitation": "數值範圍為規劃參考；實際範圍與法定判定以公告圖資、主管機關及專業程序為準。"
+    },
+    {
+      "name": "近5年淹水災點資料",
+      "provider": "國家科學及技術委員會",
+      "dataset_url": "https://data.gov.tw/dataset/130016",
+      "download_url": "https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-flood-points-2021-2025.csv",
+      "original_download_url": "https://mas.nstc.gov.tw/OPENDATA/GetFile?fileodr=1&format=csv&serialno=455",
+      "retrieved_at": "2026-09-25T12:20:45+00:00",
+      "source_crs": "EPSG:3826",
+      "analysis_crs": "EPSG:3826",
+      "role": "official_historical_flood_points",
+      "record_years_in_yilan": [
+        "2021",
+        "2022",
+        "2024",
+        "2025"
+      ],
+      "limitation": "本次官方檔案 year 欄位涵蓋全國2021–2025；宜蘭子集2023年沒有紀錄。資料集網頁仍註記2023年產製，與檔案年度不一致；2026年事件不在此檔。局部、零星都市道路或農漁塭淹水可能未納入。"
+    },
+    {
+      "name": "115年度1753條土石流潛勢溪流影響範圍圖",
+      "provider": "農業部農村發展及水土保持署",
+      "dataset_url": "https://data.gov.tw/dataset/176526",
+      "download_url": "https://data.moa.gov.tw/OpenData/GetOpenDataFile.aspx?FileType=SHP&RID=71085&id=J73",
+      "retrieved_at": "2026-09-25T12:20:50+00:00",
+      "source_crs": "EPSG:3826",
+      "analysis_crs": "EPSG:3826",
+      "role": "official_debris_flow_impact_area",
+      "scope_records": 157,
+      "risk_values": [
+        "擃",
+        "蝥閫撖",
+        "銝",
+        "雿"
+      ],
+      "limitation": "潛勢／影響範圍供防災規劃與風險提醒，不代表災害必然發生，也不取代現勘或法定審查。"
+    }
+  ],
+  "substitutions": [
+    "官方 NLSC 縣市界線下載或解析失敗：403 Client Error: Forbidden for url: https://www.tgos.tw/tgos/VirtualDir/Product/1cd4f4c9-6b01-4cf9-bf6c-23a73aa17d24/%E7%9B%B4%E8%BD%84%E5%B8%82%E3%80%81%E7%B8%A3%28%E5%B8%82%29%E7%95%8C%E7%B7%9A1140318.zip",
+    "使用已驗證的宜蘭縣範圍快取：由官方 NLSC 鄉鎮市區界線聯集並以約100公尺容差簡化",
+    "OSM／Overpass 設施補充資料下載失敗，後續僅使用可取得的官方學校／消防資料：所有 Overpass 設施端點均失敗：HTTPSConnectionPool(host='overpass.private.coffee', port=443): Read timed out. (read timeout=90)",
+    "NLSC 學校範圍圖即時下載或解析失敗，使用同版官方校地衍生點位快取：403 Client Error: Forbidden for url: https://www.tgos.tw/tgos/VirtualDir/Product/5f346c6b-edde-4fe7-8685-5585c0fb7852/%E5%90%84%E7%B4%9A%E5%AD%B8%E6%A0%A1%E7%AF%84%E5%9C%8D%E5%9C%96_121_1150409.zip",
+    "消防署官方資料下載或解析失敗，保留 OSM 消防分隊補充資料：消防署 CSV 缺少經緯度欄位：['消防隊名稱', '地址', '聯絡電話', 'X座標_TWD97TM121', 'Y座標_TWD97TM121', 'Unnamed: 5', 'Unnamed: 6', 'Unnamed: 7', 'Unnamed: 8', 'Unnamed: 9', 'Unnamed: 10', 'Unnamed: 11', 'Unnamed: 12', 'Unnamed: 13', 'Unnamed: 14', 'Unnamed: 15', 'Unnamed: 16', 'Unnamed: 17', 'Unnamed: 18', 'Unnamed: 19', 'Unnamed: 20', 'Unnamed: 21', 'Unnamed: 22', 'Unnamed: 23']",
+    "國科會淹水災點即時下載失敗，使用2026-09-25取得的同版官方CSV宜蘭子集快取：HTTPSConnectionPool(host='mas.nstc.gov.tw', port=443): Max retries exceeded with url: /OPENDATA/GetFile?fileodr=1&format=csv&serialno=455 (Caused by SSLError(SSLError(1, '[SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] sslv3 alert handshake failure (_ssl.c:1010)')))"
+  ],
+  "limitations": [
+    "地質敏感區與淹水潛勢／災點為規劃或防災參考，不取代法定公告、現勘、鑽探、水理分析或專業簽證。",
+    "OpenStreetMap 僅補充醫療機構與政府機關座標，完整性不等同官方機關名冊。",
+    "結果以設施點位判定，未以建物 polygon、校舍棟別、路網可達性或人口暴露計算。"
+  ],
+  "generated_at": "2026-09-25T12:20:50+00:00"
+}
