@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import requests
 import geopandas as gpd
-from shapely.geometry import Point, LineString, mapping
+from shapely.geometry import Point, LineString, Polygon, mapping
 from shapely.ops import unary_union
 from pyproj import Transformer
 
@@ -29,6 +29,8 @@ PAGES_ROOT = "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibr
 USER_AGENT = "GeoLibreAuditSkill/1.0 (+https://github.com/ymguan3-boop/good-open-source-collection)"
 
 SOURCE_PAGES = [
+    "https://cdn.odportal.tw/api/v1/resourcedata/DSNTMGUM/61b504bb6e97860024674b09.csv?251125",
+    "https://cdn.odportal.tw/api/v1/resourcedata/DSNTMGUM/61b504bb6e97860024674b09.csv",
     "https://mntengmgt.e-land.gov.tw/YilanDigweb/Download/XML/dig.xml",
     "http://mntengmgt.e-land.gov.tw/YilanDigweb/Download/XML/dig.xml",
     "https://odportal.tw/dataset/DSNTMGUM",
@@ -133,27 +135,63 @@ def looks_like_date_value(v):
 
 def flatten_xml_records(text):
     root = ET.fromstring(text)
+
+    def local(tag):
+        return str(tag).split("}")[-1]
+
+    # Yilan road excavation XML is structured as CASE_DETAIL records with
+    # nested GML geometry. Parse those records explicitly so dates, units and
+    # the actual excavation polygons stay together.
+    case_nodes = [e for e in root.iter() if local(e.tag) == "CASE_DETAIL"]
+    if case_nodes:
+        rows = []
+        for case in case_nodes:
+            d = {}
+            for ak, av in case.attrib.items():
+                d[f"_ATTR_{local(ak)}"] = str(av)
+            for child in list(case):
+                tag = local(child.tag)
+                if len(list(child)) == 0:
+                    d[tag] = (child.text or "").strip()
+                    continue
+                if tag == "CENTER_COORDS":
+                    coords = [
+                        (e.text or "").strip()
+                        for e in child.iter()
+                        if local(e.tag) == "coordinates" and (e.text or "").strip()
+                    ]
+                    if coords:
+                        d["_CENTER_COORDS"] = coords[0]
+                elif tag == "POLY_LIST":
+                    rings = []
+                    for wa in child.iter():
+                        if local(wa.tag) != "WAREA_POLY":
+                            continue
+                        for e in wa.iter():
+                            if local(e.tag) == "coordinates" and (e.text or "").strip():
+                                rings.append((e.text or "").strip())
+                    if rings:
+                        d["_WAREA_POLY_COORDS"] = "||".join(rings)
+            if d:
+                rows.append(d)
+        if rows:
+            return rows
+
+    # Generic XML fallback.
     rows = []
     candidates = []
     for elem in root.iter():
         children = list(elem)
         if children and all(len(list(c)) == 0 for c in children):
             d = {}
-            for c in children:
-                tag = c.tag.split("}")[-1]
-                d[tag] = (c.text or "").strip()
+            for child in children:
+                tag = local(child.tag)
+                d[tag] = (child.text or "").strip()
             if len(d) >= 3:
                 candidates.append(d)
     if candidates:
         maxkeys = max(len(x) for x in candidates)
         rows = [x for x in candidates if len(x) >= max(3, int(maxkeys*0.5))]
-    if not rows:
-        d = {}
-        for e in root.iter():
-            if len(list(e)) == 0 and (e.text or "").strip():
-                d[e.tag.split("}")[-1]] = (e.text or "").strip()
-        if d:
-            rows = [d]
     return rows
 
 
@@ -311,7 +349,11 @@ def fetch_candidate_rows(session):
     best = ranked[0]
     best_text = " ".join(" ".join(map(str,r.values())) for r in best[1][:100])
     if not any(name in best_text for name in YILAN_PLACES):
-        raise RuntimeError("找到道路施工候選資料，但最高可信來源無法驗證為宜蘭縣資料；拒絕使用外縣市資料。候選來源已輸出至工作紀錄。")
+        diagnostics.append({
+            "error": "最高可信候選來源無法驗證為宜蘭縣資料，已拒絕使用",
+            "candidate_url": best[0],
+        })
+        return [], diagnostics, None
     return best[1], diagnostics, best[0]
 
 
@@ -338,6 +380,40 @@ def pair_to_geom(a, b):
 
 
 def geometry_from_row(row):
+    # 0) Yilan GML excavation polygons / center point (EPSG:3826).
+    raw_poly = str(row.get("_WAREA_POLY_COORDS") or "").strip()
+    if raw_poly:
+        polygons = []
+        for ring_text in raw_poly.split("||"):
+            pts = []
+            for pair in ring_text.split():
+                try:
+                    xs, ys = pair.split(",", 1)
+                    pts.append((float(xs), float(ys)))
+                except Exception:
+                    continue
+            if len(pts) >= 3:
+                if pts[0] != pts[-1]:
+                    pts.append(pts[0])
+                try:
+                    poly = Polygon(pts)
+                    if not poly.is_valid:
+                        poly = poly.buffer(0)
+                    if not poly.is_empty:
+                        polygons.append(poly)
+                except Exception:
+                    pass
+        if polygons:
+            return unary_union(polygons), ANALYSIS_CRS, "yilan_gml_polygon"
+
+    raw_center = str(row.get("_CENTER_COORDS") or "").strip()
+    if raw_center:
+        try:
+            xs, ys = raw_center.split(",", 1)
+            return Point(float(xs), float(ys)), ANALYSIS_CRS, "yilan_gml_center"
+        except Exception:
+            pass
+
     # 1) GeoJSON geometry
     rawg = row.get("_geojson_geometry")
     if rawg:
@@ -654,7 +730,7 @@ def write_outputs(out, events, roads, result, source_url, diagnostics, quality):
         "result_count":int(len(result)),"high_risk_count":high_count,"short_repeat_hotspots":short_count,
         "data_quality":quality,"data_sources":sources,
         "limitations":[
-            "公開道路挖掘來源不是縣府內部完整後台資料；若公開快照停在2025，2026案件會形成資料缺口。",
+            "道路挖掘案件來自宜蘭縣公開 XML 經 ODPortal resourcedata 代理／轉換取得；本次來源可見 2026-09-24 更新案件，但仍不等同縣府內部完整後台資料。",
             "道路養護工程與管線工程係依公開案件名稱、用途、單位等文字關鍵詞分類，應於正式查核時回到原始案件核對。",
             "缺少可解析日期或座標的案件不納入50公尺與180天正式判定，避免以道路名稱猜測位置造成誤判。",
             "本成果是查核篩選清單，不代表已認定浪費、公務違失或不當施工；仍需核對施工必要性、緊急搶修、同意整合施工及契約內容。"
@@ -716,6 +792,7 @@ def write_outputs(out, events, roads, result, source_url, diagnostics, quality):
         "- `result.csv`、`result.xlsx`：查核清單與明細",
         "- `summary.json`：機讀摘要",
         "- `source-diagnostics.json`：公開資料取得診斷",
+        "- `source-snapshot.json`：本次宜蘭公開案件解析快照，供後續可重現分析與來源失效備援",
         "- `performance.json`：由 GeoLibre optimizer 產生",
     ]
     (out/"report.md").write_text("\n".join(report)+"\n",encoding="utf-8")
@@ -728,8 +805,22 @@ def main():
     if manifest.get("task_id")!=TASK_ID:
         raise RuntimeError(f"manifest task_id 不符：{manifest.get('task_id')} != {TASK_ID}")
     session=requests.Session(); session.headers.update({"User-Agent":USER_AGENT,"Accept-Language":"zh-TW,zh;q=0.9,en;q=0.7"})
+    snapshot_path = out / "source-snapshot.json"
     rows, diagnostics, source_url=fetch_candidate_rows(session)
+    if not rows and snapshot_path.exists():
+        cached = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        rows = cached.get("rows") or []
+        source_url = cached.get("source_url") or "cached-source-snapshot"
+        diagnostics.append({"fallback": "source-snapshot.json", "rows": len(rows)})
     if rows:
+        out.mkdir(parents=True,exist_ok=True)
+        snapshot_path.write_text(json.dumps({
+            "task_id": TASK_ID,
+            "captured_at": now_utc(),
+            "source_url": source_url,
+            "row_count": len(rows),
+            "rows": rows,
+        }, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
         sample = rows[0]
         print(json.dumps({
             "source_probe": source_url,
@@ -740,7 +831,7 @@ def main():
     if not rows:
         out.mkdir(parents=True,exist_ok=True)
         (out/"source-diagnostics.json").write_text(json.dumps(diagnostics,ensure_ascii=False,indent=2),encoding="utf-8")
-        raise RuntimeError("無法從宜蘭縣道路挖掘公開系統或 ODPortal 公開快照取得可解析的案件資料；已輸出 source-diagnostics.json，不以假資料替代。")
+        raise RuntimeError("無法從宜蘭縣道路挖掘公開系統、ODPortal resourcedata 或既有 source-snapshot.json 取得可解析案件；不以外縣市或假資料替代。")
     events, quality=prepare_events(rows,source_url)
     try:
         roads=fetch_osm_roads(session)
