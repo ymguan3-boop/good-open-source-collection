@@ -7,7 +7,7 @@
   "goal": "以宜蘭縣為範圍，盤點學校、醫療機構、消防分隊與政府機關位置，依官方地質敏感區、官方近五年淹水災點與115年度土石流影響範圍，篩選相交或300公尺內的設施，列出單一及複合災害暴露清單。",
   "confirmed_spec": {
     "geographic_scope": "宜蘭縣全縣，依內政部國土測繪中心官方縣市界線篩選",
-    "time_range": "近五年淹水災點資料集；該資料集頁面註記2023年產製，實際涵蓋年度以下載檔 year 欄位為準；另採115年度土石流影響範圍及現行官方地質敏感區圖資",
+    "time_range": "國科會官方近五年淹水災點資料檔實際年份為2021–2025（宜蘭子集2023年0筆；資料集頁面仍註記2023年產製）；115年度土石流影響範圍；現行官方地質敏感區圖資",
     "target_features": [
       "學校",
       "醫療機構",
@@ -55,13 +55,15 @@
       "geology_dataset": "https://data.gov.tw/dataset/27744",
       "osm_overpass": "https://overpass-api.de/api/interpreter",
       "county_boundary_township_dataset": "https://data.gov.tw/dataset/7441",
-      "derived_scope_cache": "https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-county-scope.geojson"
+      "derived_scope_cache": "https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-county-scope.geojson",
+      "official_school_cache": "https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-official-schools.geojson",
+      "official_flood_cache": "https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-flood-points-2021-2025.csv"
     }
   },
   "performance_policy_version": 5,
   "execution_metadata": {
-    "rerun_revision": 6,
-    "reason": "加入unar作為RAR解壓縮優先備援，避免Ubuntu p7zip處理G0003時SIGSEGV",
-    "confirmed_at": "2026-09-25T12:10:00+08:00"
+    "rerun_revision": 7,
+    "reason": "校正衍生縣界CRS，加入可追溯的NLSC校點與國科會淹水災點快取，修正實際資料年度",
+    "confirmed_at": "2026-09-25T20:20:00+08:00"
   }
 }
