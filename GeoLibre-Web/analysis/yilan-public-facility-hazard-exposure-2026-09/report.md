@@ -1,6 +1,6 @@
 # 宜蘭縣公共設施與災害圖資交會分析：資料、方法與成果
 
-產製時間：2026-09-25T14:26:37+00:00（UTC）。這份報告供初步查核排序，不代表法定危險認定或建築安全鑑定。
+產製時間：2026-09-25T14:30:24+00:00（UTC）。這份報告供初步查核排序，不代表法定危險認定或建築安全鑑定。
 
 ## 先看結果
 
@@ -87,10 +87,10 @@
 
 ## 替代資料與使用界線
 
-- 官方 NLSC 縣市界線下載或解析失敗：403 Client Error: Forbidden for url: https://www.tgos.tw/tgos/VirtualDir/Product/1cd4f4c9-6b01-4cf9-bf6c-23a73aa17d24/%E7%9B%B4%E8%BD%84%E5%B8%82%E3%80%81%E7%B8%A3%28%E5%B8%82%29%E7%95%8C%E7%B7%9A1140318.zip
-- 使用已驗證的宜蘭縣範圍快取：由官方 NLSC 鄉鎮市區界線聯集並以約100公尺容差簡化
-- NLSC 學校範圍圖即時下載或解析失敗，使用同版官方校地衍生點位快取：403 Client Error: Forbidden for url: https://www.tgos.tw/tgos/VirtualDir/Product/5f346c6b-edde-4fe7-8685-5585c0fb7852/%E5%90%84%E7%B4%9A%E5%AD%B8%E6%A0%A1%E7%AF%84%E5%9C%8D%E5%9C%96_121_1150409.zip
-- 國科會淹水災點即時下載失敗，使用2026-09-25取得的同版官方CSV宜蘭子集快取：HTTPSConnectionPool(host='mas.nstc.gov.tw', port=443): Max retries exceeded with url: /OPENDATA/GetFile?fileodr=1&format=csv&serialno=455 (Caused by SSLError(SSLError(1, '[SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] sslv3 alert handshake failure (_ssl.c:1010)')))
+- 縣市界線原始下載網址這次拒絕存取（HTTP 403）；本次改用已核對的國土測繪中心鄉鎮市區界線衍生縣界。
+- 上述縣界快取是把宜蘭縣各鄉鎮市區合併，並以約 100 公尺容差簡化，供縣級篩選與地圖顯示；不適合地籍級精度判定。
+- 學校校地原始下載網址這次拒絕存取（HTTP 403）；本次使用先前由同版官方校地圖產生、已保存的宜蘭校地代表點。
+- 歷史淹水資料即時下載發生連線加密協商錯誤；本次使用 2026-09-25 取得的同版官方 CSV 宜蘭子集快取。
 - 原資料集網頁的標示年度，不一定等於本次下載檔的每筆紀錄年度；本報告以實際欄位統計為準。
 - 點位交會只是初篩。校地代表點不等於校舍位置；熱點不等於正式機關地址；歷史淹水點不等於淹水潛勢圖。
 - 地質敏感區的『地下水補注』類型不等於山崩危險。需要作安全、工程或法定判定時，仍須調閱最新公告圖資並實地確認。
