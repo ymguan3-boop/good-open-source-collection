@@ -1,4 +1,4 @@
-name: Probe ODPortal snapshot API
+name: Probe ODPortal resource API
 
 on:
   push:
@@ -11,35 +11,47 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Probe ODPortal frontend API
+      - name: Probe resource endpoints
         shell: bash
         run: |
           python - <<'PY'
-          import requests,re,html,json
-          from urllib.parse import urljoin
+          import requests,re,json
           s=requests.Session()
           s.headers["User-Agent"]="Mozilla/5.0"
-          page="https://odportal.tw/dataset/DSNTMGUM"
-          r=s.get(page,timeout=30)
-          print("PAGE",r.status_code,len(r.content),r.url)
-          t=html.unescape(r.text).replace("\\/","/")
-          scripts=[urljoin(r.url,x) for x in re.findall(r'<script[^>]+src=["\']([^"\']+)["\']',t,re.I)]
-          print("SCRIPTS",len(scripts))
-          for u in scripts:
+          js="https://cdn.odportal.tw/_next/static/chunks/pages/dataset/%5Bid%5D-ab2baa68733e5d60.js"
+          r=s.get(js,timeout=30)
+          print("JS",r.status_code,len(r.content))
+          txt=r.text
+          for needle in ("/api/v1/resource/","versions.map","B.versions","href:"):
+              start=0
+              while True:
+                  i=txt.find(needle,start)
+                  if i<0: break
+                  print("\nCTX",needle,txt[max(0,i-1200):i+2200])
+                  start=i+len(needle)
+          resource_id="61b504bb6e97860024674b09"
+          dataset_id="5f6c5153fe9a64664bbafc40"
+          nano="DSNTMGUM"
+          version_id="68bcd29f8b91b49ca3d0c296"
+          version="11.0.0"
+          base="https://odportal.tw"
+          candidates=[
+            f"{base}/api/v1/resource/{resource_id}",
+            f"{base}/api/v1/resource/{resource_id}?version={version}",
+            f"{base}/api/v1/resource/{resource_id}?versionId={version_id}",
+            f"{base}/api/v1/resource/{resource_id}/{version}",
+            f"{base}/api/v1/resource/{resource_id}/{version_id}",
+            f"{base}/api/v1/dataset/{nano}",
+            f"{base}/api/v1/dataset/{dataset_id}",
+            f"{base}/api/v1/dataset/{nano}/version/{version}",
+            f"{base}/api/v1/dataset/{dataset_id}/version/{version_id}",
+            f"{base}/api/v1/version/{version_id}",
+          ]
+          for u in candidates:
               try:
-                  rr=s.get(u,timeout=30)
-                  txt=rr.text
-                  hits=[]
-                  for pat in ("version","versions","snapshot","collectionId","collectionName","dataset/","api/","_id"):
-                      if pat in txt:
-                          hits.append(pat)
-                  if hits:
-                      print("\nSCRIPT",u,rr.status_code,len(rr.content),"HITS",hits)
-                      # Print compact contexts only around likely API route strings.
-                      for m in re.finditer(r'[^"\']{0,120}(?:api|version|snapshot|collectionId)[^"\']{0,220}',txt,re.I):
-                          seg=m.group(0)
-                          if any(k in seg.lower() for k in ("fetch(","axios","/api/","version","snapshot","collectionid")):
-                              print("CTX",seg[:500])
+                  rr=s.get(u,timeout=30,allow_redirects=False)
+                  body=rr.text[:1800].replace("\n"," ")
+                  print("\nTEST",rr.status_code,u,"CT",rr.headers.get("content-type"),"LOC",rr.headers.get("location"),"BODY",body)
               except Exception as e:
-                  print("SCRIPT_ERR",u,repr(e))
+                  print("ERR",u,repr(e))
           PY
