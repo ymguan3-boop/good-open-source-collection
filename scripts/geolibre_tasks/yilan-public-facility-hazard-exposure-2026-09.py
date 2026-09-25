@@ -178,16 +178,17 @@ def scope_from_official_boundary(session: requests.Session, temp: Path, substitu
             features = payload.get("features", [])
             if features and features[0].get("geometry"):
                 substitutions.append("使用已驗證的宜蘭縣範圍快取：由官方 NLSC 鄉鎮市區界線聯集並以約100公尺容差簡化")
-                return shape(features[0]["geometry"]), {
+                cached_scope = gpd.GeoSeries([shape(features[0]["geometry"])], crs=WEB_CRS).to_crs(ANALYSIS_CRS).iloc[0]
+                return cached_scope, {
                     "name": "宜蘭縣縣界（NLSC鄉鎮市區界線衍生快取）",
                     "provider": "內政部國土測繪中心（衍生）",
                     "dataset_url": "https://data.gov.tw/dataset/7441",
                     "download_url": "https://github.com/ymguan3-boop/good-open-source-collection/blob/main/GeoLibre-Web/analysis-inputs/yilan-county-scope.geojson",
                     "retrieved_at": now_utc(),
-                    "source_crs": "EPSG:3826",
+                    "source_crs": WEB_CRS,
                     "analysis_crs": ANALYSIS_CRS,
                     "role": "derived_scope_boundary_cache",
-                    "limitation": "由官方鄉鎮市區界線聯集並以約100公尺容差簡化，僅供本次縣級範圍篩選；不取代官方縣市界線原始檔。",
+                    "limitation": "原始 NLSC 鄉鎮市區界線為 EPSG:3826；快取為 EPSG:4326，由宜蘭縣各鄉鎮市區聯集並以約100公尺容差簡化，僅供本次縣級範圍篩選。",
                 }
         try:
             response = session.get(
