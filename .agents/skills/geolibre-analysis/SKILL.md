@@ -169,7 +169,11 @@ A topic choice or intermediate “可以” is not sufficient unless it clearly 
 
 ## 7. Execution after confirmation
 
-After `confirmed=true`, load `references/github-mcp-protocol.md`.
+After `confirmed=true`, load both:
+- `references/github-mcp-protocol.md`
+- `references/performance-and-publishing.md`
+
+Apply the performance rules while generating the task script; do not treat optimization as an afterthought.
 
 The execution target comes from `geolibre_profile`, never from a hard-coded repository.
 
@@ -183,14 +187,16 @@ Reuse existing project data and code when safe. Never overwrite unrelated analys
 
 Under `<analysis_root>/<task_id>/`, aim to produce. Do not derive `analysis_root` from `source_path` when the profile explicitly provides a separate `web_root` or `analysis_root`:
 
-- `map.geolibre.json`
-- `result.geojson`
+- `map.geolibre.json` — lightweight default viewing project
+- `overview.geojson` when the result crosses the large-result threshold
+- `result.geojson` — authoritative full vector result
 - `result.csv`
 - `result.xlsx` when tabular output is meaningful
 - `report.md`
 - `summary.json`
+- `performance.json` — generated/updated by the performance optimizer
 
-The GeoLibre map must open with the result layer visible and a useful initial extent.
+The GeoLibre map must open with a useful initial extent and a high-value overview/result layer visible. For large results, the default project must not embed the entire analytical dataset.
 
 The result table should include readable names, administrative area where available, coordinates/geometry identifiers, decision values, and a clear reason field.
 
@@ -204,8 +210,10 @@ Before saying the analysis is complete:
 2. Verify the GitHub Action completed or expected generated files appeared.
 3. Inspect `summary.json` and `report.md`.
 4. Confirm `map.geolibre.json` contains/references the intended result.
-5. Verify the saved GitHub Pages URL still loads when Pages is part of the deliverable.
-6. Report data limitations/substitutions.
+5. Inspect `performance.json`; require the hard project-size, inline-layer, and initial-load budgets to pass.
+6. For large results, verify the default map uses `overview.geojson` or another deliberately lightweight overview rather than the complete analytical dataset.
+7. Verify the saved GitHub Pages URL still loads when Pages is part of the deliverable.
+8. Report data limitations/substitutions and any display-only simplification.
 
 If execution fails, inspect logs, make the smallest necessary fix, and retry without weakening confirmed criteria.
 
