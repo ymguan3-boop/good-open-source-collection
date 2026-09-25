@@ -1,4 +1,4 @@
-name: Probe ODPortal Yilan download
+name: Probe ODPortal snapshot API
 
 on:
   push:
@@ -11,40 +11,35 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Probe ODPortal page
+      - name: Probe ODPortal frontend API
         shell: bash
         run: |
           python - <<'PY'
-          import requests, re, html, json
-          from urllib.parse import urljoin, urlparse
-          urls = [
-              "https://odportal.tw/dataset/DSNTMGUM",
-              "https://cdn.odportal.tw/dataset/DSNTMGUM",
-              "https://cdn.odportal.tw/dataset/DtFMeuTB",
-              "https://mntengmgt.e-land.gov.tw/YilanDigweb/Download/XML/dig.xml",
-          ]
-          s = requests.Session()
-          s.headers["User-Agent"] = "Mozilla/5.0"
-          for u in urls:
+          import requests,re,html,json
+          from urllib.parse import urljoin
+          s=requests.Session()
+          s.headers["User-Agent"]="Mozilla/5.0"
+          page="https://odportal.tw/dataset/DSNTMGUM"
+          r=s.get(page,timeout=30)
+          print("PAGE",r.status_code,len(r.content),r.url)
+          t=html.unescape(r.text).replace("\\/","/")
+          scripts=[urljoin(r.url,x) for x in re.findall(r'<script[^>]+src=["\']([^"\']+)["\']',t,re.I)]
+          print("SCRIPTS",len(scripts))
+          for u in scripts:
               try:
-                  r = s.get(u, timeout=30)
-                  print("\n=== PAGE ===", u, r.status_code, r.url, r.headers.get("content-type"), len(r.content))
-                  text = html.unescape(r.text).replace("\\/","/")
-                  if "xml" in (r.headers.get("content-type") or "").lower() or text.lstrip().startswith("<?xml"):
-                      print("XML_HEAD", text[:6000].replace("\n"," ")[:6000])
-                  hrefs = set()
-                  for h in re.findall("href\\\\s*=\\\\s*[\\\"']([^\\\"']+)[\\\"']", text, flags=re.I):
-                      hrefs.add(urljoin(r.url,h))
-                  for h in re.findall("https?://[^\\\"'<>\\\\s]+", text):
-                      hrefs.add(h.rstrip(");,"))
-                  for h in sorted(hrefs):
-                      low=h.lower()
-                      if any(k in low for k in ("dsntmgum","dtfmeutb","download","snapshot","resource","xml","api","dataset")):
-                          print("LINK", h[:1500])
-                  for pat in ("2025/09/07","2025-09-07","DSNTMGUM","download","snapshot"):
-                      idx=text.find(pat)
-                      if idx>=0:
-                          print("CONTEXT",pat, text[max(0,idx-1000):idx+2500].replace("\n"," ")[:4000])
+                  rr=s.get(u,timeout=30)
+                  txt=rr.text
+                  hits=[]
+                  for pat in ("version","versions","snapshot","collectionId","collectionName","dataset/","api/","_id"):
+                      if pat in txt:
+                          hits.append(pat)
+                  if hits:
+                      print("\nSCRIPT",u,rr.status_code,len(rr.content),"HITS",hits)
+                      # Print compact contexts only around likely API route strings.
+                      for m in re.finditer(r'[^"\']{0,120}(?:api|version|snapshot|collectionId)[^"\']{0,220}',txt,re.I):
+                          seg=m.group(0)
+                          if any(k in seg.lower() for k in ("fetch(","axios","/api/","version","snapshot","collectionid")):
+                              print("CTX",seg[:500])
               except Exception as e:
-                  print("ERROR",u,repr(e))
+                  print("SCRIPT_ERR",u,repr(e))
           PY
