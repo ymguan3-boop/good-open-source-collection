@@ -50,6 +50,8 @@ Only use the hand-written JSON fallback after an actual bootstrap attempt fails 
 
 For Codex/agent environments, installation is part of the skill's job when permitted; do not ask the user to install `geolibre[mcp]` manually unless the environment blocks installation or requires user-owned credentials/approval.
 
+**Self-healing continuation rule:** If this skill is repaired, updated, or extended while fulfilling a user's GeoLibre request, the repair is **not** the end of the task. Immediately resume the user's original project from the failed/interrupted step and continue through project creation, verification, export, and delivery as far as the active environment permits. Do not stop after reporting that the skill was fixed.
+
 ## Setup (MCP)
 
 ```bash
