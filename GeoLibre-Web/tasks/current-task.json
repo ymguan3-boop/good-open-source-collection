@@ -60,8 +60,8 @@
   },
   "performance_policy_version": 5,
   "execution_metadata": {
-    "rerun_revision": 5,
-    "reason": "官方地質敏感區RAR解壓縮改用unrar-free優先，7z作備援",
-    "confirmed_at": "2026-09-25T12:00:00+08:00"
+    "rerun_revision": 6,
+    "reason": "加入unar作為RAR解壓縮優先備援，避免Ubuntu p7zip處理G0003時SIGSEGV",
+    "confirmed_at": "2026-09-25T12:10:00+08:00"
   }
 }
