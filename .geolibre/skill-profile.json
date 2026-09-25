@@ -21,5 +21,14 @@
     "Existing installation discovered during skill onboarding test.",
     "Source is under GeoLibre/; published static web is under repository-root GeoLibre-Web/.",
     "GeoLibre-Web/README.md documents the deployed Pages URL and a 2026-09-24 sync from opengeos/GeoLibre."
-  ]
+  ],
+  "performance": {
+    "project_target_bytes": 2097152,
+    "project_hard_bytes": 5242880,
+    "inline_layer_max_bytes": 262144,
+    "initial_load_soft_bytes": 6291456,
+    "initial_load_hard_bytes": 12582912,
+    "large_result_feature_threshold": 2000,
+    "large_result_bytes_threshold": 5242880
+  }
 }
