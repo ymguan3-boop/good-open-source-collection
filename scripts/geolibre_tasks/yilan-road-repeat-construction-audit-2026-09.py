@@ -49,6 +49,7 @@ TITLE_KEYS = ("案件名稱","工程名稱","施工名稱","計畫名稱","CONST
 LOC_KEYS = ("施工地點","挖掘地點","施工位置","挖掘位置","LOCATION","digsite","road","地址","地點","路段")
 UNIT_KEYS = ("申請單位","施工單位","管線單位","主辦單位","承辦單位","UN_NA","constructionunit","機關","單位")
 PURPOSE_KEYS = ("施工原因","挖掘原因","用途","PURP","工程類別","案件類別","類別","目的")
+ROAD_KEYS = ("DG_ROAD","DG_ROAD2","道路名稱","road","路名")
 
 
 def now_utc():
@@ -501,6 +502,12 @@ def canonicalize_rows(rows, source_url):
         loc = pick(row, LOC_KEYS)
         unit = pick(row, UNIT_KEYS)
         purpose = pick(row, PURPOSE_KEYS)
+        road_parts = []
+        for rk in ("DG_ROAD","DG_ROAD2"):
+            rv = str(row.get(rk) or "").strip()
+            if rv and rv not in road_parts:
+                road_parts.append(rv)
+        road_name = "、".join(road_parts) or pick(row, ROAD_KEYS) or loc
         event_id = pick(row, ID_KEYS) or f"row-{idx+1}"
         # gather all plausible dates; use earliest as start and latest as end,
         # while prioritizing explicit start/end labels.
@@ -524,7 +531,7 @@ def canonicalize_rows(rows, source_url):
         g, crs, geom_method = geometry_from_row(row)
         text = " ".join([title,loc,unit,purpose," ".join(str(v) for v in row.values())[:2000]])
         out.append({
-            "event_id":str(event_id), "project_name":title, "location":loc, "unit":unit,
+            "event_id":str(event_id), "project_name":title, "location":loc, "road_name":road_name, "unit":unit,
             "purpose":purpose, "event_type":classify_event(text), "start_date":start,
             "end_date":end, "geometry":g, "source_crs":crs, "geometry_method":geom_method,
             "source_url":source_url, "raw_fields":json.dumps(row,ensure_ascii=False)[:12000],
@@ -746,7 +753,7 @@ def write_outputs(out, events, roads, result, source_url, diagnostics, quality):
         "geographic_scope":COUNTY,"time_range":{"requested_start":str(START_DATE.date()),"requested_end":str(END_DATE.date())},
         "spatial_rules":["施工事件幾何在EPSG:3826中距離不超過50公尺即建立重複施工關聯","分析期間內同一空間群聚至少2件施工即列入","後案開工距前案完工0～180天另標示短期重複施工"],
         "thresholds":{"distance_m":BUFFER_M,"repeat_min":REPEAT_MIN,"short_repeat_days":SHORT_REPEAT_DAYS},
-        "input_layers":["道路挖掘案件","道路養護工程（依案件文字分類）","管線工程（依案件文字分類）","道路中心線"],
+        "input_layers":["道路挖掘案件","道路養護工程（依案件文字分類）","管線工程（依案件文字分類）","宜蘭公開案件施工多邊形／中心點","道路中心線（可選輔助）"],
         "result_count":int(len(result)),"high_risk_count":high_count,"short_repeat_hotspots":short_count,
         "data_quality":quality,"data_sources":sources,
         "limitations":[
@@ -783,7 +790,7 @@ def write_outputs(out, events, roads, result, source_url, diagnostics, quality):
         "# 宜蘭縣道路工程重複施工與資源浪費風險分析","",
         f"- 任務：`{TASK_ID}`",f"- 分析期間：{START_DATE.date()}～{END_DATE.date()}",f"- 空間門檻：{BUFFER_M:.0f} 公尺",f"- 重複施工：期間內至少 {REPEAT_MIN} 件",f"- 短期再次施工：前案完工後 {SHORT_REPEAT_DAYS} 天內",f"- 可分析案件：{stats['usable_count']} 件",f"- 重複施工熱點：{stats['result_count']} 處",f"- 含180天短期再次施工熱點：{stats['short_repeat_hotspots']} 處","",
         "## 方法",
-        "將公開施工案件轉為 TWD97 / TM2 121 分帶（EPSG:3826），以案件幾何間 50 公尺距離建立關聯群組；分析期間內同一群組至少 2 件即列入。若後案開工日距前案完工日 0～180 天，另標示為短期重複施工。道路中心線以 OSM / Overpass 補充道路名稱與位置脈絡。",
+        "直接使用宜蘭公開道路挖掘 XML 的 GML 施工多邊形／中心點（EPSG:3826），以案件幾何間 50 公尺距離建立關聯群組；分析期間內同一群組至少 2 件即列入。若後案開工日距前案完工日 0～180 天，另標示為短期重複施工。道路名稱優先採官方 DG_ROAD / DG_ROAD2 欄位；OSM 僅為可選輔助，不影響核心判定。",
         "",
         "## 分類",
         "公開案件名稱、用途、申請／施工單位文字含自來水、電力、電信、瓦斯、污／雨水、下水道等關鍵詞時歸為「管線工程」；含路面改善、刨鋪、銑鋪、瀝青、養護、修補等關鍵詞時歸為「道路養護工程」；其餘保留為「道路挖掘案件」。此分類用於查核篩選，正式認定須回查原始案件。",
@@ -853,17 +860,24 @@ def main():
         (out/"source-diagnostics.json").write_text(json.dumps(diagnostics,ensure_ascii=False,indent=2),encoding="utf-8")
         raise RuntimeError("無法從宜蘭縣道路挖掘公開系統、ODPortal resourcedata 或既有 source-snapshot.json 取得可解析案件；不以外縣市或假資料替代。")
     events, quality=prepare_events(rows,source_url)
-    try:
-        roads=fetch_osm_roads(session)
-        events=attach_roads(events,roads)
-    except Exception as exc:
-        print("WARNING: 道路中心線補充資料取得失敗，核心50公尺分析仍以施工案件幾何執行：", exc)
-        roads=gpd.GeoDataFrame(columns=["road_id","road_name","highway","geometry"], geometry="geometry", crs=ANALYSIS_CRS)
-        events=events.copy()
-        events["road_id"]=""
+
+    # Core analysis uses the official excavation polygons/center points and the
+    # official DG_ROAD / DG_ROAD2 fields. OSM is optional context only and is
+    # disabled by default so a third-party timeout can never block the audit.
+    roads=gpd.GeoDataFrame(columns=["road_id","road_name","highway","geometry"], geometry="geometry", crs=ANALYSIS_CRS)
+    events=events.copy()
+    events["road_id"]=""
+    events["highway"]=""
+    events["road_distance_m"]=np.nan
+    if "road_name" not in events.columns:
         events["road_name"]=events["location"].fillna("")
-        events["highway"]=""
-        events["road_distance_m"]=np.nan
+    if os.environ.get("GEOLIBRE_ENABLE_OSM_CONTEXT","0") == "1":
+        try:
+            roads=fetch_osm_roads(session)
+            events=attach_roads(events,roads)
+        except Exception as exc:
+            print("WARNING: OSM道路中心線輔助取得失敗；不影響官方施工幾何的核心分析：", exc)
+
     result=build_clusters(events)
     write_outputs(out,events,roads,result,source_url,diagnostics,quality)
     print(json.dumps({"task_id":TASK_ID,"source_url":source_url,**quality,"result_count":len(result)},ensure_ascii=False))
