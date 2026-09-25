@@ -79,6 +79,10 @@ Generated Python must:
 8. Never modify unrelated result folders.
 9. Fail loudly if a required criterion cannot be evaluated.
 10. Record allowed substitutions in `report.md` + `summary.json`.
+11. Follow `performance-and-publishing.md`.
+12. If the full result exceeds 2,000 features or 5 MiB, create a lightweight `overview.geojson` for the default map and keep `result.geojson` as the authoritative full output.
+13. Prefer URL-backed GeoJSON in `source.data` for non-trivial display layers; do not duplicate the same FeatureCollection in top-level `geojson`.
+14. Keep no more than 3 thematic layers visible by default unless the user explicitly asked otherwise.
 
 For Taiwan meter-based analysis, prefer an appropriate local projected CRS such as TWD97 / TM2 (e.g. EPSG:3826 for Taiwan zone 121) when applicable, then export GeoLibre-facing geometry as EPSG:4326.
 
@@ -97,7 +101,7 @@ Do not introduce paid services or secret API requirements without explicit appro
 1. Revalidate the bound repository and canonical profile.
 2. Fetch existing task/workflow files needed for safe integration.
 3. Create/update `<task_script_root>/<task_id>.py`.
-4. Ensure profile-aware `.github/workflows/geolibre-analysis.yml` exists.
+4. Ensure `.geolibre/tools/optimize-project.py` exists from the skill asset and ensure the profile-aware `.github/workflows/geolibre-analysis.yml` calls it after analysis.
 5. Only after code is ready, create/update the resolved `current-task.json`.
 6. Let the manifest commit trigger the Action.
 7. Inspect Action result/logs when available.
@@ -110,16 +114,21 @@ Do not update the manifest first.
 
 Require all applicable outputs:
 - `map.geolibre.json`
+- `overview.geojson` when large-result rules apply
 - `result.geojson`
 - `result.csv`
 - `result.xlsx` when tabular
 - `report.md`
 - `summary.json`
+- `performance.json`
 
 Inspect:
 - `summary.json` for result count/source notes,
 - `report.md` for criteria/sources/limitations/substitutions,
-- map project for intended visible result layers.
+- map project for intended visible result layers,
+- `performance.json` for project bytes, inline-layer bytes, and initial-load budget.
+
+If `mobile_hard_budget_ok` is false, do not call the task complete. Regenerate a smaller default overview map without changing the confirmed analytical criteria.
 
 Final response should include:
 - task name,
