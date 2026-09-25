@@ -712,6 +712,7 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
     }
     sensitive_school_features = [feature for feature in features if feature["properties"]["facility_id"] in sensitive_school_ids]
     sensitive_school_rows = [row for row in csv_rows if row["facility_id"] in sensitive_school_ids]
+    sensitive_school_institutions = {re.sub(r"(?<=國民小學)1$", "", feature["properties"]["facility_name"]) for feature in sensitive_school_features}
     (out / "sensitive-schools.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": sensitive_school_features}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     pd.DataFrame(sensitive_school_rows, columns=list(csv_rows[0]) if csv_rows else []).to_csv(out / "sensitive-schools.csv", index=False, encoding="utf-8-sig")
 
@@ -734,6 +735,7 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
         "input_count_by_facility_type": input_count_by_type,
         "result_count": stats["result_count"],
         "schools_inside_geological_sensitive_area_count": len(sensitive_school_ids),
+        "unique_school_institutions_inside_geological_sensitive_area_count": len(sensitive_school_institutions),
         "unique_facility_count": stats["result_count"],
         "high_risk_count": stats["high_risk_count"],
         "screening_priority_definition": "high_risk_count 僅代表同一設施命中兩種以上災害群組，不是官方風險等級。",
@@ -752,7 +754,7 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
 
     result_df = pd.DataFrame(csv_rows)
-    stats_rows = [{"統計項目": "輸入公共設施數", "數值": input_facility_count}, {"統計項目": "命中設施數", "數值": stats["result_count"]}, {"統計項目": "敏感區內學校點數", "數值": len(sensitive_school_ids)}, {"統計項目": "複合災害暴露設施數", "數值": stats["high_risk_count"]}]
+    stats_rows = [{"統計項目": "輸入公共設施數", "數值": input_facility_count}, {"統計項目": "命中設施數", "數值": stats["result_count"]}, {"統計項目": "敏感區內學校點數", "數值": len(sensitive_school_ids)}, {"統計項目": "敏感區內去重學校數", "數值": len(sensitive_school_institutions)}, {"統計項目": "複合災害暴露設施數", "數值": stats["high_risk_count"]}]
     stats_rows += [{"統計項目": f"輸入設施類型：{key}", "數值": value} for key, value in input_count_by_type.items()]
     stats_rows += [{"統計項目": f"設施類型：{key}", "數值": value} for key, value in stats["result_count_by_facility_type"].items()]
     stats_rows += [{"統計項目": f"災害群組：{key}", "數值": value} for key, value in stats["result_count_by_hazard_group"].items()]
@@ -783,9 +785,9 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
         "basemapStyleUrl": "https://tiles.openfreemap.org/styles/liberty",
         "basemapVisible": True,
         "layers": [
-            {"id": "gsmma-sensitive-landslide", "name": "山崩與地滑地質敏感區（官方 WMS）", "type": "image", "source": {"type": "image", "url": "https://geomap.gsmma.gov.tw/mapguide/mapagent/mapagent.fcgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.0.0&LAYERS=WMS%2FSensitive_area_landslide&STYLES=&FORMAT=image%2Fpng&TRANSPARENT=TRUE&SRS=EPSG%3A4326&BBOX=117%2C21%2C123%2C27&WIDTH=2048&HEIGHT=2048", "coordinates": [[117, 27], [123, 27], [123, 21], [117, 21]]}, "visible": True, "opacity": 0.5, "metadata": {"dataProvider": "經濟部地質調查及礦業管理中心", "officialLayer": "WMS/Sensitive_area_landslide", "accessMode": "DISPLAY_ONLY", "note": "顯示 WMS 與分析用公告向量資料不一定同版；精確命中以分析用向量檔為準。"}},
+            {"id": "gsmma-sensitive-groundwater", "name": "地下水補注地質敏感區（官方 WMS）", "type": "image", "source": {"type": "image", "url": "https://geomap.gsmma.gov.tw/mapguide/mapagent/mapagent.fcgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.0.0&LAYERS=WMS%2FSensitive_area_groundwater&STYLES=&FORMAT=image%2Fpng&TRANSPARENT=TRUE&SRS=EPSG%3A4326&BBOX=117%2C21%2C123%2C27&WIDTH=2048&HEIGHT=2048", "coordinates": [[117, 27], [123, 27], [123, 21], [117, 21]]}, "visible": True, "opacity": 0.5, "metadata": {"dataProvider": "經濟部地質調查及礦業管理中心", "officialLayer": "WMS/Sensitive_area_groundwater", "accessMode": "DISPLAY_ONLY", "note": "G0003 學校點位對應地下水補注敏感區；WMS 為顯示用途，精確命中仍以公告向量檔為準。"}},
             {"id": "yilan-public-facility-exposure", "name": "公共設施複合災害暴露查核結果", "type": "geojson", "source": {"type": "geojson", "data": result_url}, "visible": True, "opacity": 1, "style": {"circleColor": "#dc2626", "circleRadius": 6, "circleStrokeColor": "#ffffff", "circleStrokeWidth": 1}, "metadata": {"resultCount": stats["result_count"], "source": "result.geojson", "analysisRole": "SCREENING_REFERENCE", "popupFields": ["facility_name", "facility_type", "facility_source", "matched_hazard_groups", "matched_hazard_details", "screening_priority", "analysis_predicate"]}},
-            {"id": "yilan-sensitive-schools", "name": "位於地質敏感區內的學校（點位）", "type": "geojson", "source": {"type": "geojson", "data": sensitive_school_url}, "visible": True, "opacity": 1, "style": {"circleColor": "#facc15", "circleRadius": 8, "circleStrokeColor": "#111827", "circleStrokeWidth": 2}, "metadata": {"resultCount": len(sensitive_school_ids), "listUrl": f"{PAGES_ROOT}analysis/{TASK_ID}/sensitive-schools.csv", "predicate": "school representative point intersects official geological-sensitive-area polygon"}},
+            {"id": "yilan-sensitive-schools", "name": "位於地質敏感區內的學校（點位）", "type": "geojson", "source": {"type": "geojson", "data": sensitive_school_url}, "visible": True, "opacity": 1, "style": {"circleColor": "#facc15", "circleRadius": 8, "circleStrokeColor": "#111827", "circleStrokeWidth": 2}, "metadata": {"resultCount": len(sensitive_school_ids), "uniqueInstitutions": len(sensitive_school_institutions), "listUrl": f"{PAGES_ROOT}analysis/{TASK_ID}/sensitive-schools.csv", "predicate": "school representative point intersects official geological-sensitive-area polygon"}},
             {"id": "yilan-county-boundary", "name": "宜蘭縣行政界", "type": "geojson", "source": {"type": "geojson", "data": scope_url}, "visible": True, "opacity": 0.45, "style": {"fillColor": "#64748b", "fillOpacity": 0.05, "strokeColor": "#334155", "strokeWidth": 2}, "metadata": {"source": URLS["county_boundary_dataset"], "role": "context"}},
         ],
         "selectedLayerId": "yilan-public-facility-exposure",
@@ -803,7 +805,7 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
         f"- 輸入公共設施數：{input_facility_count}",
         f"- 各類輸入數：{json.dumps(input_count_by_type, ensure_ascii=False)}",
         f"- 命中設施數：{stats['result_count']}",
-        f"- 代表點位落在地質敏感區內的學校：{len(sensitive_school_ids)} 所（不含僅在 300 公尺鄰近範圍者）",
+        f"- 代表點位落在地質敏感區內的學校：{len(sensitive_school_ids)} 個點位、去重後 {len(sensitive_school_institutions)} 所學校（不含僅在 300 公尺鄰近範圍者）",
         f"- 複合災害暴露（兩種以上群組）數：{stats['high_risk_count']}（不是官方風險等級）",
         "",
         "## 分析方法",
@@ -831,6 +833,7 @@ def write_outputs(out: Path, scope: Any, result: gpd.GeoDataFrame, stats: dict[s
         "- 淹水資料集網頁仍註記2023年產製；本次取得的官方檔案 year 欄位實際涵蓋2021–2025，宜蘭子集2023年為0筆，2026年未納入。",
         "- NLSC 醫療設施 API 實測查詢半徑約限 5 公里，本次以 7 公里網格、5 公里半徑分格查詢去重；醫療類別只含醫院與衛生所，不代表完整診所名冊。",
         "- iTaiwan 點位僅定位設有熱點且名稱符合政府機關關鍵字的地點，部分為樓層／櫃臺，非正式機關駐地邊界或完整機關名冊。",
+        "- 本次直接落在地質敏感區內的學校點位均命中 G0003 宜蘭平原地下水補注地質敏感區，非山崩與地滑區；此地質類型不能直接當作人身災害危險分級。憲明國小在官方校地圖有兩筆相鄰圖徵（其中一筆校名尾綴1），故點位數與去重學校數不同。",
         "- 消防署 CSV 座標欄名含 TWD97TM121，但數值約 121／24；本次按經緯度解讀並轉換，應向資料提供者複核欄位定義。",
         "- 地質敏感區、淹水災點與土石流影響範圍均為規劃／防災參考資料，不能取代法定公告、現地調查、專業簽證或工程安全鑑定。",
         "",
