@@ -1,0 +1,82 @@
+{
+  "tested_at": "2026-09-25T16:29:15.930257+00:00",
+  "browser": "Playwright Chromium",
+  "mobile_definition": "Android 14 Pixel 7 user-agent emulation; 412x915 CSS viewport; touch enabled",
+  "project_url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/map.geolibre.json",
+  "expected_layer": "公共設施複合災害暴露查核結果",
+  "overall_pass": false,
+  "checks": {
+    "self_hosted": {
+      "desktop": {
+        "entry": "self_hosted",
+        "viewport": "desktop",
+        "width": 1440,
+        "height": 960,
+        "android_emulation": false,
+        "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-public-facility-hazard-exposure-2026-09%2Fmap.geolibre.json&loading=true",
+        "load_state": "ready",
+        "load_errors": "[]",
+        "canvas_visible": true,
+        "layer_listed": true,
+        "colored_pixel_ratio": 0.5785,
+        "page_errors": [],
+        "passed": false,
+        "title": "GeoLibre",
+        "screenshot": "viewer-qa/self_hosted-desktop.png"
+      },
+      "android": {
+        "entry": "self_hosted",
+        "viewport": "android",
+        "width": 412,
+        "height": 915,
+        "android_emulation": true,
+        "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-public-facility-hazard-exposure-2026-09%2Fmap.geolibre.json&loading=true",
+        "load_state": "ready",
+        "load_errors": "[]",
+        "canvas_visible": true,
+        "layer_listed": false,
+        "colored_pixel_ratio": 0.687,
+        "page_errors": [],
+        "passed": false,
+        "title": "GeoLibre",
+        "screenshot": "viewer-qa/self_hosted-android.png"
+      }
+    },
+    "official": {
+      "desktop": {
+        "entry": "official",
+        "viewport": "desktop",
+        "width": 1440,
+        "height": 960,
+        "android_emulation": false,
+        "url": "https://web.geolibre.app/?url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-public-facility-hazard-exposure-2026-09%2Fmap.geolibre.json&layout=viewer&locale=zh-TW&loading=true",
+        "load_state": "ready",
+        "load_errors": "[]",
+        "canvas_visible": true,
+        "layer_listed": true,
+        "colored_pixel_ratio": 0.6344,
+        "page_errors": [],
+        "passed": false,
+        "title": "GeoLibre",
+        "screenshot": "viewer-qa/official-desktop.png"
+      },
+      "android": {
+        "entry": "official",
+        "viewport": "android",
+        "width": 412,
+        "height": 915,
+        "android_emulation": true,
+        "url": "https://web.geolibre.app/?url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-public-facility-hazard-exposure-2026-09%2Fmap.geolibre.json&layout=viewer&locale=zh-TW&loading=true",
+        "load_state": "ready",
+        "load_errors": "[]",
+        "canvas_visible": true,
+        "layer_listed": true,
+        "colored_pixel_ratio": 0.5954,
+        "page_errors": [],
+        "passed": false,
+        "title": "GeoLibre",
+        "screenshot": "viewer-qa/official-android.png"
+      }
+    }
+  }
+}

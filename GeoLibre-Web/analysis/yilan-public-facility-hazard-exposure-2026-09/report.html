@@ -265,16 +265,16 @@
 <td>正式 Markdown 報告與適合瀏覽器閱讀的網頁版。</td>
 </tr>
 <tr>
-<td>viewer-qa/viewer-qa.json</td>
-<td>本次尚未產生瀏覽器驗收紀錄。</td>
+<td><a href="https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/viewer-qa.json">viewer-qa/viewer-qa.json</a></td>
+<td>雙入口、桌面與手機 viewport 的瀏覽器驗收紀錄。</td>
 </tr>
 <tr>
-<td>viewer-qa/*.png</td>
-<td>雙入口瀏覽器 QA 後產生；目前尚未產出。</td>
+<td><a href="https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/self_hosted-desktop.png">viewer-qa/self_hosted-desktop.png</a>、<a href="https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/self_hosted-android.png">viewer-qa/self_hosted-android.png</a>、<a href="https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/official-desktop.png">viewer-qa/official-desktop.png</a>、<a href="https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/official-android.png">viewer-qa/official-android.png</a></td>
+<td>自架與官方 GeoLibre 在桌面及 Android viewport 的實際瀏覽器畫面。</td>
 </tr>
 <tr>
-<td>map-overview.png</td>
-<td>瀏覽器 QA 完成後產生；目前尚未產出。</td>
+<td><a href="https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/map-overview.png">map-overview.png</a></td>
+<td>自架 GeoLibre 桌面版實際畫面截圖。</td>
 </tr>
 </tbody>
 </table>
@@ -319,7 +319,54 @@
 <h2>效能與發布驗證</h2>
 <p>GeoLibre 專案檔約 203339 bytes；專案、inline 圖層、可見圖層及手機初始載入硬性預算狀態：專案 True、inline True、手機 True。效能檔只說明大小預算，不代表瀏覽器已顯示圖層。</p>
 <h2>瀏覽器畫面驗證</h2>
-<p>目前尚未取得雙入口桌面／手機驗收結果，待 QA 執行後由同一產生器更新本節。</p>
+<p>QA 執行時間：2026-09-25T16:29:15.930257+00:00；使用 Playwright Chromium。自架與官方入口均以同一 map project 測試桌面及 Android 手機 viewport。</p>
+<table>
+<thead>
+<tr>
+<th>入口</th>
+<th>裝置模式</th>
+<th>結果</th>
+<th>ready／錯誤</th>
+<th>畫布與圖層</th>
+<th>截圖</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>自架 GitHub Pages</td>
+<td>桌面</td>
+<td>FAIL</td>
+<td>ready／[]</td>
+<td>canvas=True，圖層=True，彩色像素比例=0.579</td>
+<td><a href="https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/self_hosted-desktop.png">檢視截圖</a></td>
+</tr>
+<tr>
+<td>自架 GitHub Pages</td>
+<td>Android 手機 viewport</td>
+<td>FAIL</td>
+<td>ready／[]</td>
+<td>canvas=True，圖層=False，彩色像素比例=0.687</td>
+<td><a href="https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/self_hosted-android.png">檢視截圖</a></td>
+</tr>
+<tr>
+<td>官方 GeoLibre 備援</td>
+<td>桌面</td>
+<td>FAIL</td>
+<td>ready／[]</td>
+<td>canvas=True，圖層=True，彩色像素比例=0.634</td>
+<td><a href="https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/official-desktop.png">檢視截圖</a></td>
+</tr>
+<tr>
+<td>官方 GeoLibre 備援</td>
+<td>Android 手機 viewport</td>
+<td>FAIL</td>
+<td>ready／[]</td>
+<td>canvas=True，圖層=True，彩色像素比例=0.595</td>
+<td><a href="https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/official-android.png">檢視截圖</a></td>
+</tr>
+</tbody>
+</table>
+<p>整體驗收門檻：至少一個入口須同時通過桌面與手機模式。最新紀錄：<strong>FAIL</strong>。</p>
 <h2>後續查核建議</h2>
 <p>建議先用 Excel／CSV 核對設施名稱、代表點座標及命中明細，再向主管機關確認最新公告圖資與原始地址。對位於或鄰近敏感區的校園，應進一步確認實際校舍位置、基地範圍及現地條件；需要工程或安全結論時，交由主管機關與合格專業人員辦理。</p>
 <h2>總結</h2>
