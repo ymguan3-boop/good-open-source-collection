@@ -1,4 +1,4 @@
-name: Probe ODPortal cached Yilan resource
+name: Probe ODPortal playground API
 
 on:
   push:
@@ -11,23 +11,38 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Probe cached Yilan XML
+      - name: Probe playground API
         shell: bash
         run: |
           python - <<'PY'
-          import requests,hashlib
+          import requests,re,html,json
+          from urllib.parse import urljoin
           s=requests.Session(); s.headers["User-Agent"]="Mozilla/5.0"
-          urls=[
-            "https://cdn.odportal.tw/api/v1/resource/DSNTMGUM/61b504bb6e97860024674b09",
-            "https://odportal.tw/api/v1/resource/DSNTMGUM/61b504bb6e97860024674b09",
-            "https://cdn.odportal.tw/playground/DSNTMGUM?r=61b504bb6e97860024674b09",
-          ]
-          for u in urls:
-              try:
-                  r=s.get(u,timeout=60,allow_redirects=False)
-                  print("\nTEST",r.status_code,u)
-                  print("CT",r.headers.get("content-type"),"LOC",r.headers.get("location"),"LEN",len(r.content),"SHA256",hashlib.sha256(r.content).hexdigest())
-                  print("HEAD",r.text[:7000].replace("\n"," ")[:7000])
-              except Exception as e:
-                  print("ERR",u,repr(e))
+          page="https://cdn.odportal.tw/playground/DSNTMGUM?r=61b504bb6e97860024674b09"
+          r=s.get(page,timeout=30)
+          t=html.unescape(r.text).replace("\\/","/")
+          print("PAGE",r.status_code,len(r.content))
+          # Print Next data fields related to resource/data.
+          m=re.search(r'<script[^>]+id=["\']__NEXT_DATA__["\'][^>]*>(.*?)</script>',t,re.S|re.I)
+          if m:
+              print("NEXT_DATA",m.group(1)[:12000])
+          scripts=[urljoin(r.url,x) for x in re.findall(r'<script[^>]+src=["\']([^"\']+)["\']',t,re.I)]
+          for u in scripts:
+              if "playground" not in u:
+                  continue
+              rr=s.get(u,timeout=30)
+              txt=rr.text
+              print("\nSCRIPT",u,rr.status_code,len(rr.content))
+              strings=sorted(set(re.findall(r'["\']([^"\']{1,300})["\']',txt)))
+              for st in strings:
+                  low=st.lower()
+                  if any(k in low for k in ("/api/","resource","preview","playground","proxy","fetch","xml","dataset")):
+                      print("STR",st[:500])
+              for needle in ("/api/","resource","fetch(","axios","XML"):
+                  start=0
+                  while True:
+                      i=txt.find(needle,start)
+                      if i<0: break
+                      print("CTX",needle,txt[max(0,i-900):i+1800])
+                      start=i+len(needle)
           PY
