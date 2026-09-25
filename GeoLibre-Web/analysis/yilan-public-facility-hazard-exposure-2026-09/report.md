@@ -120,16 +120,16 @@ GeoLibre 專案檔約 203339 bytes；專案、inline 圖層、可見圖層及手
 
 ## 瀏覽器畫面驗證
 
-QA 執行時間：2026-09-25T16:29:15.930257+00:00；使用 Playwright Chromium。自架與官方入口均以同一 map project 測試桌面及 Android 手機 viewport。
+QA 執行時間：2026-09-25T16:39:10.603444+00:00；使用 Playwright Chromium。自架與官方入口均以同一 map project 測試桌面及 Android 手機 viewport。
 
 | 入口 | 裝置模式 | 結果 | ready／錯誤 | 畫布與圖層 | 截圖 |
 |---|---|---|---|---|---|
-| 自架 GitHub Pages | 桌面 | FAIL | ready／[] | canvas=True，圖層=True，彩色像素比例=0.579 | [檢視截圖](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/self_hosted-desktop.png) |
-| 自架 GitHub Pages | Android 手機 viewport | FAIL | ready／[] | canvas=True，圖層=False，彩色像素比例=0.687 | [檢視截圖](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/self_hosted-android.png) |
-| 官方 GeoLibre 備援 | 桌面 | FAIL | ready／[] | canvas=True，圖層=True，彩色像素比例=0.634 | [檢視截圖](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/official-desktop.png) |
-| 官方 GeoLibre 備援 | Android 手機 viewport | FAIL | ready／[] | canvas=True，圖層=True，彩色像素比例=0.595 | [檢視截圖](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/official-android.png) |
+| 自架 GitHub Pages | 桌面 | PASS | ready／[] | canvas=True，圖層=True，彩色像素比例=0.579 | [檢視截圖](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/self_hosted-desktop.png) |
+| 自架 GitHub Pages | Android 手機 viewport | PASS | ready／[] | canvas=True，圖層=True，彩色像素比例=0.436 | [檢視截圖](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/self_hosted-android.png) |
+| 官方 GeoLibre 備援 | 桌面 | PASS | ready／[] | canvas=True，圖層=True，彩色像素比例=0.634 | [檢視截圖](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/official-desktop.png) |
+| 官方 GeoLibre 備援 | Android 手機 viewport | PASS | ready／[] | canvas=True，圖層=True，彩色像素比例=0.595 | [檢視截圖](https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/viewer-qa/official-android.png) |
 
-整體驗收門檻：至少一個入口須同時通過桌面與手機模式。最新紀錄：**FAIL**。
+整體驗收門檻：至少一個入口須同時通過桌面與手機模式。最新紀錄：**PASS**。
 
 ## 後續查核建議
 

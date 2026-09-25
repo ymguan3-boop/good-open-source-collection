@@ -1,10 +1,10 @@
 {
-  "tested_at": "2026-09-25T16:29:15.930257+00:00",
+  "tested_at": "2026-09-25T16:39:10.603444+00:00",
   "browser": "Playwright Chromium",
   "mobile_definition": "Android 14 Pixel 7 user-agent emulation; 412x915 CSS viewport; touch enabled",
   "project_url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/map.geolibre.json",
   "expected_layer": "公共設施複合災害暴露查核結果",
-  "overall_pass": false,
+  "overall_pass": true,
   "checks": {
     "self_hosted": {
       "desktop": {
@@ -15,12 +15,12 @@
         "android_emulation": false,
         "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-public-facility-hazard-exposure-2026-09%2Fmap.geolibre.json&loading=true",
         "load_state": "ready",
-        "load_errors": "[]",
+        "load_errors": [],
         "canvas_visible": true,
         "layer_listed": true,
         "colored_pixel_ratio": 0.5785,
         "page_errors": [],
-        "passed": false,
+        "passed": true,
         "title": "GeoLibre",
         "screenshot": "viewer-qa/self_hosted-desktop.png"
       },
@@ -32,13 +32,135 @@
         "android_emulation": true,
         "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/?locale=zh-TW&url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-public-facility-hazard-exposure-2026-09%2Fmap.geolibre.json&loading=true",
         "load_state": "ready",
-        "load_errors": "[]",
+        "load_errors": [],
         "canvas_visible": true,
-        "layer_listed": false,
-        "colored_pixel_ratio": 0.687,
+        "layer_listed": true,
+        "colored_pixel_ratio": 0.4364,
         "page_errors": [],
-        "passed": false,
+        "passed": true,
         "title": "GeoLibre",
+        "layer_controls": [
+          {
+            "label": "項目",
+            "visible": true
+          },
+          {
+            "label": "編輯",
+            "visible": true
+          },
+          {
+            "label": "視圖",
+            "visible": true
+          },
+          {
+            "label": "添加數據",
+            "visible": true
+          },
+          {
+            "label": "處理",
+            "visible": true
+          },
+          {
+            "label": "控件",
+            "visible": true
+          },
+          {
+            "label": "插件",
+            "visible": true
+          },
+          {
+            "label": "設置",
+            "visible": true
+          },
+          {
+            "label": "幫助",
+            "visible": true
+          },
+          {
+            "label": "切換到深色模式 切換到深色模式",
+            "visible": true
+          },
+          {
+            "label": "項目名稱",
+            "visible": false
+          },
+          {
+            "label": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/map.geolibre.json https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/map.geolibre.json",
+            "visible": false
+          },
+          {
+            "label": "側邊欄 瀏覽器\n圖層",
+            "visible": true
+          },
+          {
+            "label": "展開瀏覽器 展開瀏覽器 瀏覽器",
+            "visible": true
+          },
+          {
+            "label": "展開圖層 展開圖層 圖層",
+            "visible": true
+          },
+          {
+            "label": "Map",
+            "visible": true
+          },
+          {
+            "label": "進入全螢幕 進入全螢幕",
+            "visible": true
+          },
+          {
+            "label": "重置傾斜角和方位角 重置傾斜角和方位角 N",
+            "visible": true
+          },
+          {
+            "label": "Disable globe",
+            "visible": true
+          },
+          {
+            "label": "Layer Control Layer Control",
+            "visible": true
+          },
+          {
+            "label": "Toggle attribution Toggle attribution",
+            "visible": true
+          },
+          {
+            "label": "Show all layers Show All",
+            "visible": false
+          },
+          {
+            "label": "Hide all layers Hide All",
+            "visible": false
+          },
+          {
+            "label": "Drag to resize panel",
+            "visible": false
+          },
+          {
+            "label": "Drag to resize panel",
+            "visible": false
+          },
+          {
+            "label": "Drag to reorder",
+            "visible": false
+          },
+          {
+            "label": "Layer type: fill",
+            "visible": false
+          },
+          {
+            "label": "宜蘭縣行政界 宜蘭縣行政界",
+            "visible": false
+          },
+          {
+            "label": "Opacity: 45%",
+            "visible": false
+          },
+          {
+            "label": "Layer info for yilan-county-boundary Layer info (style editing not available) ⚙",
+            "visible": false
+          }
+        ],
         "screenshot": "viewer-qa/self_hosted-android.png"
       }
     },
@@ -51,12 +173,12 @@
         "android_emulation": false,
         "url": "https://web.geolibre.app/?url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-public-facility-hazard-exposure-2026-09%2Fmap.geolibre.json&layout=viewer&locale=zh-TW&loading=true",
         "load_state": "ready",
-        "load_errors": "[]",
+        "load_errors": [],
         "canvas_visible": true,
         "layer_listed": true,
         "colored_pixel_ratio": 0.6344,
         "page_errors": [],
-        "passed": false,
+        "passed": true,
         "title": "GeoLibre",
         "screenshot": "viewer-qa/official-desktop.png"
       },
@@ -68,12 +190,12 @@
         "android_emulation": true,
         "url": "https://web.geolibre.app/?url=https%3A%2F%2Fymguan3-boop.github.io%2Fgood-open-source-collection%2FGeoLibre-Web%2Fanalysis%2Fyilan-public-facility-hazard-exposure-2026-09%2Fmap.geolibre.json&layout=viewer&locale=zh-TW&loading=true",
         "load_state": "ready",
-        "load_errors": "[]",
+        "load_errors": [],
         "canvas_visible": true,
         "layer_listed": true,
         "colored_pixel_ratio": 0.5954,
         "page_errors": [],
-        "passed": false,
+        "passed": true,
         "title": "GeoLibre",
         "screenshot": "viewer-qa/official-android.png"
       }
