@@ -39,8 +39,8 @@
     ]
   },
   "execution_metadata": {
-    "rerun_revision": 2,
-    "reason": "將已通過的自架與官方 GeoLibre 四種畫面 QA 寫入正式報告；套用包含可見 PNG 影像的效能估算",
+    "rerun_revision": 3,
+    "reason": "補齊逐項來源座標系統與資料角色，並以白話對照圖層、圖資及成果檔；沿用已通過的四組地圖畫面驗證",
     "confirmed_at": "2026-09-26"
   }
 }

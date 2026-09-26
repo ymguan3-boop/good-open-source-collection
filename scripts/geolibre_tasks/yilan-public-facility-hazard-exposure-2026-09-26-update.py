@@ -350,6 +350,8 @@ def main() -> None:
                 "system_url": SYSTEM_URL,
                 "version": "民國115年9月（2026年9月）",
                 "retrieved_at": "2026-09-26",
+                "source_crs": "圖面TWD97/TM2 121分帶（EPSG:3826）；PNG本身無座標標籤，由格網配準",
+                "source_role": "本次主要官方圖資",
                 "use": "新版液化潛勢地圖影像，按官方TWD97格網配準後作顯示與顏色分類。",
                 "limitation": "此公開介面為PNG/WMTS影像，非本分析可下載的同版向量polygon；本成果為影像篩選。",
             },
@@ -359,6 +361,8 @@ def main() -> None:
                 "url": "https://data.gov.tw/dataset/174606",
                 "version": "1150409（2026-04-09檔案版次）；圖徵YYYYMM依學校不同，範圍201005–202508",
                 "retrieved_at": "2026-09-25（沿用快取）",
+                "source_crs": "原始121分帶EPSG:3826；代表點輸出EPSG:4326",
+                "source_role": "本次設施點來源（官方資料衍生）",
                 "feature_month_counts": dict(sorted(school_month_counts.items())),
                 "use": "133所學校的校地代表點。",
                 "limitation": "representative point不是校門、校舍或校地界址。",
@@ -369,6 +373,8 @@ def main() -> None:
                 "url": "https://data.gov.tw/dataset/139250",
                 "version": "2026-09-25查詢快取",
                 "retrieved_at": "2026-09-25",
+                "source_crs": "經緯度EPSG:4326（本案使用座標）",
+                "source_role": "本次設施點來源（官方資料）",
                 "use": "42個名稱屬醫院、衛生所或衛生室的點位。",
                 "limitation": "不代表完整診所名冊。",
             },
@@ -378,6 +384,8 @@ def main() -> None:
                 "url": "https://data.gov.tw/dataset/5962",
                 "version": "資料平台詮釋資料更新2025-11-06；宜蘭快取擷取2026-09-25",
                 "retrieved_at": "2026-09-25",
+                "source_crs": "經緯度EPSG:4326（本案使用座標）",
+                "source_role": "本次設施點來源（官方熱點資料作機關代理）",
                 "use": "98個政府機關位置代理點。",
                 "limitation": "只涵蓋設有熱點且名稱符合條件者，不是完整機關名冊。",
             },
@@ -387,6 +395,8 @@ def main() -> None:
                 "url": "https://data.gov.tw/dataset/5969",
                 "version": "官方CSV快取擷取2026-09-25",
                 "retrieved_at": "2026-09-25",
+                "source_crs": "欄名TWD97；座標數值按經緯度EPSG:4326解讀",
+                "source_role": "本次設施點來源（官方資料）",
                 "use": "18個名稱包含分隊的消防設施點。",
                 "limitation": "此版座標欄位名稱寫TWD97，但數值範圍為經緯度；按既有欄位稽核結果以EPSG:4326解讀。",
             },
@@ -396,6 +406,8 @@ def main() -> None:
                 "url": "https://data.gov.tw/dataset/7441",
                 "version": "2026-09-25快取",
                 "retrieved_at": "2026-09-25",
+                "source_crs": "原始行政界EPSG:3826；地圖輸出EPSG:4326",
+                "source_role": "本次範圍來源（官方資料衍生）",
                 "use": "消防分隊與縣界範圍篩選及地圖定位。",
                 "limitation": "由鄉鎮市區界聯集及簡化，不作法定界址依據。",
             },
@@ -405,6 +417,9 @@ def main() -> None:
                 "url": "https://data.gov.tw/dataset/27744",
                 "version": "官方說明所列數值檔最近更新114-05-29（2025-05-29）",
                 "supporting_document": "https://www.gsmma.gov.tw/uploads/1764897333077iIlNn6BB.pdf",
+                "retrieved_at": "2026-09-25（前次分析快取；本次查核官方版次）",
+                "source_crs": "本次僅沿用舊版GeoJSON（EPSG:4326）；原始數值檔座標系統未重新查核",
+                "source_role": "前次成果對照；本次未重算",
                 "use": "原複合災害報告的法定公告敏感區規劃參考範圍；本增補不重算該組統計。",
                 "limitation": "官方註明數值範圍供規劃參考，實際法定範圍以公告圖資為準。",
             },
@@ -413,6 +428,9 @@ def main() -> None:
                 "provider": "農業部農村發展及水土保持署",
                 "url": "https://data.gov.tw/dataset/176526",
                 "version": "115年度；資源檔debris1753_20260126_twd97；原分析於2026-09-25取得",
+                "retrieved_at": "2026-09-25（前次分析快取）",
+                "source_crs": "本次僅沿用舊版GeoJSON（EPSG:4326）；原檔名標示TWD97，未重新查核",
+                "source_role": "前次成果對照；本次未重算",
                 "use": "原複合災害報告的土石流影響範圍；本增補不重算該組統計。",
                 "limitation": "潛勢影響範圍不代表災害必然發生。",
             },
@@ -421,6 +439,9 @@ def main() -> None:
                 "provider": "國家科學及技術委員會",
                 "url": "https://data.gov.tw/dataset/130016",
                 "version": "平台詮釋資料更新2026-08-13；實際使用檔案紀錄年度為2021-2025，原分析於2026-09-25取得",
+                "retrieved_at": "2026-09-25（前次分析快取）",
+                "source_crs": "本次僅沿用舊版GeoJSON（EPSG:4326）；原始檔座標系統未重新查核",
+                "source_role": "前次成果對照；本次未重算",
                 "use": "原複合災害報告的歷史淹水點；本增補不重算該組統計。",
                 "limitation": "宜蘭子集無2023紀錄，且截至2025年度，不含2026年事件。",
             },
@@ -640,6 +661,7 @@ def main() -> None:
     source_rows = [{
         "圖層／資料": item["name"], "提供單位": item["provider"], "來源網址": item["url"],
         "資料版次／期間": item.get("version", "未註明"), "取得日期": item.get("retrieved_at", "沿用舊版快取"),
+        "座標系統": item["source_crs"], "本案角色": item["source_role"],
         "分析用途": item["use"], "限制": item["limitation"],
     } for item in summary["data_sources"]]
     with pd.ExcelWriter(args.output / "result.xlsx", engine="openpyxl") as writer:
@@ -674,13 +696,14 @@ def main() -> None:
         encoding="utf-8",
     )
 
-    source_table = ["|資料名稱|提供單位|版本／取得日|在本案的用途|使用限制|", "|---|---|---|---|---|"]
+    source_table = ["|資料名稱|提供單位|版本／取得日|座標系統|本案角色|在本案的用途|使用限制|", "|---|---|---|---|---|---|---|"]
     for item in summary["data_sources"]:
         name = f"[{item['name']}]({item['url']})"
         if item.get("supporting_document"):
             name += f"；[官方說明]({item['supporting_document']})"
         source_table.append("|" + "|".join([
             name, item["provider"], f"{item.get('version', '未註明')}；取得：{item.get('retrieved_at', '沿用快取')}",
+            item["source_crs"], item["source_role"],
             item["use"], item["limitation"],
         ]) + "|")
 
@@ -693,8 +716,16 @@ def main() -> None:
         "previous-geological-sensitive-schools": "舊版 sensitive-schools.geojson（僅供對照）",
         "yilan-county-scope-2026": "scope.geojson（行政範圍定位）",
     }
+    layer_meanings = {
+        "gsmma-yilan-liquefaction-2026-image": "官方2026年9月土壤液化圖影像；用來看圖與判讀顏色，不是可直接相交的法定向量範圍。",
+        "yilan-liquefaction-2026-exposed": "本次新算出的171個候選點：落在中／高潛勢圖色，或距該圖色300公尺內。",
+        "yilan-all-facilities-2026": "全部291處輸入設施及各自判讀結果；含圖框外與無法判讀者，未把未知當低風險。",
+        "previous-multi-hazard-screening": "前次複合災害篩選結果，僅供對照；沒有使用新版液化圖重新計算。",
+        "previous-geological-sensitive-schools": "前次地質敏感區學校結果，僅供對照；沒有使用新版資料重新計算。",
+        "yilan-county-scope-2026": "宜蘭縣行政範圍的定位輔助圖；不是法定界址。",
+    }
     for layer in project["layers"]:
-        layer_table.append(f"|{layer['name']}|{layer.get('metadata', {}).get('analysisRole', layer.get('metadata', {}).get('limitation', '範圍定位／影像參考'))}|{layer_files[layer['id']]}|{'開啟' if layer.get('visible') else '關閉'}|")
+        layer_table.append(f"|{layer['name']}|{layer_meanings[layer['id']]}|{layer_files[layer['id']]}|{'開啟' if layer.get('visible') else '關閉'}|")
 
     files = [
         "|檔案|內容與用途|", "|---|---|",
@@ -821,3 +852,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
