@@ -131,6 +131,10 @@
 <td>GeoLibre 互動地圖專案；預設呈現新版液化圖、篩選結果與宜蘭縣界，舊圖層可在面板手動打開。</td>
 </tr>
 <tr>
+<td><code>viewer-qa/</code></td>
+<td>兩個入口、桌面與 Android 手機的 QA JSON、說明及實際畫面截圖。</td>
+</tr>
+<tr>
 <td><code>source-snapshots/YiL_Overview.png</code></td>
 <td>本次判讀的官方 115 年 9 月原圖快照；附 SHA-256，供重現與核對。</td>
 </tr>
@@ -235,7 +239,11 @@
 <p>GeoLibre project 檔案為 231,216 bytes；預設圖層保守估算載入 10,741,468 bytes，低於 12 MiB 硬性預算（軟性目標 6 MiB）。估算將官方整張 PNG 和預設可見的結果／縣界資料一併計入；實際網頁是否成功載入及圖層是否畫出，仍以發布後瀏覽器畫面 QA 為準。地圖預設開啟新版影像、篩選結果及縣界；全部設施與舊版對照層預設關閉。</p>
 <h2>瀏覽器畫面驗證</h2>
 <ul>
-<li>QA 總結：待驗證；成果發布後才檢查自架與官方入口的桌面及 Android 手機畫面。
+<li>QA 總結：PASS（2026-09-26T07:45:09.420Z）；使用同一份 <code>yilan-public-facility-hazard-exposure-2026-09-26-update/map.geolibre.json</code>。</li>
+<li>自架 GitHub Pages／桌面 Chromium：PASS；load state <code>ready</code>；載入錯誤 <code>[]</code>；可見 canvas 5 個；預期結果圖層在 UI 可見：是。</li>
+<li>自架 GitHub Pages／Android 手機：PASS；load state <code>ready</code>；載入錯誤 <code>[]</code>；可見 canvas 5 個；預期結果圖層在 UI 可見：是。</li>
+<li>官方 GeoLibre 備援／桌面 Chromium：PASS；load state <code>ready</code>；載入錯誤 <code>[]</code>；可見 canvas 5 個；預期結果圖層在 UI 可見：是。</li>
+<li>官方 GeoLibre 備援／Android 手機：PASS；load state <code>ready</code>；載入錯誤 <code>[]</code>；可見 canvas 5 個；預期結果圖層在 UI 可見：是。
 檢查項目包括頁面是否進入 <code>ready</code>、載入錯誤、canvas 是否可見且非白屏，以及篩選結果圖層名稱是否出現在畫面 UI。GeoLibre 顯示正常只代表專案可載入，不取代前述資料與空間判讀的正確性檢核。</li>
 </ul>
 <h2>總結</h2>

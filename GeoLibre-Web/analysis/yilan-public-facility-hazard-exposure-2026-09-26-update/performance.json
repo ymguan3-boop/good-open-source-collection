@@ -33,24 +33,34 @@
       "visible": false
     }
   ],
+  "image_backed_layer_count": 1,
+  "image_backed_layers": [
+    {
+      "id": "gsmma-yilan-liquefaction-2026-image",
+      "name": "官方新版土壤液化圖（宜蘭115年9月；影像參考）",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09-26-update/source-snapshots/YiL_Overview.png",
+      "local_file": "source-snapshots/YiL_Overview.png",
+      "bytes": 10510252,
+      "visible": true
+    }
+  ],
   "remaining_inline_layer_count": 2,
   "largest_remaining_inline_bytes": 153007,
   "inline_layer_max_bytes": 262144,
   "max_visible_thematic_layers": 3,
   "visible_thematic_layer_count": 2,
   "visibility_adjustments": [],
-  "visible_external_payload_bytes_estimate": 0,
-  "initial_load_bytes_estimate": 231216,
+  "visible_external_payload_bytes_estimate": 10510252,
+  "initial_load_bytes_estimate": 10741468,
   "initial_load_soft_bytes": 6291456,
   "initial_load_hard_bytes": 12582912,
   "project_budget_ok": true,
   "inline_budget_ok": true,
   "visible_layer_budget_ok": true,
-  "mobile_soft_budget_ok": true,
+  "mobile_soft_budget_ok": false,
   "mobile_hard_budget_ok": true,
   "notes": [
-    "Initial-load estimate includes project JSON plus visible URL-backed GeoJSON files that map back to files in this analysis output.",
-    "Hidden layers and third-party/service URLs may still have runtime costs not fully estimated here.",
+    "Initial-load estimate includes project JSON plus visible URL-backed GeoJSON and image files that map back to this analysis output.Hidden layers and third-party/service URLs may still have runtime costs not fully estimated here.",
     "Visibility adjustments affect presentation only; analytical outputs are unchanged."
   ]
 }

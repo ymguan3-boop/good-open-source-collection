@@ -62,6 +62,7 @@
 |檔案|內容與用途|
 |---|---|
 |`map.geolibre.json`|GeoLibre 互動地圖專案；預設呈現新版液化圖、篩選結果與宜蘭縣界，舊圖層可在面板手動打開。|
+|`viewer-qa/`|兩個入口、桌面與 Android 手機的 QA JSON、說明及實際畫面截圖。|
 |`source-snapshots/YiL_Overview.png`|本次判讀的官方 115 年 9 月原圖快照；附 SHA-256，供重現與核對。|
 |`source-snapshots/` 內 5 個輸入檔|本次使用的學校、醫療、政府代理點、消防及縣界快照；來源日期與限制見本報告。|
 |`result.geojson`|正式篩選結果 171 筆點位，供 GIS 軟體載入。|
@@ -96,7 +97,11 @@ GeoLibre project 檔案為 231,216 bytes；預設圖層保守估算載入 10,741
 
 ## 瀏覽器畫面驗證
 
-- QA 總結：待驗證；成果發布後才檢查自架與官方入口的桌面及 Android 手機畫面。
+- QA 總結：PASS（2026-09-26T07:45:09.420Z）；使用同一份 `yilan-public-facility-hazard-exposure-2026-09-26-update/map.geolibre.json`。
+- 自架 GitHub Pages／桌面 Chromium：PASS；load state `ready`；載入錯誤 `[]`；可見 canvas 5 個；預期結果圖層在 UI 可見：是。
+- 自架 GitHub Pages／Android 手機：PASS；load state `ready`；載入錯誤 `[]`；可見 canvas 5 個；預期結果圖層在 UI 可見：是。
+- 官方 GeoLibre 備援／桌面 Chromium：PASS；load state `ready`；載入錯誤 `[]`；可見 canvas 5 個；預期結果圖層在 UI 可見：是。
+- 官方 GeoLibre 備援／Android 手機：PASS；load state `ready`；載入錯誤 `[]`；可見 canvas 5 個；預期結果圖層在 UI 可見：是。
 檢查項目包括頁面是否進入 `ready`、載入錯誤、canvas 是否可見且非白屏，以及篩選結果圖層名稱是否出現在畫面 UI。GeoLibre 顯示正常只代表專案可載入，不取代前述資料與空間判讀的正確性檢核。
 
 ## 總結
