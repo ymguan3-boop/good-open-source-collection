@@ -230,7 +230,7 @@
     "evidence_path": "viewer-qa/viewer-qa.json"
   },
   "performance": {
-    "project_bytes": 231218,
+    "project_bytes": 231216,
     "project_target_bytes": 2097152,
     "project_hard_bytes": 5242880,
     "inline_geojson_bytes": 225099,
@@ -249,6 +249,6 @@
     "largest_inline_layer_ok": true,
     "mobile_hard_budget_ok": true,
     "budget_note": "保守估算將同版官方PNG快照、預設可見候選點GeoJSON及縣界GeoJSON一併計入；瀏覽器是否實際顯示仍以Viewer QA確認。",
-    "estimated_initial_load_bytes": 10741470
+    "estimated_initial_load_bytes": 10741468
   }
 }

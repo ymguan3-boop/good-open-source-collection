@@ -1,22 +1,56 @@
 {
-  "project_bytes": 231218,
+  "project_original_bytes": 231216,
+  "project_original_bytes_peak": 231216,
+  "project_final_bytes": 231216,
   "project_target_bytes": 2097152,
   "project_hard_bytes": 5242880,
-  "inline_geojson_bytes": 225099,
-  "largest_inline_layer_bytes": 153007,
-  "inline_layer_max_bytes": 262144,
-  "externalized_layer_count": 0,
-  "visible_layer_ids": [
-    "gsmma-yilan-liquefaction-2026-image",
-    "yilan-liquefaction-2026-exposed",
-    "yilan-county-scope-2026"
+  "externalized_layer_count_this_run": 0,
+  "externalized_layers_this_run": [],
+  "url_backed_layer_count": 3,
+  "url_backed_layers": [
+    {
+      "id": "yilan-all-facilities-2026",
+      "name": "全部設施點位（291處；含未知／無覆蓋）",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09-26-update/facilities-liquefaction-2026.geojson",
+      "local_file": "facilities-liquefaction-2026.geojson",
+      "bytes": 255496,
+      "visible": false
+    },
+    {
+      "id": "previous-multi-hazard-screening",
+      "name": "原版複合災害篩選結果（另案，未與新版液化數字合併）",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/result.geojson",
+      "local_file": null,
+      "bytes": null,
+      "visible": false
+    },
+    {
+      "id": "previous-geological-sensitive-schools",
+      "name": "原版：地質敏感區內學校（11個點／10所學校）",
+      "url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09/sensitive-schools.geojson",
+      "local_file": null,
+      "bytes": null,
+      "visible": false
+    }
   ],
-  "visible_external_payload_estimate_bytes": 10510252,
-  "initial_load_soft_budget_bytes": 6291456,
-  "initial_load_hard_budget_bytes": 12582912,
-  "project_hard_budget_ok": true,
-  "largest_inline_layer_ok": true,
+  "remaining_inline_layer_count": 2,
+  "largest_remaining_inline_bytes": 153007,
+  "inline_layer_max_bytes": 262144,
+  "max_visible_thematic_layers": 3,
+  "visible_thematic_layer_count": 2,
+  "visibility_adjustments": [],
+  "visible_external_payload_bytes_estimate": 0,
+  "initial_load_bytes_estimate": 231216,
+  "initial_load_soft_bytes": 6291456,
+  "initial_load_hard_bytes": 12582912,
+  "project_budget_ok": true,
+  "inline_budget_ok": true,
+  "visible_layer_budget_ok": true,
+  "mobile_soft_budget_ok": true,
   "mobile_hard_budget_ok": true,
-  "budget_note": "保守估算將同版官方PNG快照、預設可見候選點GeoJSON及縣界GeoJSON一併計入；瀏覽器是否實際顯示仍以Viewer QA確認。",
-  "estimated_initial_load_bytes": 10741470
+  "notes": [
+    "Initial-load estimate includes project JSON plus visible URL-backed GeoJSON files that map back to files in this analysis output.",
+    "Hidden layers and third-party/service URLs may still have runtime costs not fully estimated here.",
+    "Visibility adjustments affect presentation only; analytical outputs are unchanged."
+  ]
 }
