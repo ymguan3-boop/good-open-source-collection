@@ -1,0 +1,254 @@
+{
+  "task_id": "yilan-public-facility-hazard-exposure-2026-09-26-update",
+  "result_count": 171,
+  "generated_at": "2026-09-26",
+  "geographic_scope": "宜蘭縣",
+  "input_facilities": 291,
+  "input_count_by_facility_type": {
+    "學校": 133,
+    "醫療機構": 42,
+    "政府機關": 98,
+    "消防分隊": 18
+  },
+  "source_map_version": "民國115年9月（2026年9月）",
+  "source_map_url": "https://liquefaction.gsmma.gov.tw/cgs/public/img/map/YiL_Overview.png",
+  "source_map_snapshot_url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09-26-update/source-snapshots/YiL_Overview.png",
+  "source_map_sha256": "d2d3d0f1852509ce944cd61d5003553e3aad27d75157b9a235262b17d9b44855",
+  "source_system_url": "https://liquefaction.gsmma.gov.tw/cgs/public/index.html",
+  "source_crs": "EPSG:3826",
+  "image_size": [
+    7016,
+    7016
+  ],
+  "georeference": {
+    "method": "使用圖面標示TWD97/TM2 zone 121座標格網十字／刻度做一階仿射定位；以7個東向與6個北向刻度最小平方擬合。",
+    "x_tick_pixels": [
+      1076.5,
+      1901.5,
+      2725.5,
+      3550.5,
+      4375.5,
+      5199.5,
+      6024.5
+    ],
+    "x_tick_easting_m": [
+      310000,
+      315000,
+      320000,
+      325000,
+      330000,
+      335000,
+      340000
+    ],
+    "y_tick_pixels": [
+      1850.0,
+      2675.0,
+      3500.0,
+      4324.0,
+      5149.0,
+      5974.0
+    ],
+    "y_tick_northing_m": [
+      2750000,
+      2745000,
+      2740000,
+      2735000,
+      2730000,
+      2725000
+    ],
+    "metres_per_pixel_x": 6.0632,
+    "metres_per_pixel_y": 6.0625,
+    "map_frame_pixel_centers": [
+      708.5,
+      1180.5,
+      6259.5,
+      6608.5
+    ]
+  },
+  "legend_rgb": {
+    "低潛勢（PL<5）": [
+      137,
+      205,
+      102
+    ],
+    "中潛勢（5≤PL≤15）": [
+      255,
+      255,
+      115
+    ],
+    "高潛勢（PL≥15）": [
+      255,
+      127,
+      127
+    ]
+  },
+  "data_sources": [
+    {
+      "name": "宜蘭縣115年9月土壤液化潛勢圖（PNG）",
+      "provider": "經濟部地質調查及礦業管理中心",
+      "url": "https://liquefaction.gsmma.gov.tw/cgs/public/img/map/YiL_Overview.png",
+      "snapshot_url": "https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09-26-update/source-snapshots/YiL_Overview.png",
+      "sha256": "d2d3d0f1852509ce944cd61d5003553e3aad27d75157b9a235262b17d9b44855",
+      "system_url": "https://liquefaction.gsmma.gov.tw/cgs/public/index.html",
+      "version": "民國115年9月（2026年9月）",
+      "retrieved_at": "2026-09-26",
+      "use": "新版液化潛勢地圖影像，按官方TWD97格網配準後作顯示與顏色分類。",
+      "limitation": "此公開介面為PNG/WMTS影像，非本分析可下載的同版向量polygon；本成果為影像篩選。"
+    },
+    {
+      "name": "各級學校範圍圖_121分帶",
+      "provider": "內政部國土測繪中心",
+      "url": "https://data.gov.tw/dataset/174606",
+      "version": "1150409（2026-04-09檔案版次）；圖徵YYYYMM依學校不同，範圍201005–202508",
+      "retrieved_at": "2026-09-25（沿用快取）",
+      "feature_month_counts": {
+        "201005": 1,
+        "201510": 1,
+        "201711": 1,
+        "201810": 1,
+        "201811": 2,
+        "201901": 18,
+        "202012": 2,
+        "202201": 1,
+        "202206": 27,
+        "202207": 30,
+        "202208": 3,
+        "202405": 18,
+        "202406": 20,
+        "202407": 2,
+        "202408": 1,
+        "202409": 2,
+        "202508": 3
+      },
+      "use": "133所學校的校地代表點。",
+      "limitation": "representative point不是校門、校舍或校地界址。"
+    },
+    {
+      "name": "國土測繪中心醫療設施地標API",
+      "provider": "內政部國土測繪中心",
+      "url": "https://data.gov.tw/dataset/139250",
+      "version": "2026-09-25查詢快取",
+      "retrieved_at": "2026-09-25",
+      "use": "42個名稱屬醫院、衛生所或衛生室的點位。",
+      "limitation": "不代表完整診所名冊。"
+    },
+    {
+      "name": "iTaiwan公共區域免費服務無線上網熱點",
+      "provider": "數位發展部",
+      "url": "https://data.gov.tw/dataset/5962",
+      "version": "資料平台詮釋資料更新2025-11-06；宜蘭快取擷取2026-09-25",
+      "retrieved_at": "2026-09-25",
+      "use": "98個政府機關位置代理點。",
+      "limitation": "只涵蓋設有熱點且名稱符合條件者，不是完整機關名冊。"
+    },
+    {
+      "name": "救援與應變單位點位",
+      "provider": "內政部消防署",
+      "url": "https://data.gov.tw/dataset/5969",
+      "version": "官方CSV快取擷取2026-09-25",
+      "retrieved_at": "2026-09-25",
+      "use": "18個名稱包含分隊的消防設施點。",
+      "limitation": "此版座標欄位名稱寫TWD97，但數值範圍為經緯度；按既有欄位稽核結果以EPSG:4326解讀。"
+    },
+    {
+      "name": "宜蘭縣範圍（行政區界衍生快取）",
+      "provider": "內政部國土測繪中心（衍生）",
+      "url": "https://data.gov.tw/dataset/7441",
+      "version": "2026-09-25快取",
+      "retrieved_at": "2026-09-25",
+      "use": "消防分隊與縣界範圍篩選及地圖定位。",
+      "limitation": "由鄉鎮市區界聯集及簡化，不作法定界址依據。"
+    },
+    {
+      "name": "宜蘭地質敏感區數值檔（G0003、H0010、L0016）",
+      "provider": "經濟部地質調查及礦業管理中心",
+      "url": "https://data.gov.tw/dataset/27744",
+      "version": "官方說明所列數值檔最近更新114-05-29（2025-05-29）",
+      "supporting_document": "https://www.gsmma.gov.tw/uploads/1764897333077iIlNn6BB.pdf",
+      "use": "原複合災害報告的法定公告敏感區規劃參考範圍；本增補不重算該組統計。",
+      "limitation": "官方註明數值範圍供規劃參考，實際法定範圍以公告圖資為準。"
+    },
+    {
+      "name": "115年度1753條土石流潛勢溪流影響範圍圖",
+      "provider": "農業部農村發展及水土保持署",
+      "url": "https://data.gov.tw/dataset/176526",
+      "version": "115年度；資源檔debris1753_20260126_twd97；原分析於2026-09-25取得",
+      "use": "原複合災害報告的土石流影響範圍；本增補不重算該組統計。",
+      "limitation": "潛勢影響範圍不代表災害必然發生。"
+    },
+    {
+      "name": "近5年淹水災點資料",
+      "provider": "國家科學及技術委員會",
+      "url": "https://data.gov.tw/dataset/130016",
+      "version": "平台詮釋資料更新2026-08-13；實際使用檔案紀錄年度為2021-2025，原分析於2026-09-25取得",
+      "use": "原複合災害報告的歷史淹水點；本增補不重算該組統計。",
+      "limitation": "宜蘭子集無2023紀錄，且截至2025年度，不含2026年事件。"
+    }
+  ],
+  "class_counts": {
+    "圖上無可判讀潛勢色塊": 37,
+    "高潛勢（PL≥15）": 120,
+    "中潛勢（5≤PL≤15）": 18,
+    "低潛勢（PL<5）": 58,
+    "超出新版宜蘭圖面範圍": 58
+  },
+  "class_status_counts": {
+    "無法判讀": 37,
+    "清楚": 196,
+    "無圖面覆蓋": 58
+  },
+  "within_300m_medium_or_high_count": 171,
+  "within_300m_medium_or_high_by_facility_type": {
+    "學校": 77,
+    "醫療機構": 20,
+    "政府機關": 65,
+    "消防分隊": 9
+  },
+  "direct_medium_or_high_count": 138,
+  "uncovered_or_unreadable_count": 95,
+  "analysis_rule": "以點位中心5×5像素鄰域多數色分類；若點位直接命中中／高潛勢圖色，或至中／高潛勢像素區最短距離不超過300公尺，列入本新版液化圖篩選清單。低潛勢不算中／高潛勢暴露。",
+  "screening_interpretation": "屬官方地圖 PNG 影像分類及位置篩選，非向量 polygon 精確相交；圖面空白／超出圖框一律列未知，不視為低潛勢。",
+  "limitation": "本增補只分析2026年9月新版土壤液化圖，不重算原報告的地質敏感區、土石流及歷史淹水圖層；也不將不同圖層合併冒充已重跑的複合災害統計。官方地圖供區域規劃參考，不是個別基地工程安全判定。",
+  "outputs": {
+    "geojson": "result.geojson",
+    "csv": "result.csv",
+    "xlsx": "result.xlsx",
+    "map": "map.geolibre.json",
+    "all_facilities_geojson": "facilities-liquefaction-2026.geojson",
+    "all_facilities_csv": "facilities-liquefaction-2026.csv",
+    "medium_high_list_csv": "medium-high-screening-list.csv",
+    "scope": "scope.geojson",
+    "source_map_snapshot": "source-snapshots/YiL_Overview.png",
+    "summary": "summary.json",
+    "report": "report.md",
+    "performance": "performance.json",
+    "report_html": "report.html",
+    "index": "index.html"
+  },
+  "viewer_qa": {
+    "status": "pending",
+    "evidence_path": "viewer-qa/viewer-qa.json"
+  },
+  "performance": {
+    "project_bytes": 231218,
+    "project_target_bytes": 2097152,
+    "project_hard_bytes": 5242880,
+    "inline_geojson_bytes": 225099,
+    "largest_inline_layer_bytes": 153007,
+    "inline_layer_max_bytes": 262144,
+    "externalized_layer_count": 0,
+    "visible_layer_ids": [
+      "gsmma-yilan-liquefaction-2026-image",
+      "yilan-liquefaction-2026-exposed",
+      "yilan-county-scope-2026"
+    ],
+    "visible_external_payload_estimate_bytes": 10510252,
+    "initial_load_soft_budget_bytes": 6291456,
+    "initial_load_hard_budget_bytes": 12582912,
+    "project_hard_budget_ok": true,
+    "largest_inline_layer_ok": true,
+    "mobile_hard_budget_ok": true,
+    "budget_note": "保守估算將同版官方PNG快照、預設可見候選點GeoJSON及縣界GeoJSON一併計入；瀏覽器是否實際顯示仍以Viewer QA確認。",
+    "estimated_initial_load_bytes": 10741470
+  }
+}

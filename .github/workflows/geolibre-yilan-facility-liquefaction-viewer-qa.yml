@@ -1,0 +1,73 @@
+name: GeoLibre Yilan facility liquefaction Viewer QA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09-26-update/map.geolibre.json"
+      - "GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09-26-update/index.html"
+      - ".github/workflows/geolibre-yilan-facility-liquefaction-viewer-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: geolibre-viewer-qa-yilan-facility-liquefaction
+  cancel-in-progress: false
+
+jobs:
+  viewer-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      GEOLIBRE_TASK_ID: yilan-public-facility-hazard-exposure-2026-09-26-update
+      GEOLIBRE_PROJECT_URL: https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09-26-update/map.geolibre.json
+      GEOLIBRE_IMAGE_URL: https://ymguan3-boop.github.io/good-open-source-collection/GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09-26-update/source-snapshots/YiL_Overview.png
+      GEOLIBRE_QA_DIR: GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09-26-update/viewer-qa
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install browser QA dependencies
+        run: |
+          npm install --no-save --package-lock=false playwright pngjs
+          npx playwright install --with-deps chromium
+      - name: Wait for published project and raster snapshot
+        shell: bash
+        run: |
+          for i in {1..36}; do
+            pstatus=$(curl -L -s -o /tmp/geolibre-project.json -w "%{http_code}" "$GEOLIBRE_PROJECT_URL?qa=$GITHUB_RUN_ID" || true)
+            istatus=$(curl -L -I -s -o /dev/null -w "%{http_code}" "$GEOLIBRE_IMAGE_URL?qa=$GITHUB_RUN_ID" || true)
+            if [ "$pstatus" = "200" ] && [ "$istatus" = "200" ] && grep -q '"yilan-liquefaction-2026-exposed"' /tmp/geolibre-project.json; then
+              echo "Published project and raster are available."
+              exit 0
+            fi
+            echo "Waiting for Pages, attempt $i project=$pstatus raster=$istatus"
+            sleep 10
+          done
+          echo "Project or raster did not become available."
+          exit 1
+      - name: Verify self-hosted and official viewer screens
+        run: node scripts/geolibre-viewer-qa-yilan-facility-liquefaction.mjs
+      - name: Commit QA evidence
+        if: always()
+        shell: bash
+        run: |
+          if [ ! -d "$GEOLIBRE_QA_DIR" ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git rebase origin/main
+          git add -- "$GEOLIBRE_QA_DIR"
+          if git diff --cached --quiet; then
+            echo "No QA changes to commit."
+          else
+            git commit -m "test(gis): verify Yilan liquefaction viewer"
+            git push origin HEAD:main
+          fi

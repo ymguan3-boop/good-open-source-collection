@@ -1,70 +1,46 @@
 {
   "enabled": true,
-  "task_id": "yilan-road-repeat-construction-audit-2026-09",
+  "task_id": "yilan-public-facility-hazard-exposure-2026-09-26-update",
   "execution_mode": "analysis",
-  "script": "scripts/geolibre_tasks/yilan-road-repeat-construction-audit-2026-09.py",
-  "topic": "審計／稽核專題：道路工程重複施工與資源浪費分析",
-  "goal": "找出宜蘭縣近3年同一路段或50公尺範圍內重複施工2次以上，或前一工程完工後180天內再次施工的道路工程熱點，供審計查核優先篩選。",
+  "script": "scripts/geolibre_tasks/yilan-public-facility-hazard-exposure-2026-09-26-update.py",
+  "topic": "審計／稽核專題：宜蘭縣公共設施與115年9月新版土壤液化潛勢圖篩選",
+  "goal": "沿用宜蘭縣全境291處設施，按新版官方圖面中高潛勢色與300公尺鄰近條件重新篩選並產出可追溯清單與GeoLibre地圖。",
   "confirmed_spec": {
-    "geographic_scope": "宜蘭縣全縣",
-    "time_range": "2023-09-25 至 2026-09-25",
-    "target_features": [
-      "道路施工案件",
-      "重複施工熱點"
+    "geographic_scope": "宜蘭縣全境",
+    "facility_types": [
+      "學校",
+      "醫療機構（醫院、衛生所及衛生室）",
+      "消防分隊",
+      "政府機關代理點"
     ],
-    "input_layers": [
-      "宜蘭縣道路挖掘案件公開資料",
-      "道路養護工程（依公開案件文字分類）",
-      "管線工程（依公開案件文字分類）",
-      "道路中心線（OpenStreetMap／Overpass 補充）"
-    ],
-    "spatial_rules": [
-      "宜蘭公開案件 GML 施工多邊形或中心點在 EPSG:3826 中距離不超過50公尺，視為具有同一路段／鄰近施工關聯",
-      "道路名稱優先使用官方 DG_ROAD／DG_ROAD2 欄位；OSM道路中心線僅為可選輔助，不影響核心判定",
-      "分析期間內同一空間群聚至少2件施工，即列入重複施工查核熱點",
-      "後一案件開工日距前一案件完工日0至180天，另標示短期重複施工",
-      "缺日期或缺可計算座標／幾何的案件不得以道路名稱猜測位置，不納入正式異常判定"
-    ],
-    "thresholds": {
-      "distance_m": 50,
-      "repeat_min": 2,
-      "short_repeat_days": 180,
-      "analysis_crs": "EPSG:3826",
-      "output_crs": "EPSG:4326"
+    "input_facilities_by_type": {
+      "學校": 133,
+      "醫療機構": 42,
+      "政府機關": 98,
+      "消防分隊": 18
     },
-    "filters": {
-      "date_start": "2023-09-25",
-      "date_end": "2026-09-25",
-      "county": "宜蘭縣"
-    },
-    "data_source_preference": "宜蘭縣政府公開道路挖掘資訊優先；ODPortal歷史公開快照作備援；道路中心線使用免費開放的OSM／Overpass補充。公開資料不足時保留條件並揭露缺口，不以假資料或位置推測替代。",
-    "outputs": [
-      "GeoLibre互動地圖",
-      "overview.geojson",
-      "完整 result.geojson",
-      "施工案件 events.geojson",
-      "道路中心線 roads-context.geojson",
-      "result.csv",
-      "result.xlsx",
-      "summary.json",
-      "report.md",
-      "source-diagnostics.json",
-      "performance.json",
-      "index.html",
-      "source-snapshot.json"
-    ],
-    "source_catalog": {
-      "yilan_public_query": "https://mntengmgt.e-land.gov.tw/YilandSvc/",
-      "odportal_snapshot": "https://odportal.tw/dataset/DSNTMGUM",
-      "odportal_cdn_snapshot": "https://cdn.odportal.tw/dataset/DSNTMGUM",
-      "osm_overpass": "https://overpass-api.de/api/interpreter",
-      "odportal_resourcedata": "https://cdn.odportal.tw/api/v1/resourcedata/DSNTMGUM/61b504bb6e97860024674b09.csv"
-    }
+    "buffer_m": 300,
+    "analysis_crs": "EPSG:3826",
+    "output_crs": "EPSG:4326",
+    "raster_version": "民國115年9月（2026年9月）",
+    "source_image_url": "https://liquefaction.gsmma.gov.tw/cgs/public/img/map/YiL_Overview.png",
+    "source_image_sha256": "d2d3d0f1852509ce944cd61d5003553e3aad27d75157b9a235262b17d9b44855",
+    "input_snapshot_dir": "GeoLibre-Web/analysis/yilan-public-facility-hazard-exposure-2026-09-26-update/source-snapshots",
+    "classification": "5×5像素主色；直接中高潛勢或距中高色塊≤300公尺列入結果；未知與圖外不列入低潛勢",
+    "sources": [
+      "https://data.gov.tw/dataset/174606",
+      "https://data.gov.tw/dataset/139250",
+      "https://data.gov.tw/dataset/5962",
+      "https://data.gov.tw/dataset/5969",
+      "https://data.gov.tw/dataset/7441",
+      "https://data.gov.tw/dataset/27744",
+      "https://data.gov.tw/dataset/176526",
+      "https://data.gov.tw/dataset/130016"
+    ]
   },
-  "performance_policy_version": 5,
   "execution_metadata": {
-    "rerun_revision": 7,
-    "reason": "核心空間判定改以宜蘭公開 XML 的 GML 施工多邊形/中心點與 DG_ROAD/DG_ROAD2 為準；OSM 改為可選輔助，完全移除第三方道路查詢阻塞",
-    "confirmed_at": "2026-09-25T20:17:00+08:00"
+    "rerun_revision": 1,
+    "reason": "依新版 GeoLibre 一般版與 GitHub 版技能重新分析、產檔及發布驗收",
+    "confirmed_at": "2026-09-26"
   }
 }

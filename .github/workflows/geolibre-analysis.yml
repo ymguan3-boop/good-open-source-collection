@@ -105,7 +105,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y p7zip-full unrar-free unar
           python -m pip install --upgrade pip
-          pip install numpy pandas requests pillow pyproj shapely geopandas rasterio scipy scikit-learn openpyxl
+          pip install numpy pandas requests pillow pyproj shapely geopandas rasterio scipy scikit-learn openpyxl markdown-it-py
 
       - name: Run GeoLibre GIS analysis
         if: steps.task.outputs.execution_mode != 'postprocess_only'
