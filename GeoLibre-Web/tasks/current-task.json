@@ -39,8 +39,8 @@
     ]
   },
   "execution_metadata": {
-    "rerun_revision": 1,
-    "reason": "依新版 GeoLibre 一般版與 GitHub 版技能重新分析、產檔及發布驗收",
+    "rerun_revision": 2,
+    "reason": "將已通過的自架與官方 GeoLibre 四種畫面 QA 寫入正式報告；套用包含可見 PNG 影像的效能估算",
     "confirmed_at": "2026-09-26"
   }
 }
