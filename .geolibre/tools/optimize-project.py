@@ -217,6 +217,7 @@ def main() -> int:
 
     remaining_inline = []
     url_backed = []
+    image_backed = []
     for layer in project.get("layers", []):
         if not isinstance(layer, dict):
             continue
@@ -230,6 +231,17 @@ def main() -> int:
             })
 
         source = layer.get("source")
+        image_url = source.get("url") if isinstance(source, dict) and layer.get("type") == "image" else None
+        if isinstance(image_url, str):
+            local_image = local_source_file(image_url, out, public_out)
+            image_backed.append({
+                "id": layer.get("id"),
+                "name": layer.get("name"),
+                "url": image_url,
+                "local_file": local_image.relative_to(out).as_posix() if local_image else None,
+                "bytes": local_image.stat().st_size if local_image else None,
+                "visible": bool(layer.get("visible", True)),
+            })
         data = source.get("data") if isinstance(source, dict) else None
         if isinstance(data, str):
             local = local_source_file(data, out, public_out)
@@ -245,7 +257,7 @@ def main() -> int:
     # Estimate initial payload for URL-backed files hosted with this output.
     visible_external_bytes = sum(
         int(x["bytes"])
-        for x in url_backed
+        for x in [*url_backed, *image_backed]
         if x["visible"] and isinstance(x.get("bytes"), int)
     )
     initial_estimate = final_project_bytes + visible_external_bytes
@@ -268,6 +280,8 @@ def main() -> int:
         "externalized_layers_this_run": externalized,
         "url_backed_layer_count": len(url_backed),
         "url_backed_layers": url_backed,
+        "image_backed_layer_count": len(image_backed),
+        "image_backed_layers": image_backed,
         "remaining_inline_layer_count": len(remaining_inline),
         "largest_remaining_inline_bytes": largest_inline,
         "inline_layer_max_bytes": INLINE_MAX,
@@ -284,7 +298,7 @@ def main() -> int:
         "mobile_soft_budget_ok": initial_estimate <= INITIAL_SOFT,
         "mobile_hard_budget_ok": initial_estimate <= INITIAL_HARD,
         "notes": [
-            "Initial-load estimate includes project JSON plus visible URL-backed GeoJSON files that map back to files in this analysis output.",
+            "Initial-load estimate includes project JSON plus visible URL-backed GeoJSON and image files that map back to this analysis output."
             "Hidden layers and third-party/service URLs may still have runtime costs not fully estimated here.",
             "Visibility adjustments affect presentation only; analytical outputs are unchanged.",
         ],
@@ -297,6 +311,7 @@ def main() -> int:
         "project_final_bytes": final_project_bytes,
         "externalized_this_run": len(externalized),
         "url_backed_layers": len(url_backed),
+        "image_backed_layers": len(image_backed),
         "largest_inline": largest_inline,
         "visible_thematic_layers": visible_thematic_count,
         "initial_estimate": initial_estimate,
