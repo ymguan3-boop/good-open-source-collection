@@ -1,3 +1,9 @@
+## Repository note
+
+This folder keeps the **GeoLibre upstream application** as one of the three programs in this collection. Taiwan-specific God's Eye features such as Cesium/TomTom credential management, driving navigation, Gemini Live, and manual OSM layer refresh belong to the sibling `gods-eye-taiwan-desktop/` project and are not GeoLibre features.
+
+---
+
 # GeoLibre
 
 [![Launch GeoLibre Web](https://img.shields.io/badge/Launch-GeoLibre%20Web-green.svg)](https://web.geolibre.app/)

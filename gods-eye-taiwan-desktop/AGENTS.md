@@ -22,18 +22,22 @@
 - 預設顯示完整地球。
 - `T` 跳台灣，`G` 回全球。
 - UI 為繁體中文。
-- 設定可管理 Cesium / Google / OpenRouter / Gemini。
+- 設定可管理 Cesium / Google / OpenRouter / Gemini / TomTom。
 - RAM / Swap / GPU / VRAM 面板可使用。
-- 「圖資 → 檢查 OSM 新鮮度」可取得 `osm3s.timestamp_osm_base`；若上游失效應誠實顯示錯誤/備援，不得假稱最新。
+- OSM 不做背景更新或提醒；只有使用者手動按「載入／更新」內建 OSM 圖層時才強制抓取最新可用資料。
+- 「圖資 → 查看 OSM 資料時間」只在手動觸發時取得 `osm3s.timestamp_osm_base`；若上游失效應誠實顯示錯誤/備援，不得假稱最新。
 - 「圖資 → 抽查 CCTV 最新畫面」能顯示每支 sample 的 `X-CCTV-Source`。只有 `upstream-image` 可判定為直接上游 snapshot；Street View / synthetic 只能標示備援。
 - CCTV 原版面板可正常開啟；active still 約 10 秒刷新一次。
-- 若使用者已提供 Gemini API Key，Gemini Live 能取得 ephemeral token、開啟麥克風、回傳語音，且「列圖層 / 台灣 / 全球 / Buffer」至少各抽測一項。
+- Cesium ion Token：儲存後執行「驗證 Cesium Token」，必須實際通過 ion asset 2275207 endpoint；重啟後 runtimeConfig 必須把 Token 傳入上游 `cesiumToken`。
+- TomTom API Key：儲存後執行「驗證 TomTom Key」；至少完成一次台灣地點搜尋與一次行車路線。
+- 手動導航驗收：指定起訖點 → 顯示路線 → 查看整條路線 → 導航視角；若 Windows Location Services 可用，再測「開始導航／停止導航」。
+- 若使用者已提供 Gemini API Key，Gemini Live 能取得 ephemeral token、開啟麥克風、回傳語音，並抽測「顯示行車路線 / 導航視角 / 開始導航」至少一項。
 - OpenRouter 舊功能不得因 Gemini 加入而失效。
 
 ## 禁止
 
 - 不建立第二套 globe viewer。
-- 不把 Gemini/OpenRouter 長效 Key 寫到 JS 或 repo。
+- 不把 Gemini/OpenRouter/TomTom 長效 Key 寫到 JS 或 repo。
 - 不把 CCTV fallback 當成即時 CCTV。
 - 不刪除 Cesium/OSM/provider attribution。
 - 不自動修改 Windows Pagefile、GPU 時脈、驅動或系統級效能設定。

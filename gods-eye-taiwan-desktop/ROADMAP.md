@@ -67,3 +67,16 @@
 - [ ] Crash Recovery / autosave / analysis recipe rerun
 - [ ] Voice Provider Adapter（Gemini Live / OpenAI Realtime）
 - [ ] 一鍵系統健康檢查
+
+
+## P8 — Routing / Navigation
+- [x] TomTom API Key secure storage + validation
+- [x] TomTom Search 地點解析
+- [x] TomTom Routing 行車路線（traffic=true）
+- [x] Cesium 路線圖層顯示
+- [x] 導航視角
+- [x] Windows/WebView2 geolocation 跟隨導航
+- [x] Gemini Live 路線／導航工具
+- [x] Cesium ion Token 實際 asset endpoint 驗證
+- [ ] 偏航自動重新規劃
+- [ ] 逐轉彎語音提示與下一轉向 UI

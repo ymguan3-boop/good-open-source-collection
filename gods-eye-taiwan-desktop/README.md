@@ -46,16 +46,15 @@ scripts\start-gods-eye-taiwan.ps1
 
 該腳本以 Tauri release profile + `--no-watch` 啟動本機 provider service 與桌面視窗。這可避免開發用檔案監看，同時保留 CCTV/OSM 等即時服務。
 
-## OpenStreetMap 新鮮度
+## OpenStreetMap 更新方式
 
 - 底圖：官方 OpenStreetMap tile source。
-- 審計分析向量資料：透過 Overpass API。
-- 台灣版把一般分析快取縮短為：
-  - 記憶體：15 分鐘
-  - 磁碟：1 小時
-  - 行政界：24 小時
-- 「圖資 → 檢查 OSM 新鮮度」會強制略過正常 fresh cache，向 Overpass 取得資料，讀取 `osm3s.timestamp_osm_base` 顯示實際資料時間與延遲。
-- 若公共 Overpass mirrors 暫時失效，上游仍可使用最後成功資料作為降級備援；介面不可把 stale 資料標示為最新。
+- 道路／鐵路／水系等分析向量：透過 Overpass API。
+- **不做背景更新，也不顯示定期更新提醒。**
+- 使用者在「內建基礎圖資」按「載入」或「更新」時，台灣版會帶入強制更新標記，略過本機 fresh cache，取得當下可用的最新 OSM / Overpass 資料。
+- 「圖資 → 查看 OSM 資料時間」只有在使用者手動按下時才查詢 `osm3s.timestamp_osm_base`。
+- 未手動更新時，既有圖層維持目前專案中的版本，不會在背景自動替換。
+- 若公共 Overpass mirrors 暫時失效，介面應誠實顯示錯誤或備援狀態，不得把 stale 資料標示為最新。
 
 ## CCTV 最新畫面檢核
 
@@ -91,12 +90,13 @@ Google Free Tier 的實際額度、可用地區與資料使用條件以 Google �
 
 全部集中在 **設定 → 服務與 API**：
 
-- Cesium ion
+- **Cesium ion Token**：啟動時從 Windows Credential Manager 讀回，再傳入 God's Eye View 的 `cesiumToken`。設定頁可按「驗證 Cesium Token」，實際測試目前上游使用的 ion Google Photorealistic 3D Tiles asset。
 - Google Maps
 - OpenRouter
 - Gemini
+- **TomTom API Key**：只由 Rust 後端讀取，用於地點搜尋與行車路線。
 
-OpenRouter / Gemini 長效 Key 不寫進 source code。
+OpenRouter / Gemini / TomTom 長效 Key 不寫進 source code。Cesium / Google 因瀏覽器地圖 SDK 需要會傳入 WebView，因此應使用最小權限與 provider / URL 限制。
 
 ## 內建桌面 Icon
 
@@ -177,3 +177,36 @@ powershell -ExecutionPolicy Bypass -File .\scripts\rebuild-desktop-shortcut.ps1
 - 192 MB 3D Tiles cache
 
 內建向量圖層另有獨立 feature budget，避免道路、水系等密集資料一次塞入 Cesium。
+
+
+## TomTom 行車路線與導航
+
+台灣版已加入 TomTom Search + Routing：
+
+- 設定頁可輸入 **TomTom API Key**，並按「驗證 TomTom Key」。
+- 起點可留空使用 Windows / WebView2 目前位置，也可輸入地名。
+- 目的地可直接輸入「宜蘭縣政府」、「羅東車站」等地點。
+- TomTom Routing 會以 `traffic=true` 計算目前行車路線、距離、預估時間與交通延誤。
+- 路線直接畫在既有 Cesium Viewer，不建立第二套地圖。
+- 可「查看整條路線」、「導航視角」、「開始導航」、「停止導航」。
+- 導航時只保留一條目前路線與一個目前位置標記，停止導航後不再持續取得位置。
+- 實際定位導航需 Windows Location Services / WebView2 定位權限可用；若電腦沒有可用定位來源，仍可用指定起點與目的地顯示路線及導航視角。
+
+### AI 語音導航
+
+Gemini Live 已增加下列工具：
+
+- `plan_driving_route`
+- `show_route`
+- `navigation_view`
+- `start_navigation`
+- `stop_navigation`
+
+因此可以直接說：
+
+- 「顯示從宜蘭縣政府到羅東車站的行車路線。」
+- 「切換導航視角。」
+- 「開始導航。」
+- 「導航到宜蘭轉運站。」
+
+AI 不會自己猜路線；真正路線由 TomTom Routing API 計算，再由 Cesium 顯示。

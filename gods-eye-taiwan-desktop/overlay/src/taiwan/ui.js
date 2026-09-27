@@ -245,10 +245,10 @@ export function mountShell({ viewer, governor }) {
       </section>
 
       <section class="tw-section">
-        <div class="tw-section-head"><div><h3>即時資料健康</h3><p>確認 OSM 與 CCTV 是否為最新上游資料。</p></div></div>
+        <div class="tw-section-head"><div><h3>資料狀態（手動）</h3><p>OSM 僅在你手動載入／更新時抓最新資料；CCTV 可依需要手動抽查。</p></div></div>
         <article class="tw-card">
           <div class="tw-actions compact">
-            <button data-act="osm-check">檢查 OSM</button>
+            <button data-act="osm-check">查看 OSM 資料時間</button>
             <button data-act="cctv-check">抽查 CCTV</button>
             <button data-act="open-cctv">CCTV 面板</button>
           </div>

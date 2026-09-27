@@ -60,11 +60,14 @@ gods-eye-taiwan-desktop/
 - OpenStreetMap / Overpass 圖資
 - 道路、鐵路、水系、水域、海岸線可分開成獨立圖層
 - CCTV 即時來源檢核
-- Gemini Live 語音操作
+- Gemini Live 語音操作，可呼叫 TomTom 行車路線與導航
 - OpenRouter AI 分析
 - GIS Buffer 等空間分析
 - RAM / Swap / GPU / VRAM 資源監控
 - 輕量化圖層載入與 GPU 保護
+- TomTom 地點搜尋、行車路線、導航視角與定位跟隨
+- Cesium ion Token / TomTom Key 可在設定中輸入並驗證
+- OSM 圖層採手動載入／更新，不做背景更新提醒
 - Windows 桌面捷徑與專案內建 Icon
 
 ### 下載
@@ -91,7 +94,7 @@ cd good-open-source-collection\gods-eye-taiwan-desktop
 
 建議把 `gods-eye-taiwan-desktop` 資料夾交給可操作本機終端機的 Agent，並下達：
 
-> 請依照此資料夾內的 AGENTS.md 安裝「上帝之眼・台灣版」，完成必要環境檢查、上游準備、相依套件安裝、桌面捷徑建立，並驗證 OSM、CCTV、Gemini Live、圖資分層與 GPU/RAM 資源監控。
+> 請依照此資料夾內的 AGENTS.md 安裝「上帝之眼・台灣版」，完成必要環境檢查、上游準備、相依套件安裝、桌面捷徑建立，並驗證 OSM 手動更新、CCTV、Cesium Token、TomTom 路線與導航、Gemini Live、圖資分層與 GPU/RAM 資源監控。
 
 也可直接在 Windows PowerShell 執行：
 

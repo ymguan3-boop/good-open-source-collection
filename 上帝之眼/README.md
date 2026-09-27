@@ -1,3 +1,9 @@
+## 📦 此倉庫版本說明
+
+此資料夾保留 **God's Eye View 原版**。本倉庫另外提供的「上帝之眼・台灣版」位於 `../gods-eye-taiwan-desktop/`，其新增功能（繁體中文工作台、OSM 分層、Cesium Token 驗證、TomTom 行車路線／導航、Gemini Live、GPU 輕量化）不應誤認為原版既有功能。
+
+---
+
 # 🌐 上帝之眼 God's Eye View（繁體中文版）
 
 > 本文件為原專案 `README.md` 的繁體中文翻譯整理，原英文版已備份為 `README.en.md`。
