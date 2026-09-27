@@ -1,0 +1,27 @@
+
+[package]
+name = "gods-eye-taiwan"
+version = "0.1.0"
+description = "上帝之眼・台灣版"
+authors = ["官毅明"]
+edition = "2021"
+
+[lib]
+name = "gods_eye_taiwan_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "gods-eye-taiwan"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sysinfo = "0.39"
+hypomnesis = { version = "0.2", default-features = false, features = ["nvml", "dxgi", "pdh", "nvidia-smi-fallback"] }
+keyring = { version = "3", features = ["windows-native"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
