@@ -177,10 +177,10 @@ export function mountShell({ viewer, governor }) {
 
   function applyCustom() {
     const custom = {
-      fps:num('#tw-c-fps',45),
-      scale:num('#tw-c-scale',1),
-      cacheMB:num('#tw-c-cache',512),
-      sse:num('#tw-c-sse',18),
+      fps:num('#tw-c-fps',40),
+      scale:num('#tw-c-scale',0.9),
+      cacheMB:num('#tw-c-cache',384),
+      sse:num('#tw-c-sse',20),
       overflowMB:128,
     };
     governor.apply('custom', custom);
@@ -286,10 +286,10 @@ export function mountShell({ viewer, governor }) {
       <div class="tw-profile-grid">${Object.entries(PROFILES).map(([k,v]) => `<button class="${current===k?'on':''}" data-act="apply-profile" data-profile="${k}"><b>${v.label}</b><small>${v.fps} FPS · ${v.cacheMB} MB tiles</small></button>`).join('')}</div>
       <details class="tw-details" ${current==='custom'?'open':''}>
         <summary>自訂 GPU／記憶體預算</summary>
-        <label>目標 FPS <input id="tw-c-fps" type="number" min="20" max="60" value="${c.fps||45}"></label>
-        <label>渲染解析度比例 <input id="tw-c-scale" type="number" min="0.5" max="1.5" step="0.05" value="${c.scale||1}"></label>
-        <label>3D Tiles 快取 MB <input id="tw-c-cache" type="number" min="128" max="2048" step="64" value="${c.cacheMB||512}"></label>
-        <label>LOD 誤差（越大越省 GPU）<input id="tw-c-sse" type="number" min="6" max="40" value="${c.sse||18}"></label>
+        <label>目標 FPS <input id="tw-c-fps" type="number" min="20" max="60" value="${c.fps||40}"></label>
+        <label>渲染解析度比例 <input id="tw-c-scale" type="number" min="0.5" max="1.5" step="0.05" value="${c.scale||0.9}"></label>
+        <label>3D Tiles 快取 MB <input id="tw-c-cache" type="number" min="128" max="2048" step="64" value="${c.cacheMB||384}"></label>
+        <label>LOD 誤差（越大越省 GPU）<input id="tw-c-sse" type="number" min="6" max="40" value="${c.sse||20}"></label>
         <button data-act="apply-custom">套用自訂配置</button>
       </details>
       <p class="tw-note">當 RAM≥88%、Swap≥75% 或 VRAM≥88% 時會自動降載。這裡只限制本程式，不會擅自修改 Windows Pagefile 或 GPU 時脈。</p>
