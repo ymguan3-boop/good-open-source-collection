@@ -2,17 +2,17 @@
 import { invoke } from '@tauri-apps/api/core';
 
 const PROFILES = {
-  eco:         { label:'省電', fps:30, scale:0.75, sse:28, cacheMB:256, overflowMB:64 },
-  balanced:    { label:'平衡', fps:45, scale:1.00, sse:18, cacheMB:512, overflowMB:128 },
-  performance: { label:'效能', fps:60, scale:1.00, sse:10, cacheMB:1024, overflowMB:256 },
+  eco:         { label:'省電', fps:24, scale:0.72, sse:30, cacheMB:192, overflowMB:48 },
+  balanced:    { label:'平衡', fps:40, scale:0.90, sse:20, cacheMB:384, overflowMB:96 },
+  performance: { label:'效能', fps:60, scale:1.00, sse:12, cacheMB:768, overflowMB:192 },
 };
 
 export class ResourceGovernor {
   constructor(viewer, tileset) {
-    this.viewer = viewer; this.tileset = tileset; this.profile = 'balanced'; this.custom = {}; this.lastSnapshot = null;
+    this.viewer = viewer; this.tileset = tileset; const saved=readSavedProfile(); this.profile=saved.name; this.custom=saved.custom; this.lastSnapshot = null;
     this.listeners = new Set(); this.timer = null; this.pressured = false;
   }
-  start() { this.apply(this.profile); this.timer ||= setInterval(() => this.refresh(), 2500); this.refresh(); }
+  start() { this.apply(this.profile, this.custom); this.timer ||= setInterval(() => this.refresh(), 3000); this.refresh(); }
   stop() { clearInterval(this.timer); this.timer = null; }
   subscribe(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
   apply(name, custom={}) {
@@ -48,6 +48,7 @@ export class ResourceGovernor {
     if (this.tileset) { this.tileset.maximumScreenSpaceError = Math.max(this.tileset.maximumScreenSpaceError, 30); this.tileset.cacheBytes = Math.min(this.tileset.cacheBytes || Infinity, 192*1024*1024); }
   }
 }
+function readSavedProfile(){ try { const v=JSON.parse(localStorage.getItem('gev.tw.resourceProfile')||'{}'); if(v?.name) return {name:v.name,custom:v.custom||{}}; } catch {} return {name:'balanced',custom:{}}; }
 function ratio(a,b){ return b ? a/b : 0; }
 function browserSnapshot(){ return { systemMemoryTotal:0,systemMemoryUsed:0,swapTotal:0,swapUsed:0,processMemory:0,processVirtualMemory:0,gpuName:'瀏覽器模式',gpuTotal:0,gpuUsed:0,processGpuUsed:0 }; }
 export { PROFILES };
