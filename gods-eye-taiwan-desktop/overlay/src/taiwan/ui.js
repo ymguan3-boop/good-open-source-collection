@@ -1,13 +1,14 @@
 import * as Cesium from 'cesium';
 import { invoke } from '@tauri-apps/api/core';
 import { importFile } from './dataImport.js';
-import { listLayers, getLayer } from './layerRegistry.js';
+import { listLayers, getLayer, removeLayer, setLayerVisible } from './layerRegistry.js';
 import { runBuffer, summarize } from './analysis.js';
 import { exportProject, importProject, saveProject } from './projectManager.js';
 import { suggestTopics, planAnalysis } from './ai.js';
 import { PROFILES } from './resourceGovernor.js';
 import { checkCctvFreshness, checkOsmFreshness } from './liveDataHealth.js';
 import { createGeminiLiveController } from './geminiLive.js';
+import { BUILTIN_LAYER_CATALOG, OFFICIAL_TAIWAN_VECTOR_REFERENCES, loadBuiltinLayer, currentBuiltinStatus } from './builtinLayers.js';
 
 export function mountShell({ viewer, governor }) {
   const root = document.createElement('div');
@@ -114,6 +115,9 @@ export function mountShell({ viewer, governor }) {
       if (a === 'cctv-check') return doCctvCheck();
       if (a === 'osm-check') return doOsmCheck();
       if (a === 'open-cctv') return openLegacyCctv();
+      if (a === 'builtin-load') return doLoadBuiltin(btn.dataset.builtin);
+      if (a === 'layer-remove') { removeLayer(btn.dataset.layer); return renderLayers(); }
+      if (a === 'layer-toggle') { const layer=getLayer(btn.dataset.layer); if (layer) setLayerVisible(layer.id, !layer.visible); return renderLayers(); }
     } catch (err) {
       console.error(err);
       toast(err?.message || String(err));
@@ -185,21 +189,81 @@ export function mountShell({ viewer, governor }) {
 
   function renderLayers() {
     const layers = listLayers();
+    const builtins = currentBuiltinStatus();
+    const groups = [...new Set(BUILTIN_LAYER_CATALOG.map(x => x.group))];
+
     open('圖資', `
-      <div class="tw-actions"><button data-act="import-data">＋ 新增圖資</button></div>
-      <h3>即時資料健康</h3>
-      <article class="tw-card">
-        <b>OpenStreetMap / CCTV</b>
-        <p>OSM 審計查詢預設快取已縮短；可強制查詢 OSM 資料時間。CCTV frame 使用 no-store，既有主動畫面每 10 秒重新請求。</p>
-        <div class="tw-actions">
-          <button data-act="osm-check">檢查 OSM 新鮮度</button>
-          <button data-act="cctv-check">抽查 CCTV 最新畫面</button>
+      <div class="tw-actions"><button data-act="import-data">＋ 新增自己的圖資</button></div>
+
+      <section class="tw-section">
+        <div class="tw-section-head">
+          <div><h3>內建基礎圖資</h3><p>按目前視窗範圍即時拆分，不預載全台資料。</p></div>
+          <span class="tw-badge source">輕量按需</span>
         </div>
-        <button data-act="open-cctv">開啟 CCTV 面板</button>
-        <div id="tw-live-health"></div>
-      </article>
-      <h3>我的圖資</h3>
-      ${layers.length ? layers.map(l => `<article class="tw-card"><b>${esc(l.name)}</b><small>${esc(l.kind)}</small><div><button data-act="buffer" data-layer="${l.id}">建立影響範圍</button></div></article>`).join('') : '<p class="tw-empty">尚未載入自訂圖資。</p>'}`);
+        ${groups.map(group => `
+          <div class="tw-catalog-group">
+            <b class="tw-group-label">${esc(group)}</b>
+            ${builtins.filter(x => x.group === group).map(item => `
+              <div class="tw-layer-row">
+                <div class="tw-layer-main">
+                  <b>${esc(item.name)}</b>
+                  <small>${esc(item.description)}</small>
+                  <span class="tw-source-line">${esc(item.source)} · ${esc(item.officialAlternative)}</span>
+                </div>
+                <div class="tw-row-actions">
+                  ${item.loaded
+                    ? `<span class="tw-badge ok">${item.layer?.geojson?.features?.length ?? 0} 筆</span>
+                       <button data-act="layer-toggle" data-layer="${item.layer.id}">${item.layer.visible ? '隱藏' : '顯示'}</button>
+                       <button data-act="builtin-load" data-builtin="${item.id}">更新</button>`
+                    : `<button data-act="builtin-load" data-builtin="${item.id}">載入</button>`}
+                </div>
+              </div>`).join('')}
+          </div>`).join('')}
+        <p class="tw-note">為保護 GPU／RAM，內建圖資只載入目前視窗，且依省電／平衡／效能模式限制物件數與簡化程度。請先縮放到縣市或更小範圍。</p>
+        <details class="tw-details">
+          <summary>官方 NLSC 分層向量代碼</summary>
+          <p class="tw-note">NLSC 已有下列獨立 WFS 向量，但目前屬需申請服務；因此開源版不會直接大量下載或再散布。</p>
+          ${OFFICIAL_TAIWAN_VECTOR_REFERENCES.map(([name,code]) => `<div class="tw-official-row"><span>${esc(name)}</span><code>${esc(code)}</code></div>`).join('')}
+        </details>
+      </section>
+
+      <section class="tw-section">
+        <div class="tw-section-head"><div><h3>即時資料健康</h3><p>確認 OSM 與 CCTV 是否為最新上游資料。</p></div></div>
+        <article class="tw-card">
+          <div class="tw-actions compact">
+            <button data-act="osm-check">檢查 OSM</button>
+            <button data-act="cctv-check">抽查 CCTV</button>
+            <button data-act="open-cctv">CCTV 面板</button>
+          </div>
+          <div id="tw-live-health"></div>
+        </article>
+      </section>
+
+      <section class="tw-section">
+        <div class="tw-section-head"><div><h3>目前圖層</h3><p>內建、匯入與分析成果統一管理。</p></div><span class="tw-badge">${layers.length} 層</span></div>
+        ${layers.length ? layers.map(l => `
+          <article class="tw-card tw-current-layer">
+            <div class="tw-layer-main">
+              <b>${esc(l.name)}</b>
+              <small>${esc(l.kind)}${l.source ? ' · '+esc(l.source) : ''}</small>
+              ${l.fetchedAt ? `<span class="tw-source-line">更新 ${new Date(l.fetchedAt).toLocaleString()}</span>` : ''}
+            </div>
+            <div class="tw-actions compact">
+              <button data-act="layer-toggle" data-layer="${l.id}">${l.visible ? '隱藏' : '顯示'}</button>
+              ${l.geojson ? `<button data-act="buffer" data-layer="${l.id}">影響範圍</button>` : ''}
+              <button data-act="layer-remove" data-layer="${l.id}">移除</button>
+            </div>
+          </article>`).join('') : '<p class="tw-empty">尚未載入圖資。</p>'}
+      </section>`);
+  }
+
+  async function doLoadBuiltin(id) {
+    const item = BUILTIN_LAYER_CATALOG.find(x => x.id === id);
+    if (!item) throw new Error('找不到內建圖層');
+    toast(`正在載入「${item.name}」…`);
+    const layer = await loadBuiltinLayer(id, viewer, { replace:true });
+    toast(`已載入 ${layer.name}：${layer.geojson?.features?.length ?? 0} 筆`);
+    renderLayers();
   }
 
   function renderAnalysis() {
