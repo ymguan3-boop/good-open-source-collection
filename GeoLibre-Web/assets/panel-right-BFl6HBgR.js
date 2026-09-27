@@ -1,1 +1,0 @@
-import{K as a}from"./context-GZHJcbk1.js";var e={name:"panel-right",size:24,node:[["rect",{width:"18",height:"18",x:"3",y:"3",rx:"2",key:"afitv7"}],["path",{d:"M15 3v18",key:"14nvp0"}]]};e.node;var t=a(e);export{t};
