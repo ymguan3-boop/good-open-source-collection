@@ -6,7 +6,7 @@ import { runBuffer } from './analysis.js';
 
 const MODEL = 'gemini-3.8-live';
 
-export function createGeminiLiveController({ viewer, onStatus = () => {}, onTranscript = () => {} }) {
+export function createGeminiLiveController({ viewer, navigation, onStatus = () => {}, onTranscript = () => {} }) {
   let session = null;
   let inputStream = null;
   let inputContext = null;
@@ -31,6 +31,38 @@ export function createGeminiLiveController({ viewer, onStatus = () => {}, onTran
       {
         name:'fly_global',
         description:'回到完整地球視角。',
+        parameters:{ type:'OBJECT', properties:{} }
+      },
+      {
+        name:'plan_driving_route',
+        description:'使用 TomTom 規劃行車路線並顯示在 Cesium。可指定起點；起點省略時使用目前位置。',
+        parameters:{
+          type:'OBJECT',
+          properties:{
+            origin:{type:'STRING',description:'起點名稱，可省略'},
+            destination:{type:'STRING',description:'目的地名稱'}
+          },
+          required:['destination']
+        }
+      },
+      {
+        name:'show_route',
+        description:'將鏡頭縮放到目前已規劃的行車路線。',
+        parameters:{ type:'OBJECT', properties:{} }
+      },
+      {
+        name:'navigation_view',
+        description:'切換到沿目前路線方向的導航視角。',
+        parameters:{ type:'OBJECT', properties:{} }
+      },
+      {
+        name:'start_navigation',
+        description:'使用裝置目前位置開始跟隨導航；必須先規劃路線。',
+        parameters:{ type:'OBJECT', properties:{} }
+      },
+      {
+        name:'stop_navigation',
+        description:'停止目前位置跟隨導航，但保留路線。',
         parameters:{ type:'OBJECT', properties:{} }
       },
       {
@@ -70,7 +102,7 @@ export function createGeminiLiveController({ viewer, onStatus = () => {}, onTran
         responseModalities:[Modality.AUDIO],
         inputAudioTranscription:{},
         outputAudioTranscription:{},
-        systemInstruction:'你是「上帝之眼・台灣版」的即時 GIS 語音助理。使用繁體中文。需要操作地圖或圖層時必須呼叫工具，不可假裝已操作；GIS 幾何運算由工具執行。',
+        systemInstruction:'你是「上帝之眼・台灣版」的即時 GIS 與導航語音助理。使用繁體中文。需要操作地圖、圖層、路線或導航時必須呼叫工具，不可假裝已操作；GIS 幾何與路線計算由工具執行。當使用者說「導航到某地」時，先規劃行車路線，再啟動導航。',
         tools,
       }
     });
@@ -155,6 +187,29 @@ export function createGeminiLiveController({ viewer, onStatus = () => {}, onTran
     if (name === 'fly_global') {
       viewer.camera.flyHome(1.2);
       return { ok:true, view:'global' };
+    }
+    if (name === 'plan_driving_route') {
+      if (!navigation) throw new Error('導航工具尚未初始化');
+      return navigation.planRoute({
+        origin:String(args.origin || ''),
+        destination:String(args.destination || ''),
+      });
+    }
+    if (name === 'show_route') {
+      if (!navigation) throw new Error('導航工具尚未初始化');
+      return navigation.showRoute();
+    }
+    if (name === 'navigation_view') {
+      if (!navigation) throw new Error('導航工具尚未初始化');
+      return navigation.navigationView();
+    }
+    if (name === 'start_navigation') {
+      if (!navigation) throw new Error('導航工具尚未初始化');
+      return navigation.startNavigation();
+    }
+    if (name === 'stop_navigation') {
+      if (!navigation) throw new Error('導航工具尚未初始化');
+      return navigation.stopNavigation();
     }
     if (name === 'create_buffer') {
       const layer = getLayer(String(args.layerId || ''));

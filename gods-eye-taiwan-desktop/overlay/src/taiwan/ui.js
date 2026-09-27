@@ -9,6 +9,7 @@ import { PROFILES } from './resourceGovernor.js';
 import { checkCctvFreshness, checkOsmFreshness } from './liveDataHealth.js';
 import { createGeminiLiveController } from './geminiLive.js';
 import { BUILTIN_LAYER_CATALOG, OFFICIAL_TAIWAN_VECTOR_REFERENCES, loadBuiltinLayer, currentBuiltinStatus } from './builtinLayers.js';
+import { createNavigationController } from './navigation.js';
 
 export function mountShell({ viewer, governor }) {
   const root = document.createElement('div');
@@ -62,8 +63,17 @@ export function mountShell({ viewer, governor }) {
     setTimeout(() => t.classList.remove('show'), 3000);
   };
 
+  const navigation = createNavigationController({
+    viewer,
+    onStatus:(message) => {
+      const el = root.querySelector('#tw-navigation-status');
+      if (el) el.textContent = message;
+    },
+  });
+
   const geminiLive = createGeminiLiveController({
     viewer,
+    navigation,
     onStatus: (message) => {
       const el = root.querySelector('#tw-gemini-status');
       if (el) el.textContent = message;
@@ -118,6 +128,13 @@ export function mountShell({ viewer, governor }) {
       if (a === 'builtin-load') return doLoadBuiltin(btn.dataset.builtin);
       if (a === 'layer-remove') { removeLayer(btn.dataset.layer); return renderLayers(); }
       if (a === 'layer-toggle') { const layer=getLayer(btn.dataset.layer); if (layer) setLayerVisible(layer.id, !layer.visible); return renderLayers(); }
+      if (a === 'validate-cesium') return validateProvider('cesium');
+      if (a === 'validate-tomtom') return validateProvider('tomtom');
+      if (a === 'route-plan') return doRoutePlan();
+      if (a === 'route-view') return navigation.navigationView();
+      if (a === 'route-show') return navigation.showRoute();
+      if (a === 'nav-start') return navigation.startNavigation();
+      if (a === 'nav-stop') return navigation.stopNavigation();
     } catch (err) {
       console.error(err);
       toast(err?.message || String(err));
@@ -295,23 +312,40 @@ export function mountShell({ viewer, governor }) {
       <p class="tw-note">當 RAM≥88%、Swap≥75% 或 VRAM≥88% 時會自動降載。這裡只限制本程式，不會擅自修改 Windows Pagefile 或 GPU 時脈。</p>
       <h3>服務與 API</h3>
       <label>Cesium ion Token<input id="tw-key-cesium" type="password" autocomplete="off" placeholder="貼上後安全儲存"></label>
+      <div class="tw-actions compact"><button data-act="validate-cesium">驗證 Cesium Token</button><span id="tw-cesium-status" class="tw-note"></span></div>
       <label>Google Maps API Key<input id="tw-key-google" type="password" autocomplete="off"></label>
       <label>OpenRouter API Key<input id="tw-key-openrouter" type="password" autocomplete="off"></label>
       <label>OpenRouter 預設模型<input id="tw-model" value="${esc(localStorage.getItem('gev.tw.aiModel')||'openai/gpt-5')}"></label>
       <label>Gemini API Key（Google AI Studio）<input id="tw-key-gemini" type="password" autocomplete="off" placeholder="支援 Gemini 3.8 Live Free Tier"></label>
+      <label>TomTom API Key<input id="tw-key-tomtom" type="password" autocomplete="off" placeholder="路線規劃、地點搜尋與導航"></label>
+      <div class="tw-actions compact"><button data-act="validate-tomtom">驗證 TomTom Key</button><span id="tw-tomtom-status" class="tw-note"></span></div>
       <div class="tw-card"><b>Gemini Live</b><p>固定使用穩定版 <code>gemini-3.8-live</code>。長效 Gemini Key 只存在 Windows Credential Manager；前端 Live WebSocket 只拿短效 ephemeral token。</p></div>
       <div class="tw-actions"><button data-act="save-keys">儲存設定</button><button data-act="reload">重新啟動介面</button></div>
-      <p class="tw-note">Google/Cesium 金鑰因地圖 SDK 需要會送入 WebView，請使用 provider 限制；OpenRouter 與 Gemini 長效金鑰只由 Rust 後端讀取。</p>`);
+      <p class="tw-note">Cesium Token 會在啟動時讀回並傳入 God's Eye View 的 cesiumToken；Google/Cesium 因地圖 SDK 需要會進入 WebView，請使用 provider 限制。OpenRouter、Gemini 與 TomTom 長效金鑰只由 Rust 後端讀取。</p>`);
   }
 
   function renderAI() {
     open('AI 空間助理', `
       <article class="tw-card">
         <b>Gemini 3.8 Live 即時語音</b>
-        <p>可用 Google AI Studio API Key。按一次開始聆聽，再按一次停止；可語音切換台灣／全球、查詢圖層與建立 Buffer。</p>
+        <p>可用 Google AI Studio API Key。按一次開始聆聽，再按一次停止；可語音切換視角、查詢圖層、建立 Buffer，也可要求「顯示到某地的行車路線」「切換導航視角」「開始導航」。</p>
         <button class="tw-primary" data-act="gemini-live-toggle">${geminiLive.active ? '● 停止 Gemini Live' : '◉ 開始 Gemini Live'}</button>
         <div id="tw-gemini-status" class="tw-note">${geminiLive.active ? 'Gemini Live 已連線' : '尚未啟動'}</div>
         <div id="tw-gemini-transcript"></div>
+      </article>
+      <article class="tw-card">
+        <b>TomTom 行車路線與導航</b>
+        <p>起點可留空使用目前位置；也可輸入「宜蘭縣政府」等地點名稱。</p>
+        <label>起點<input id="tw-route-origin" placeholder="留空＝目前位置"></label>
+        <label>目的地<input id="tw-route-destination" placeholder="例如：羅東車站"></label>
+        <div class="tw-actions compact">
+          <button data-act="route-plan">顯示行車路線</button>
+          <button data-act="route-show">查看整條路線</button>
+          <button data-act="route-view">導航視角</button>
+          <button data-act="nav-start">開始導航</button>
+          <button data-act="nav-stop">停止導航</button>
+        </div>
+        <div id="tw-navigation-status" class="tw-note">尚未規劃路線</div>
       </article>
       <article class="tw-card">
         <b>OpenRouter 分析助理</b>
@@ -354,6 +388,7 @@ export function mountShell({ viewer, governor }) {
       ['tw-key-google','google'],
       ['tw-key-openrouter','openrouter'],
       ['tw-key-gemini','gemini'],
+      ['tw-key-tomtom','tomtom'],
     ]) {
       const v = body.querySelector('#'+id)?.value.trim();
       if (v) await invoke('save_api_key', { name, value:v });
@@ -361,6 +396,26 @@ export function mountShell({ viewer, governor }) {
     const model = body.querySelector('#tw-model')?.value.trim();
     if (model) localStorage.setItem('gev.tw.aiModel', model);
     toast('設定已儲存；地圖金鑰請重新啟動介面後套用');
+  }
+
+  async function validateProvider(name) {
+    const el = body.querySelector(name === 'cesium' ? '#tw-cesium-status' : '#tw-tomtom-status');
+    if (el) el.textContent = '驗證中…';
+    try {
+      const result = await invoke(name === 'cesium' ? 'validate_cesium_token' : 'validate_tomtom_key');
+      if (el) el.textContent = result?.ok ? '✓ 已連線' : '⚠ 驗證未通過';
+    } catch (error) {
+      if (el) el.textContent = '✕ ' + (error?.message || String(error));
+      throw error;
+    }
+  }
+
+  async function doRoutePlan() {
+    const origin = body.querySelector('#tw-route-origin')?.value || '';
+    const destination = body.querySelector('#tw-route-destination')?.value || '';
+    const result = await navigation.planRoute({ origin, destination });
+    const el = body.querySelector('#tw-navigation-status');
+    if (el) el.textContent = `已規劃：${result.origin} → ${result.destination}｜${(result.lengthMeters/1000).toFixed(1)} km｜約 ${Math.round(result.travelTimeSeconds/60)} 分鐘`;
   }
 
   async function doOsmCheck() {
@@ -405,6 +460,7 @@ export function mountShell({ viewer, governor }) {
 
   return () => {
     geminiLive.stop().catch(()=>{});
+    navigation.stopNavigation();
     governor.stop();
     root.remove();
   };

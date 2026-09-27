@@ -1,4 +1,3 @@
-
 [package]
 name = "gods-eye-taiwan"
 version = "0.1.0"
@@ -25,3 +24,4 @@ sysinfo = "0.39"
 hypomnesis = { version = "0.2", default-features = false, features = ["nvml", "dxgi", "pdh", "nvidia-smi-fallback"] }
 keyring = { version = "3", features = ["windows-native"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+urlencoding = "2"

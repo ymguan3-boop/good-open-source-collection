@@ -1,7 +1,9 @@
+mod cesium_health;
 mod gemini;
 mod openrouter;
 mod resources;
 mod secrets;
+mod tomtom;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -11,6 +13,10 @@ pub fn run() {
       secrets::save_api_key,
       secrets::has_api_key,
       secrets::browser_provider_keys,
+      cesium_health::validate_cesium_token,
+      tomtom::validate_tomtom_key,
+      tomtom::tomtom_search,
+      tomtom::tomtom_route,
       gemini::gemini_ephemeral_token,
       openrouter::openrouter_json
     ])

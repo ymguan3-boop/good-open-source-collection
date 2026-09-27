@@ -10,7 +10,7 @@ pub fn read_key(name: &str) -> Result<String, String> {
 }
 #[tauri::command]
 pub fn save_api_key(name: String, value: String) -> Result<(), String> {
-  let allowed = ["cesium", "google", "openrouter", "gemini"];
+  let allowed = ["cesium", "google", "openrouter", "gemini", "tomtom"];
   if !allowed.contains(&name.as_str()) { return Err("Unsupported key name".into()); }
   if value.trim().is_empty() { return Err("Key is empty".into()); }
   entry(&name)?.set_password(value.trim()).map_err(|e| e.to_string())

@@ -159,7 +159,7 @@ async function queryOverpass(item, bbox) {
   const response = await fetch('/api/overpass', {
     method:'POST',
     cache:'no-store',
-    headers:{ 'Content-Type':'application/x-www-form-urlencoded' },
+    headers:{ 'Content-Type':'application/x-www-form-urlencoded', 'X-GEV-Force-Refresh':'1' },
     body:`data=${encodeURIComponent(query)}`,
   });
   if (!response.ok) throw new Error(`Overpass HTTP ${response.status}`);
