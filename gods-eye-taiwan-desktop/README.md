@@ -4,9 +4,11 @@
 
 **修改者：官毅明**
 
-## 使用方式：下載開源程式，再交給 Agent 安裝
+---
 
-本專案不要求提供預先編譯安裝程式。建議使用者直接從 GitHub 取得這個資料夾的開源程式，然後交由 Agent 在本機完成安裝、編譯與桌面捷徑建立。
+## 下載與安裝
+
+本專案採用 **「下載開源原始碼 → 交給 Agent 在本機完成安裝」** 的方式使用，不需要另外下載預先編譯的 Windows 安裝程式。
 
 專案位置：
 
@@ -14,30 +16,113 @@
 ymguan3-boop/good-open-source-collection/gods-eye-taiwan-desktop
 ```
 
-### Agent 最簡單指令
+GitHub：
 
-將以下內容交給能操作本機終端機的 Agent：
+```
+https://github.com/ymguan3-boop/good-open-source-collection/tree/main/gods-eye-taiwan-desktop
+```
 
-> 請依照 gods-eye-taiwan-desktop/AGENTS.md 完成上帝之眼・台灣版的本機安裝。不要下載預先編譯 installer；請檢查必要環境、執行 scripts/agent-install-windows.ps1、本機編譯程式，並使用專案內 branding/gods-eye-taiwan.ico 建立「上帝之眼・台灣版」桌面捷徑。完成後啟動並驗證完整地球、T 台灣、G 全球、設定、圖資、AI 與資源監控功能。
+### 方法一：一般使用者下載 ZIP（建議）
 
-### Windows 手動啟動安裝流程
+1. 開啟 GitHub 倉庫：
+   ```
+   https://github.com/ymguan3-boop/good-open-source-collection
+   ```
+
+2. 點選右上方或檔案列表上方的 **Code**。
+
+3. 選擇 **Download ZIP**。
+
+4. 將下載的 ZIP 解壓縮。
+
+5. 進入：
+   ```
+   good-open-source-collection-main\gods-eye-taiwan-desktop
+   ```
+
+6. 將這個資料夾交給可操作本機終端機的 AI Agent，例如 Codex、Claude Code 或其他支援終端機操作的 Agent。
+
+7. 對 Agent 下達以下指令：
+
+   > 請依照此資料夾內的 AGENTS.md 完成「上帝之眼・台灣版」Windows 本機安裝。請檢查必要環境、執行 scripts/agent-install-windows.ps1、本機編譯程式，並使用 branding/gods-eye-taiwan.ico 建立「上帝之眼・台灣版」桌面捷徑。完成後請啟動並驗證完整地球、T 台灣、G 全球、設定、圖資、AI 與資源監控功能。
+
+8. Agent 完成後，桌面會建立：
+
+   **上帝之眼・台灣版**
+
+   雙擊桌面圖示即可啟動。
+
+### 方法二：使用 Git Clone
+
+如果電腦已安裝 Git，可在終端機執行：
+
+```powershell
+git clone https://github.com/ymguan3-boop/good-open-source-collection.git
+cd good-open-source-collection\gods-eye-taiwan-desktop
+```
+
+接著交給 Agent 安裝，或直接執行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\agent-install-windows.ps1
 ```
 
-此腳本會：
-1. 檢查 Git / Node / npm / Rust。
-2. 下載固定版本的 God's Eye View。
-3. 套用台灣版 overlay。
-4. 安裝相依套件。
-5. 用 Tauri 在本機編譯 **單一桌面執行檔**，不產生 NSIS/MSI installer。
-6. 複製到 `local-app/GodsEyeTaiwan.exe`。
-7. 使用本專案 `branding/gods-eye-taiwan.ico` 建立桌面捷徑。
+---
 
-## 內建 icon
+## Agent 安裝時會自動做什麼？
 
-桌面捷徑直接使用：
+Agent 應依照：
+
+```
+AGENTS.md
+```
+
+完成下列工作：
+
+1. 檢查 Git、Node.js、npm、Rust/Cargo 等必要工具。
+2. 確認 Node.js 版本符合 God's Eye View 上游需求。
+3. 準備固定版本的 God's Eye View。
+4. 套用「上帝之眼・台灣版」overlay。
+5. 安裝 JavaScript / Rust 相依套件。
+6. 使用 Tauri 在使用者電腦本機編譯桌面程式。
+7. 將本機程式放到：
+   ```
+   local-app\GodsEyeTaiwan.exe
+   ```
+8. 使用專案內建 icon 建立桌面捷徑。
+9. 啟動程式並進行基本驗收。
+
+> 本流程不會自動修改 Windows Pagefile、GPU 時脈或顯示卡驅動設定。
+
+---
+
+## Windows 手動安裝
+
+如果不使用 Agent，也可以自行在 PowerShell 執行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\agent-install-windows.ps1
+```
+
+安裝腳本會建立：
+
+```
+local-app\GodsEyeTaiwan.exe
+```
+
+並在 Windows 桌面建立：
+
+```
+上帝之眼・台灣版.lnk
+```
+
+---
+
+## 內建桌面 Icon
+
+桌面圖示已經包含在開源程式中，使用者不需要另外下載。
+
+正式桌面 icon：
 
 ```
 branding/gods-eye-taiwan.ico
@@ -49,13 +134,36 @@ branding/gods-eye-taiwan.ico
 branding/icon-master.png
 ```
 
-所以使用者不必另外下載 icon。未來重新設計圖示時，只要替換上述品牌檔案，再執行：
+Agent 建立桌面捷徑時會直接使用：
+
+```
+branding/gods-eye-taiwan.ico
+```
+
+若日後更新 icon，只要替換品牌檔案，再執行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\rebuild-desktop-shortcut.ps1
 ```
 
-即可更新桌面捷徑圖示。
+即可重新建立具有新圖示的桌面捷徑。
+
+---
+
+## 安裝完成後的基本操作
+
+- 啟動程式：雙擊桌面的 **上帝之眼・台灣版**
+- 預設畫面：完整 3D 地球
+- `T`：快速跳轉台灣
+- `G`：回到完整地球
+- `Ctrl + S`：儲存目前專案狀態
+- 「圖資」：載入本機 GIS 圖資
+- 「分析」：執行 GIS 分析
+- 「AI」：使用 OpenRouter AI 空間助理
+- 「設定」：統一管理 Cesium、Google Maps、OpenRouter API Key
+- 右下資源列：查看 RAM、Swap、GPU、VRAM 使用狀況
+
+---
 
 ## 主要功能
 
@@ -72,15 +180,20 @@ powershell -ExecutionPolicy Bypass -File .\scripts\rebuild-desktop-shortcut.ps1
 - 不自動修改 Windows Pagefile 或 GPU 時脈。
 - Cesium/provider attribution 保留並低干擾化。
 
+---
+
 ## 架構
 
 本倉庫不複製整份上游 God's Eye View，而是以 `UPSTREAM.lock` 固定上游 commit，在本機建置時套用 `overlay/`。這樣可以降低倉庫體積，也比較容易追蹤上游更新。
 
-詳細內容請看：
-- `AGENTS.md`
-- `ARCHITECTURE.md`
-- `ROADMAP.md`
-- `THIRD_PARTY_NOTICES.md`
+詳細內容：
+
+- `AGENTS.md`：Agent 安裝規則
+- `ARCHITECTURE.md`：系統架構
+- `ROADMAP.md`：開發進度
+- `THIRD_PARTY_NOTICES.md`：第三方授權說明
+
+---
 
 ## 授權
 
