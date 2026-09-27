@@ -1,25 +1,37 @@
 # Development status — 2026-09-27
 
-## 目前定位
-本專案改採「開源原始碼 + Agent 本機安裝」模式，不提供預先編譯 installer 作為主要交付方式。
+## v0.2 這次更新
 
-## 已完成
-- Tauri 2 本機桌面殼。
-- God's Eye View 固定上游版本 + Taiwan overlay。
-- 繁體中文 minimal UI。
-- 完整地球啟動、T 台灣、G 全球。
-- GeoJSON / KML / CZML / Shapefile ZIP 匯入 MVP。
-- Turf.js 基礎 GIS 分析。
-- Dexie + JSZip `.gevproj`。
-- OpenRouter 安全代理與集中式設定。
-- RAM / Swap / GPU / VRAM 監測與 app-level governor。
-- 專案內建 PNG / ICO 圖示。
-- Agent 安裝規格 `AGENTS.md`。
-- `agent-install-windows.ps1`：本機編譯，不產生 installer。
-- `create-desktop-shortcut.ps1`：使用專案內 icon 建立桌面捷徑。
+- OSM audit freshness：
+  - memory TTL 15 min
+  - disk TTL 1 h
+  - boundary TTL 24 h
+  - 強制 fresh probe + `osm3s.timestamp_osm_base` UI
+- CCTV：
+  - 保留上游 active frame 10 s cadence
+  - runtime freshness probe
+  - 僅 `X-CCTV-Source: upstream-image` 判定為直接上游最新 snapshot
+  - Street View / synthetic 明確標示 fallback
+- 修正 Source+Agent 桌面架構：捷徑啟動本機 provider service + Tauri，避免 static release 丟失 `/api/cctv`、`/api/overpass` 等服務。
+- Gemini Live：
+  - `@google/genai` 2.24.0
+  - model `gemini-3.8-live`
+  - Windows Credential Manager 保存 Gemini 長效 Key
+  - Rust 取得 ephemeral token
+  - WebView Live Audio + transcript
+  - GIS tools：list_layers / fly_to_taiwan / fly_global / create_buffer
+- OpenRouter 保留。
 
-## 尚待後續驗收
-- 在實際 Windows 10/11 + MSVC Build Tools 環境完成一次完整 Tauri release build。
-- 驗證不同 GPU（Intel / NVIDIA / AMD）監測結果。
-- 進一步補齊 WMS/WFS/WMTS、ArcGIS REST、CSV/Excel 等圖資來源。
-- 完整 AI GIS Tool Registry 與分析重跑機制。
+## 已做靜態驗證
+
+- 上游 `main` 與 `UPSTREAM.lock` commit 一致。
+- Taiwan overlay 所需 `src/main.js` / Overpass / CCTV patch anchors 均存在於目前上游。
+- 新 `ui.js` 已通過 `node --check`。
+- CCTV upstream source code確認 frame response `no-store`、成功上游 frame header `X-CCTV-Source: upstream-image`、active cadence 10 秒。
+
+## 仍須在實際 Windows 安裝後做 runtime 驗收
+
+- Rust/Tauri `cargo check` / 啟動。
+- Google Gemini Live microphone + ephemeral token 真實連線。
+- 至少 3 支 CCTV runtime 抽查；第三方 camera 是否在線取決於畞下 provider。
+- Intel/NVIDIA/AMD GPU telemetry。

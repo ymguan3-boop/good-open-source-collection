@@ -1,4 +1,4 @@
-
+mod gemini;
 mod openrouter;
 mod resources;
 mod secrets;
@@ -11,6 +11,7 @@ pub fn run() {
       secrets::save_api_key,
       secrets::has_api_key,
       secrets::browser_provider_keys,
+      gemini::gemini_ephemeral_token,
       openrouter::openrouter_json
     ])
     .run(tauri::generate_context!())

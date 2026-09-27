@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@google/genai": "2.24.0",
     "@tauri-apps/api": "^2.8.0",
     "@turf/turf": "^7.2.0",
     "dexie": "^4.2.0",
