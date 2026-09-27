@@ -17,6 +17,9 @@
 - [ ] Crash recovery / autosave UX
 
 ## P2 — Add Data
+- [x] 內建道路／鐵路／水系／水域／海岸線 OSM 動態拆分圖層
+- [x] 內建圖層視窗範圍限制、feature budget、幾何簡化
+- [x] NLSC 官方 WFS 圖層代碼 registry（需申請，不自動抓取）
 - [x] GeoJSON
 - [x] KML
 - [x] CZML
@@ -53,3 +56,14 @@
 - [ ] Potree / LiDAR optional plugin
 - [ ] deck.gl statistical views
 - [ ] Optional 2D workspace
+
+
+## P7 — Reliability / Lightweight
+- [ ] 正式 Tauri Sidecar Provider（取代長期依賴 tauri dev provider）
+- [ ] Data Health Center：來源、更新時間、授權、延遲、備援狀態
+- [ ] TDX 台灣 CCTV / VD / CMS / 道路事件整合
+- [ ] Command Registry：手動、快捷鍵、OpenRouter、Gemini 共用
+- [ ] Undo / Redo + AI 高風險操作確認
+- [ ] Crash Recovery / autosave / analysis recipe rerun
+- [ ] Voice Provider Adapter（Gemini Live / OpenAI Realtime）
+- [ ] 一鍵系統健康檢查
