@@ -1,86 +1,87 @@
+# 上帝之眼・台灣版
 
-# 上帝之眼・台灣版（God's Eye Taiwan Desktop）
+以 **God's Eye View + CesiumJS** 為唯一 3D 地球核心的繁體中文、輕量化本機桌面版。
 
-以開源專案 **God's Eye View** 為唯一 3D 地球核心，建立給台灣審計／工程／GIS 工作使用的輕量桌面版。介面採繁體中文、低資訊密度、開闊視野，並增加專案管理、手動 GIS、OpenRouter AI、資源監控與桌面安裝能力。
+**修改者：官毅明**
 
-> 修改者：官毅明
+## 使用方式：下載開源程式，再交給 Agent 安裝
 
-## 核心原則
+本專案不要求提供預先編譯安裝程式。建議使用者直接從 GitHub 取得這個資料夾的開源程式，然後交由 Agent 在本機完成安裝、編譯與桌面捷徑建立。
 
-- 主程式：God's Eye View + CesiumJS，不建立第二套地球 Viewer。
-- 桌面容器：Tauri 2（避免 Electron 常駐 Chromium 的額外負擔）。
-- 啟動時：完整地球；`T` 跳到台灣，`G` 回全球。
-- UI：繁體中文、極簡、非雷達式 HUD；原功能保留但預設收合。
-- API Key：集中在「設定」；OpenRouter Key 存入 OS 安全憑證儲存區，不回傳完整值給前端。
-- AI：OpenRouter 負責規劃／工具選擇，GIS 幾何計算交給 Turf.js。
-- 成果：AI／人工分析均轉成可再載入、可再分析的正式 Layer。
-- 資源：RAM、虛擬記憶體／Swap、GPU、VRAM 可監看；提供省電／平衡／效能／自訂四種應用程式資源策略。
-- 安全：預設不自動改 Windows Pagefile、GPU 時脈、驅動設定或系統登錄檔效能參數。
+專案位置：
 
-## 目前開發包狀態
-
-這個資料夾是「新倉庫可直接使用」的第一版桌面化骨架與 MVP overlay。它不複製整份上游程式，而是在建置時抓取固定版本的 God's Eye View，再套用台灣版 overlay，目的是降低倉庫體積並讓上游更新更容易追蹤。
-
-目前 ChatGPT 已連線到 GitHub 帳號 `ymguan3-boop`，但本次可用的 GitHub 連接器沒有暴露「建立新 Repository」動作，因此尚不能直接建立新倉庫。建議新倉庫名稱：
-
-`gods-eye-taiwan-desktop`
-
-當空倉庫建立後，本包內容即可直接推入該倉庫，再由 GitHub Actions 產出 Windows 安裝檔。
-
-## 一鍵建置概念
-
-Windows 開發機：
-
-```powershell
-./scripts/prepare-upstream.ps1
-cd .work/upstream
-npm install
-npm run tauri:dev
+```
+ymguan3-boop/good-open-source-collection/gods-eye-taiwan-desktop
 ```
 
-正式安裝檔：
+### Agent 最簡單指令
+
+將以下內容交給能操作本機終端機的 Agent：
+
+> 請依照 gods-eye-taiwan-desktop/AGENTS.md 完成上帝之眼・台灣版的本機安裝。不要下載預先編譯 installer；請檢查必要環境、執行 scripts/agent-install-windows.ps1、本機編譯程式，並使用專案內 branding/gods-eye-taiwan.ico 建立「上帝之眼・台灣版」桌面捷徑。完成後啟動並驗證完整地球、T 台灣、G 全球、設定、圖資、AI 與資源監控功能。
+
+### Windows 手動啟動安裝流程
 
 ```powershell
-npm run tauri:build
+powershell -ExecutionPolicy Bypass -File .\scripts\agent-install-windows.ps1
 ```
 
-GitHub Actions 會使用 Windows runner 建置 NSIS `Setup.exe`，並上傳為 workflow artifact。
+此腳本會：
+1. 檢查 Git / Node / npm / Rust。
+2. 下載固定版本的 God's Eye View。
+3. 套用台灣版 overlay。
+4. 安裝相依套件。
+5. 用 Tauri 在本機編譯 **單一桌面執行檔**，不產生 NSIS/MSI installer。
+6. 複製到 `local-app/GodsEyeTaiwan.exe`。
+7. 使用本專案 `branding/gods-eye-taiwan.ico` 建立桌面捷徑。
 
-## MVP 已規劃／實作的台灣版 Overlay
+## 內建 icon
 
-- 台灣版品牌 Shell、繁中導覽與簡潔介面。
-- 全地球啟動、台灣／全球快捷視角。
-- 原 God's Eye View 面板保持相容，可按需叫出。
-- 中央設定抽屜：AI、地圖金鑰、效能配置。
-- RAM／Swap／GPU／VRAM 儀表。
-- 四種渲染資源策略，可動態調整 Cesium 的 FPS、解析度比例與 3D Tiles 快取。
-- GeoJSON / KML / CZML / Shapefile ZIP 基礎匯入。
-- Turf.js Buffer / Intersect / Area / Length / Centroid 基礎工具。
-- Dexie 本機專案資料庫與 JSZip `.gevproj` 專案匯出／匯入骨架。
-- OpenRouter 後端代理（Tauri Rust Command），Key 不直接暴露給前端。
-- Windows NSIS 安裝器與桌面捷徑 hook。
+桌面捷徑直接使用：
 
-## 開源與授權注意
+```
+branding/gods-eye-taiwan.ico
+```
 
-God's Eye View 的程式碼採 MIT 授權；其第三方資料、影像、模型與各 provider 仍受各自條款約束。台灣版不得因主程式是 MIT，就把第三方資料一律視為可商用。`THIRD_PARTY_NOTICES.md` 必須隨安裝包保留。
+品牌原始圖：
 
-## 資源控管設計
+```
+branding/icon-master.png
+```
 
-「虛擬記憶體控制」在第一版定義為：
+所以使用者不必另外下載 icon。未來重新設計圖示時，只要替換上述品牌檔案，再執行：
 
-1. 監看系統 RAM / Swap(Pagefile) 使用量與本程式 Process RSS / Virtual Memory。
-2. 當 RAM、Swap 或 VRAM 壓力過高時，自動降低本程式渲染負載。
-3. 提供使用者可調整的應用程式級記憶體／GPU 預算。
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\rebuild-desktop-shortcut.ps1
+```
 
-不在第一版直接改 Windows Pagefile 大小。修改作業系統分頁檔需要管理員權限、可能要求重新啟動，且錯誤設定可能降低穩定性；若未來真的要加入，應做成「進階／明確確認」功能而非預設自動化。
+即可更新桌面捷徑圖示。
 
-## 建議硬體分級
+## 主要功能
 
-- 省電：內顯／8 GB RAM，30 FPS，0.75x 解析度，3D Tiles 256 MB。
-- 平衡：16 GB RAM，一般獨顯或較新內顯，45 FPS，1.0x，512 MB。
-- 效能：32 GB RAM + 8 GB VRAM，60 FPS，1.0x，1024 MB。
-- 自訂：可調 FPS、解析度、Tiles Cache；高壓時仍會啟動安全保護。
+- 啟動顯示完整地球。
+- `T`：台灣視角。
+- `G`：全球視角。
+- 繁體中文極簡工作台。
+- 本機圖資匯入與 Turf GIS 基礎分析。
+- `.gevproj` 專案存取。
+- OpenRouter AI 分析入口。
+- API Key 集中於設定。
+- RAM / Swap / GPU / VRAM 監看。
+- 省電／平衡／效能／自訂資源策略。
+- 不自動修改 Windows Pagefile 或 GPU 時脈。
+- Cesium/provider attribution 保留並低干擾化。
 
-## 圖示
+## 架構
 
-`branding/icon-master.png` 是建置用 master icon。正式圖示設計規則：眼睛 + 地球弧線 + 台灣輪廓，藍青色科技感、簡潔、不可做雷達／軍事徽章風，32px 仍需可辨識。執行 `npm run icons` 由 Tauri CLI 產生 Windows `.ico` 與多尺寸 PNG。
+本倉庫不複製整份上游 God's Eye View，而是以 `UPSTREAM.lock` 固定上游 commit，在本機建置時套用 `overlay/`。這樣可以降低倉庫體積，也比較容易追蹤上游更新。
+
+詳細內容請看：
+- `AGENTS.md`
+- `ARCHITECTURE.md`
+- `ROADMAP.md`
+- `THIRD_PARTY_NOTICES.md`
+
+## 授權
+
+台灣版自有 overlay 採 MIT License。God's Eye View 與所有第三方圖資、API、模型及服務仍遵循各自授權與使用條款。

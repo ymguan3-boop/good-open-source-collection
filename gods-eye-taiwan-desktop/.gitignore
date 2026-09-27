@@ -1,4 +1,5 @@
 .work/
+local-app/
 node_modules/
 dist/
 target/

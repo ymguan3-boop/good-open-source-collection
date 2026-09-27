@@ -1,41 +1,25 @@
 # Development status — 2026-09-27
 
-## 已完成的 MVP 原始碼
+## 目前定位
+本專案改採「開源原始碼 + Agent 本機安裝」模式，不提供預先編譯 installer 作為主要交付方式。
 
-- Tauri 2 Windows desktop shell configuration.
-- NSIS installer workflow + deterministic desktop shortcut hook.
-- Pinned upstream God's Eye View overlay build.
-- Minimal Traditional-Chinese UI shell.
-- Full-globe startup preservation; `T` Taiwan and `G` global shortcuts.
-- Central settings UI for Cesium / Google Maps / OpenRouter credentials.
-- Windows Credential Manager integration for stored credentials.
-- OpenRouter backend proxy command.
-- RAM / Swap(Pagefile) / process RSS / process virtual memory / GPU / VRAM telemetry.
-- App-level Eco / Balanced / Performance / Custom resource governor.
-- Automatic rendering protection at high RAM / Swap / VRAM pressure.
-- GeoJSON / KML / CZML / Shapefile ZIP import MVP.
-- Turf.js Buffer / Intersect / Area / Length / Centroid helpers.
-- Dexie local project DB and JSZip `.gevproj` export/import MVP.
-- AI topic suggestion + analysis-plan UI skeleton.
+## 已完成
+- Tauri 2 本機桌面殼。
+- God's Eye View 固定上游版本 + Taiwan overlay。
+- 繁體中文 minimal UI。
+- 完整地球啟動、T 台灣、G 全球。
+- GeoJSON / KML / CZML / Shapefile ZIP 匯入 MVP。
+- Turf.js 基礎 GIS 分析。
+- Dexie + JSZip `.gevproj`。
+- OpenRouter 安全代理與集中式設定。
+- RAM / Swap / GPU / VRAM 監測與 app-level governor。
+- 專案內建 PNG / ICO 圖示。
+- Agent 安裝規格 `AGENTS.md`。
+- `agent-install-windows.ps1`：本機編譯，不產生 installer。
+- `create-desktop-shortcut.ps1`：使用專案內 icon 建立桌面捷徑。
 
-## 已完成驗證
-
-- All Taiwan JS/MJS files pass `node --check` in the available environment.
-- JSON configs parse successfully.
-- Overlay patch script was tested against a synthetic upstream entry file using the exact current upstream patterns.
-- Current upstream Node engine requirement was checked: Node >=24.14<25 or >=26<27.
-
-## 尚未能在此執行的驗證
-
-This ChatGPT execution environment has Node 22 and no Rust toolchain, and it does not expose an authenticated GitHub `create repository` action. Therefore:
-
-- no real Windows Tauri compile has been run here;
-- no NSIS installer binary has been generated here;
-- no full upstream dependency install / browser regression run has been performed here;
-- no GitHub Actions workflow can run until the new repository exists.
-
-The included Windows GitHub Actions workflow is intended to perform the actual installer build once the source is pushed.
-
-## 下一個必要動作
-
-Create an empty repository named `gods-eye-taiwan-desktop` under `ymguan3-boop`. Once it exists, ChatGPT's connected GitHub tools can write files to it and development can continue there.
+## 尚待後續驗收
+- 在實際 Windows 10/11 + MSVC Build Tools 環境完成一次完整 Tauri release build。
+- 驗證不同 GPU（Intel / NVIDIA / AMD）監測結果。
+- 進一步補齊 WMS/WFS/WMTS、ArcGIS REST、CSV/Excel 等圖資來源。
+- 完整 AI GIS Tool Registry 與分析重跑機制。
