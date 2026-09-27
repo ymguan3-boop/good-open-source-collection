@@ -123,3 +123,57 @@ powershell -ExecutionPolicy Bypass -File .\scripts\rebuild-desktop-shortcut.ps1
 ## 授權
 
 台灣版自有 overlay 採 MIT License。God's Eye View、OpenStreetMap 與第三方圖資/API/模型/服務仍遵循各自授權與使用條款。
+
+
+## 內建基礎圖資：道路／鐵路／水系分層
+
+台灣版現在提供「內建基礎圖資」目錄，先用 OpenStreetMap / Overpass 將目前視窗範圍拆成真正獨立圖層：
+
+- 道路中心線
+- 鐵路
+- 河川／水系中心線
+- 面狀水域
+- 海岸線
+
+這些不是把整張底圖換顏色，而是產生可選取、可隱藏、可移除、可做 Buffer 或後續 GIS 分析的個別 GeoJSON layer。
+
+### 為什麼不直接把全台資料全部包進程式？
+
+為了維持輕量化，內建圖資採「按需載入」：
+
+1. 只查詢目前 3D 視窗範圍。
+2. 全球或全台尺度時會要求先放大到縣市或更小範圍。
+3. 依省電／平衡／效能模式套用不同物件數上限與幾何簡化程度。
+4. 預設不將大量線面貼地渲染，降低 Cesium terrain / GPU 負擔。
+5. 更新時只替換該一個內建圖層，不重載其他圖層。
+
+### NLSC 官方向量圖資
+
+國土測繪中心目前已有道路、鐵路、水系等分開的 WFS：
+
+- 道路中心線：`WFS:EMAP_ROAD`
+- 台鐵：`WFS:EMAP_RAIL`
+- 高鐵：`WFS:EMAP_HSRAIL`
+- 捷運：`WFS:EMAP_MRT`
+- 河川：`WFS:EMAP_RIVERA`
+- 河川中線：`WFS:EMAP_RIVERL`
+- 面狀水域：`WFS:EMAP_WATERA`
+- 海岸線：`WFS:EMAP_COASTLINE`
+
+這些圖層目前屬需申請使用的 WFS 服務，因此開源版只保留官方代碼與來源說明，不會未經授權把全台向量資料大量下載後隨程式散布。使用者取得合法介接權限後，可再接成「官方來源」模式。
+
+## 輕量化顯示策略
+
+預設平衡模式已調整為較保守配置：
+
+- 40 FPS
+- 0.9x 解析度比例
+- 384 MB 3D Tiles cache
+
+省電模式：
+
+- 24 FPS
+- 0.72x 解析度比例
+- 192 MB 3D Tiles cache
+
+內建向量圖層另有獨立 feature budget，避免道路、水系等密集資料一次塞入 Cesium。
