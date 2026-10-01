@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "@google/genai": "2.24.0",
+    "@tauri-apps/api": "^2.8.0",
+    "@turf/turf": "^7.2.0",
+    "dexie": "^4.2.0",
+    "jszip": "^3.10.1",
+    "proj4": "^2.19.0",
+    "shpjs": "^6.2.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.8.0"
+  },
+  "scripts": {
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "icons": "tauri icon branding/icon-master.png"
+  }
+}

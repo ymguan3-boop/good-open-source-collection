@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-09-30",
+  "dtm": {
+    "source": "https://data.gov.tw/dataset/176927",
+    "title": "2025年版全臺灣20公尺網格數值地形模型DTM資料",
+    "officialCatalog": "DTM_2025_OFFICIAL_CATALOG.csv",
+    "installer": "scripts/install-official-dtm.ps1",
+    "localRaster": "data/official/dtm-2025/DEM_tawiwan_V2025.tif",
+    "sha256": "59E5E980000D6E3F5A7734C6AF197934A1A5432482B6CAA789A1EC90B624015D",
+    "rasterBytes": 756870860,
+    "crs": "EPSG:3826",
+    "resolutionMeters": 20,
+    "status": "Official file downloaded and verified locally; loopback API samples camera extent on demand",
+    "limitations": "Camera view shows sampled elevation points, not a true terrain mesh. Original grid covers Taiwan main island and has differing source production years; not a survey-grade engineering conclusion. Large raster is ignored by Git and must be installed on each machine."
+  },
+  "buildings3d": {
+    "source": "https://3dmaps.nlsc.gov.tw/",
+    "status": "Official service list GET 200 with 35 building services from loopback runtime using Windows system CA; Yilan tileset root GET 200, Access-Control-Allow-Origin: *; browser added Yilan tileset layer",
+    "serviceList": "https://3dtiles.nlsc.gov.tw/tiles3d/Service",
+    "officialYilanTileset": "https://3dtiles.nlsc.gov.tw/building/tiles3d/6/tileset.json",
+    "snapshot": "overlay/server/providers/nlsc-service-snapshot.json",
+    "snapshotCapturedAt": "2026-09-30",
+    "limitations": "HEAD returns 405 and must not be used as a load check. Root retrieval alone does not confirm that all child tiles render. Models are online visualization tiles, not a downloadable national building-count vector."
+  },
+  "nationalReferenceMap": {
+    "source": "https://wms.nlsc.gov.tw/wms",
+    "layer": "EMAP2",
+    "status": "GetMap for a Yilan 256 x 256 tile returned HTTP 200 image/png",
+    "limitations": "National WMS imagery is a visual reference. Independent OSM vectors are still fetched by current view and subject to Overpass availability and load limits."
+  }
+}

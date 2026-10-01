@@ -45,74 +45,30 @@ https://github.com/bilawalsidhu/gods-eye-view
 
 ## 2. 上帝之眼・台灣版
 
-資料夾：
+[進入程式資料夾與完整安裝說明](gods-eye-taiwan-desktop/README.md)。以God’s Eye View與Cesium為核心，提供繁體中文瀏覽器／Tauri桌面版。
 
-```text
-gods-eye-taiwan-desktop/
-```
+- 內建全台道路、水系、水域、海岸線與官方鐵路，支援22縣市切換。
+- 新增22縣市界與368鄉鎮市區界；道路／水系依視野載入連續線段，街區尺度不再均勻抽樣。
+- TomTom細線與動態點位呈現車流示意，支援地標搜尋、路線與行車視角。
+- CCTV圈選及全台多畫面總覽，每頁12路連續更新。
+- 專案與標註分層、量測、AI分析、Gemini中文語音及本機資源監控。
+- 金鑰由Windows DPAPI加密保存，不提交GitHub。
 
-這是本倉庫針對台灣 GIS、公共工程、審計與空間分析需求整理的桌面版。
+### 安裝瀏覽器版（推薦）
 
-主要特色：
-
-- 繁體中文介面
-- 完整地球與台灣快捷視角
-- OpenStreetMap / Overpass 圖資
-- 道路、鐵路、水系、水域、海岸線可分開成獨立圖層
-- CCTV 即時來源檢核
-- Gemini Live 語音操作，可呼叫 TomTom 行車路線與導航
-- OpenRouter AI 分析
-- GIS Buffer 等空間分析
-- RAM / Swap / GPU / VRAM 資源監控
-- 輕量化圖層載入與 GPU 保護
-- TomTom 地點搜尋、行車路線、導航視角與定位跟隨
-- Cesium ion Token / TomTom Key 可在設定中輸入並驗證
-- OSM 圖層採手動載入／更新，不做背景更新提醒
-- Windows 桌面捷徑與專案內建 Icon
-
-### 下載
-
-一般使用者可直接下載整個倉庫：
-
-1. 進入本倉庫首頁。
-2. 點選 **Code**。
-3. 選擇 **Download ZIP**。
-4. 解壓縮後進入：
-
-```text
-good-open-source-collection-main\gods-eye-taiwan-desktop
-```
-
-也可使用 Git：
+先安裝Git、Node.js 24.14以上的24.x或26.x及Google Chrome；瀏覽器版不需要Rust。
 
 ```powershell
 git clone https://github.com/ymguan3-boop/good-open-source-collection.git
 cd good-open-source-collection\gods-eye-taiwan-desktop
+node .\scripts\install-browser.mjs
 ```
 
-### 使用 Agent 安裝
+完成後雙擊「啟動上帝之眼-瀏覽器版.bat」。或下載整個倉庫ZIP、解壓縮進入台灣版資料夾，交由Agent依README與AGENTS.md安裝。
 
-建議把 `gods-eye-taiwan-desktop` 資料夾交給可操作本機終端機的 Agent，並下達：
+Tauri桌面版另需Rust、C++ Build Tools與WebView2，再執行 `scripts/agent-install-windows.ps1`。本次以瀏覽器驗收，未重新驗收EXE。
 
-> 請依照此資料夾內的 AGENTS.md 安裝「上帝之眼・台灣版」，完成必要環境檢查、上游準備、相依套件安裝、桌面捷徑建立，並驗證 OSM 手動更新、CCTV、Cesium Token、TomTom 路線與導航、Gemini Live、圖資分層與 GPU/RAM 資源監控。
-
-也可直接在 Windows PowerShell 執行：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\agent-install-windows.ps1
-```
-
-桌面捷徑會使用專案內：
-
-```text
-branding/gods-eye-taiwan.ico
-```
-
-更完整的下載、安裝、API Key、OSM、CCTV、Gemini Live 與圖資說明，請看：
-
-```text
-gods-eye-taiwan-desktop/README.md
-```
+使用方式、金鑰、圖資來源與版本、更新與故障排除，均見上述繁體中文README。
 
 ---
 

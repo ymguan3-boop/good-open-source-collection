@@ -1,0 +1,15 @@
+{
+  "source": "https://maps.nlsc.gov.tw/download/鄉鎮市區界線(TWD97經緯度).zip",
+  "provider": "內政部國土測繪中心",
+  "version": "TOWN_MOI_1120317",
+  "downloadedAt": "2026-10-01T14:54:53.158389+00:00",
+  "sourceCrs": "EPSG:3824 TWD97經緯度",
+  "displayCrs": "EPSG:4326",
+  "license": "政府資料開放授權條款第1版",
+  "sourceSha256": "e028e5a750eee48cf7913330655e5e5c5bb1f176868fbd0afdfc661fca60557c",
+  "displaySimplificationDegrees": 5e-05,
+  "limitations": "採全臺主檔TOWN_MOI_1120317（不重複匯入另附馬家三和單區檔）；約5公尺顯示簡化，供行政區套疊與範圍查詢，非地籍或法定界址",
+  "featureCount": 368,
+  "counties": 22,
+  "gzipSha256": "671cdca01c1960a23739479774db50b060bb85d51e7c08bdc1c4d838916bfedc"
+}

@@ -1,0 +1,14 @@
+.work/
+local-app/
+node_modules/
+dist/
+target/
+.DS_Store
+*.log
+logs/
+data/official/dtm-2025/
+.env
+.env.*
+!/.env.example
+
+release/

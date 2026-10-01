@@ -1,0 +1,987 @@
+[
+  {
+    "sha256": "32475A850E2E66943D2E380239A4E5AB71DEC697D531A9B980F6C9E09E6A6E8A",
+    "bytes": 93,
+    "path": ".gitattributes"
+  },
+  {
+    "sha256": "51E5EACB9F780D1925E289F4449599D5FC49AD4D765D35ED69BDBF45A06D4BD1",
+    "bytes": 142,
+    "path": ".gitignore"
+  },
+  {
+    "sha256": "24CEAC57B174B21CA4EE307FA2C3F60A2726861D013ABAE6078A7FFF47B5D721",
+    "bytes": 132,
+    "path": "啟動上帝之眼-瀏覽器版.bat"
+  },
+  {
+    "sha256": "44D915C69AABA2190E580A56593955013E495C48E75D079014FFE3C3C11AEEC8",
+    "bytes": 5530,
+    "path": "AGENTS.md"
+  },
+  {
+    "sha256": "9F2940B83BD889F7CC04231B8AE915F44F4EB3236AEFF80C5AE330578DB9DE03",
+    "bytes": 2722,
+    "path": "ARCHITECTURE.md"
+  },
+  {
+    "sha256": "9C104279153991A9360565B32E1F92E030617404DD578743628E98F3BF1EADBD",
+    "bytes": 87171,
+    "path": "branding/ai-voice-assistant.png"
+  },
+  {
+    "sha256": "49312DC07DADED0D15EB0A63DC4CFB52EEAD7D7C3B867908B80FAA2876B2EC5A",
+    "bytes": 2496872,
+    "path": "branding/fonts/IBMPlexSansTC-Regular.woff2"
+  },
+  {
+    "sha256": "603651C42210A379C7FAF2E8EDE13C050BE90165B2FBF83602DF356BA39450E6",
+    "bytes": 2638892,
+    "path": "branding/fonts/IBMPlexSansTC-SemiBold.woff2"
+  },
+  {
+    "sha256": "7E6B2818EDBD8F6A01AE80641CC8F16A51080D08FB4E532BE3A0B6F74ADB07DA",
+    "bytes": 4456,
+    "path": "branding/fonts/LICENSE.txt"
+  },
+  {
+    "sha256": "CA7BE3D9C3C5D93E415E18A9276C3EE527A39AD57FAB279C37503EEDFFD391A3",
+    "bytes": 1072756,
+    "path": "branding/gods-eye-identity-source-v3.png"
+  },
+  {
+    "sha256": "34162BF3678DA1CD3D42053DEFBBFCC3C8ED80F6D68FA7804DF6F2DC42AD1689",
+    "bytes": 219886,
+    "path": "branding/gods-eye-identity-v3.png"
+  },
+  {
+    "sha256": "F06B3C6FD89B9FDB37A30D37CDF8859E33B1120B1059E2151F8368B419ED9628",
+    "bytes": 1934367,
+    "path": "branding/gods-eye-mark-v2.png"
+  },
+  {
+    "sha256": "D23BADB6EF50D06A976267D688A2EA21E93F837FDD11C4852CE4EA5FA825997C",
+    "bytes": 104316,
+    "path": "branding/gods-eye-taiwan-v3.ico"
+  },
+  {
+    "sha256": "39160A4F18E93C01148739101627593A8CDDC0404EF08262CFFEE3A8B7F82B57",
+    "bytes": 160832,
+    "path": "branding/gods-eye-taiwan-v4.ico"
+  },
+  {
+    "sha256": "D23BADB6EF50D06A976267D688A2EA21E93F837FDD11C4852CE4EA5FA825997C",
+    "bytes": 104316,
+    "path": "branding/gods-eye-taiwan.ico"
+  },
+  {
+    "sha256": "0213470375876C5DAABF3945DF66F73525EF6BC1E2CE814DBA6498DF807C8DE8",
+    "bytes": 1889300,
+    "path": "branding/icon-master.png"
+  },
+  {
+    "sha256": "BD527D46EE562807E21350C865699F1108B53789D1EF8B7F992FEADF63896C86",
+    "bytes": 1834233,
+    "path": "branding/icon-user-v4.png"
+  },
+  {
+    "sha256": "A4D8D17DDD785E53ACA212E0F0AAE8E05BB11876FDA0B0136D695BF85F6ADF87",
+    "bytes": 2025146,
+    "path": "branding/quick-menu-logo-user.png"
+  },
+  {
+    "sha256": "6E4AC15F685228C348F7DE634DE5BF1FA958CF3396F45CCDFE3A3CA308403606",
+    "bytes": 1016110,
+    "path": "branding/sidebar-user.png"
+  },
+  {
+    "sha256": "C1FE8BB0E2694CBE52E48E002D2B0C35D66C6D5DC3C2E650A04C276B7DDDDB40",
+    "bytes": 1693408,
+    "path": "branding/title-art-user-v4.png"
+  },
+  {
+    "sha256": "A176DEFB30AAD031EFC1849812040FF776AF607DCFDF3264292AB49B6C64E3D2",
+    "bytes": 2242971,
+    "path": "branding/title-banner-gold.png"
+  },
+  {
+    "sha256": "8AB87C70AB27DC1910BD564C9261BE47BDF88B7BC19D2F673E0A8844C2E3670E",
+    "bytes": 1613497,
+    "path": "branding/title-emblem-transparent.png"
+  },
+  {
+    "sha256": "A967CC57D01A7B10DAD87B2F793AF4C07500A5123CFCDE54D1C9AB27AB451D75",
+    "bytes": 851,
+    "path": "branding/toolbar-bezel-v6-prompt.md"
+  },
+  {
+    "sha256": "CDE7EFDF2ED8A8B41850423B24E59059A57912871C5BAC1070C30879F8F16B78",
+    "bytes": 1183865,
+    "path": "branding/toolbar-bezel-v6.png"
+  },
+  {
+    "sha256": "409F3E6D5AE13056F002CFA360F28A191CD5F33B6C4F9891EE5EDD4F4C8E617E",
+    "bytes": 17872,
+    "path": "branding/toolbar-collapse-user.png"
+  },
+  {
+    "sha256": "30BE720AF3115BA942EAF8009C78898B74323DE680902E190329285DC98CB9A4",
+    "bytes": 1383564,
+    "path": "branding/toolbar-expand-user.png"
+  },
+  {
+    "sha256": "EEE183B8D050759E0C6E36B50DD80FF7B35018B1EBBDEBE85953BA4ADE48591E",
+    "bytes": 1491,
+    "path": "branding/toolbar-sheet-v9-prompt.md"
+  },
+  {
+    "sha256": "6F5869270471C24EF5C4685521AB06B8ECD5981C7AA70ADE6E72A3B4EA44C19D",
+    "bytes": 1320737,
+    "path": "branding/toolbar-sheet-v9.png"
+  },
+  {
+    "sha256": "8A2C61E9B3A759B1DD42D8C0AB90DC3CD0C0CE5DECE90A50B367A8C926A719D4",
+    "bytes": 924169,
+    "path": "branding/toolbar-source-v3.png"
+  },
+  {
+    "sha256": "3E4840D663109EF740EFDB1A1AE763259DA74D7A77300D095EBD70EFFEC96FF3",
+    "bytes": 186694,
+    "path": "branding/toolbar-toggle-v4.png"
+  },
+  {
+    "sha256": "9C1A82F717BC88A372FC1285AE451CA90C4DA3ECAF2E44A8226BDF0776C25584",
+    "bytes": 476,
+    "path": "branding/toolbar-toggle-v8-prompt.md"
+  },
+  {
+    "sha256": "BEAFF140DB7CCD33331A76993830AF98A6412E23F17EC1D433A848F4F687D1C4",
+    "bytes": 1392381,
+    "path": "branding/toolbar-toggle-v8.png"
+  },
+  {
+    "sha256": "9FC4D980D901414CC09A2405A24989171A99B8226C986E23B2706FFD3AB9C0D3",
+    "bytes": 23486,
+    "path": "branding/ui-icons/ai.png"
+  },
+  {
+    "sha256": "97037FE145EC6295324754D0B2683E8BD959CF6119F4FE20E2381E03BA28BF27",
+    "bytes": 30821,
+    "path": "branding/ui-icons/analysis.png"
+  },
+  {
+    "sha256": "FE2C11296AD287E6F7D639D4429AE4E7F5876A4CC635F6BF634A4014905FC87E",
+    "bytes": 40861,
+    "path": "branding/ui-icons/global.png"
+  },
+  {
+    "sha256": "34EE32D477CA3D48C87867E08953050DE09AB99D2BB9472B7546AF8828AB55D4",
+    "bytes": 39740,
+    "path": "branding/ui-icons/layers.png"
+  },
+  {
+    "sha256": "72C5CD1CBC60EAADCD3C0F3E9C0FA126FAF3C82B03B5273309E8B0C89A50C920",
+    "bytes": 27754,
+    "path": "branding/ui-icons/legacy.png"
+  },
+  {
+    "sha256": "0FC0409DFA5A1FBB6939CD5C81B2D203D5E44B7411B781709266941983E03D8E",
+    "bytes": 31414,
+    "path": "branding/ui-icons/notes.png"
+  },
+  {
+    "sha256": "C938F9E0C68EB6AD2AD4FE751B726755F483BC35AC6B3CCD225E9E92ED9C6320",
+    "bytes": 23382,
+    "path": "branding/ui-icons/project.png"
+  },
+  {
+    "sha256": "6FC2B5C6AE3B3A200385B2360ED28BC66DE4D3BE4BCB24362CE6B781FCE26868",
+    "bytes": 1537598,
+    "path": "branding/ui-icons/quick-gear-v5.png"
+  },
+  {
+    "sha256": "6CC25A7DAB4CC5C09FFD54E49E4FDC3C35B6202B68E41166DF05AAEE7DBD1317",
+    "bytes": 1465414,
+    "path": "branding/ui-icons/quick-palette-v5.png"
+  },
+  {
+    "sha256": "09643029B1B252707714F77B1A427ABCB1894C6676734681CF61219C3216D7BF",
+    "bytes": 27233,
+    "path": "branding/ui-icons/results.png"
+  },
+  {
+    "sha256": "60C77FBBDCBBC79B28E0DBD8613EC70396887ECA3195F26E05E46FC7BD4F1201",
+    "bytes": 1307685,
+    "path": "branding/ui-icons/shortcut-v5.png"
+  },
+  {
+    "sha256": "5DD18C2ADC55C60D720DA55F0675DA3256C98039956367CDC923E988C24FD253",
+    "bytes": 24460,
+    "path": "branding/ui-icons/taiwan.png"
+  },
+  {
+    "sha256": "6737E72E2C3EEDB45C47D7A92E479575B5152C2A6D2319CE9F87B2E0E7C14127",
+    "bytes": 1393698,
+    "path": "branding/voice-control-panel-transparent-v4.png"
+  },
+  {
+    "sha256": "D9AC1AE40F0824B901B7C9F0688928B98CEAFB2F9C16EB4F7E393E9F27679C19",
+    "bytes": 382377,
+    "path": "branding/voice-control-panel.png"
+  },
+  {
+    "sha256": "6E5B7049BEDBF6483CEA21AD093AD3B012B25A155DA10D53A0DA0B4DAAE80679",
+    "bytes": 12855512,
+    "path": "data/official/counties/counties-original.geojson"
+  },
+  {
+    "sha256": "0C6FCA34A92B92EF3E9A41957E403CB89E814BB64942CA7C7E51C746F913D49D",
+    "bytes": 3708666,
+    "path": "data/official/counties/counties.zip"
+  },
+  {
+    "sha256": "463A82BF427B43B8913A82EDDB95CFFC88BA39638FFDCB90A7F2E1A0C811149D",
+    "bytes": 2075,
+    "path": "data/official/rail/catalog.json"
+  },
+  {
+    "sha256": "2DC18B4ABC90DA3C3005705FC3844A7A50C6F18FB737C479C0C557D87BECB5C4",
+    "bytes": 258345,
+    "path": "data/official/rail/hsrail.zip"
+  },
+  {
+    "sha256": "E41B2075575EE1B55548297B254226B4DB580E1CE7AD631D732E352B926EF049",
+    "bytes": 15394,
+    "path": "data/official/rail/lrt.zip"
+  },
+  {
+    "sha256": "F5B8E8F38E2653786E779D3BC2EAF9A75AA5D7040F1FFD09BA9441079A9790F9",
+    "bytes": 107477,
+    "path": "data/official/rail/mrt.zip"
+  },
+  {
+    "sha256": "924F0B41F28205F4D77D3F6E27E753ECC29060E131F000457EA030EF76BF653B",
+    "bytes": 544620,
+    "path": "data/official/rail/taiwan-rail.zip"
+  },
+  {
+    "sha256": "3BB862162082E97155A92A0BDAAC4F596AAC91CCA672EB8B300B784ED3F643D0",
+    "bytes": 12291,
+    "path": "DEVELOPMENT-STATUS.md"
+  },
+  {
+    "sha256": "6A2126066820DC6CED8B2E2E498FFABC2DAC107EB23EDCA51085630A676CDF39",
+    "bytes": 6857,
+    "path": "docs/browser-fixes-v11-20261001.md"
+  },
+  {
+    "sha256": "CAD02A22CCDF1C0B7AD7860B5850D1773479235E8024B53B28A491F2B838A848",
+    "bytes": 4135,
+    "path": "docs/browser-fixes-v12-20261002.md"
+  },
+  {
+    "sha256": "6CAE8C3E39515F15DCDB30EE217AA5F4B29F79F04AA88B2F72F51670EFF3B455",
+    "bytes": 8118,
+    "path": "docs/browser-update-20261001.md"
+  },
+  {
+    "sha256": "3624619CB19D8024968EC723F4F9A6BC455940356594393A77AA021C4B3AADD5",
+    "bytes": 5005,
+    "path": "docs/browser-workflow-20261001.md"
+  },
+  {
+    "sha256": "6F853DFCB5B19B90A55F4485EF08FF3DB5A797876BBFB5A84FB578A3C33C5066",
+    "bytes": 270836,
+    "path": "docs/browser-workflow-20261001.png"
+  },
+  {
+    "sha256": "37A7385EE3C6CB51A832576474C11EFC98529FD11E6C8BBD3235FB3518EB0E31",
+    "bytes": 171016,
+    "path": "docs/cctv-wall-v9-20261001.png"
+  },
+  {
+    "sha256": "57D6822FBCA5768039DB72F9BB11E277140CD42D3B1E3DAAE727AC121D078AE1",
+    "bytes": 131436,
+    "path": "docs/chat-image-v9-20261001.png"
+  },
+  {
+    "sha256": "01CFAFCE67EFEF7132B59EC08E6EA4ACADD8AFB2B1DC15DC3884291B476B6E19",
+    "bytes": 234747,
+    "path": "docs/chat-style-20261001.png"
+  },
+  {
+    "sha256": "2A183834F70DF72EDEA3AAD944477E8E1CCB10CC7E4455DBABD2668E5A19A1B2",
+    "bytes": 127238,
+    "path": "docs/chat-table-v9-20261001.png"
+  },
+  {
+    "sha256": "C06BB4E7D9614CE452AB2FD4ECECF7E7EF994FCEE248E4C64756EA4C1396A2F4",
+    "bytes": 2062,
+    "path": "docs/cleanup-v11-20261001.json"
+  },
+  {
+    "sha256": "58308989001649F1BA6F64C77ECABDAC6BB2B3F3123407D0F01F7537E6151C5C",
+    "bytes": 200161,
+    "path": "docs/missing-key-v10-20261001.png"
+  },
+  {
+    "sha256": "AD2273FA8C6F6252AFF2167DD4018667943BD03E9AAE7780E843C6B0EA27D844",
+    "bytes": 135763,
+    "path": "docs/project-delete-v9-20261001.png"
+  },
+  {
+    "sha256": "A7E84EC86351D8D5C71519A833ED0C20C9E3A14B812C593BCD305074210C43EE",
+    "bytes": 178142,
+    "path": "docs/qa-v11-cctv-wall.png"
+  },
+  {
+    "sha256": "65B8FC07871964861A8258A675DE33AFE304AF962543F09F976B32DA778E8E81",
+    "bytes": 178418,
+    "path": "docs/qa-v11-driving.png"
+  },
+  {
+    "sha256": "15325C08F61FB3C51685C69065825C5187FDE78016C7EBF4E88E391B5F21EE52",
+    "bytes": 205144,
+    "path": "docs/qa-v11-global-terrain.png"
+  },
+  {
+    "sha256": "EC215C19C3E079A0E2B4B3CAEE26EF9E0045E78A528DA36A9C5C632FF257F36F",
+    "bytes": 129066,
+    "path": "docs/qa-v11-national-roads.png"
+  },
+  {
+    "sha256": "44B27E5B1B522F713802F09202593DFFE72E8F44429AD5F07DA6E481C280FB33",
+    "bytes": 59512,
+    "path": "docs/qa-v11-national-vectors.png"
+  },
+  {
+    "sha256": "68E4A09C68FE4E9ABCEB589061BF7B8A5F8E63E37EA1D7E7439D1E78BD030A85",
+    "bytes": 241584,
+    "path": "docs/reset-v10-20261001.png"
+  },
+  {
+    "sha256": "172956F1E71A3F3CF6701C8B41C1A62460E753C120EAB10AE25262EAB2DAA813",
+    "bytes": 4205,
+    "path": "docs/toolbar-cctv-v9-20261001.md"
+  },
+  {
+    "sha256": "C8FDE163EE9682AC2CA5012A0070936FDC51C99660EE2652FE720F58C1592B55",
+    "bytes": 133849,
+    "path": "docs/toolbar-scope-v9-20261001.png"
+  },
+  {
+    "sha256": "CAFF890FE37CAADDF73EBE850152D685E71A38DE7546CEDB5678002D4D1AFC88",
+    "bytes": 72568,
+    "path": "docs/toolbar-short-v9-20261001.png"
+  },
+  {
+    "sha256": "204F7B901AD0AC6F958DA9FB4D277021F8B182F4310F0B740172E012E8895068",
+    "bytes": 208919,
+    "path": "docs/traffic-description-v10-20261001.png"
+  },
+  {
+    "sha256": "D4F53A4272CBF0FC7F1102986CA9F67A16A09EF635E60D156050D761DC1B32E3",
+    "bytes": 4150,
+    "path": "docs/traffic-navigation-reset-v10-20261001.md"
+  },
+  {
+    "sha256": "E10068ADD2CC3351671C82AB231341F7AECA883ACBAC880E8D86FDAC867E587A",
+    "bytes": 258373,
+    "path": "docs/traffic-navigation-v10-20261001.png"
+  },
+  {
+    "sha256": "5F6E853CCB044D7B76DBE95F4A8A3890F9D5F0613105E0428743F36658AA8869",
+    "bytes": 5546,
+    "path": "DTM_2025_OFFICIAL_CATALOG.csv"
+  },
+  {
+    "sha256": "CB416DC63D5B53B7E7CD5C2612FA8A614D28AF3AD993E1E3F4612CDC45F2102B",
+    "bytes": 611,
+    "path": "GITHUB-STATUS.md"
+  },
+  {
+    "sha256": "560DDCAF561EB56BAB92E8A6BB12A02C17DE7E63289D73C566A756563C644128",
+    "bytes": 1297,
+    "path": "LICENSE"
+  },
+  {
+    "sha256": "32E0E14D02BD5B3330E399CCCD35F7011CCAB0AC32CA58E50A52BB2EB198AD17",
+    "bytes": 2052,
+    "path": "NLSC_CAPABILITY_AUDIT.json"
+  },
+  {
+    "sha256": "B4CCA8AD12D97626B27A5899E28F10CD586DA53638E1895C3E6B89265F0684EA",
+    "bytes": 427,
+    "path": "overlay/package.additions.json"
+  },
+  {
+    "sha256": "2C228EA93E562B8A23C09A122DE9B8FD41BC866E134266B556A13D592E7646BE",
+    "bytes": 2581,
+    "path": "overlay/server/providers/cctv/taiwan.js"
+  },
+  {
+    "sha256": "A2A2C34CFEF2162882064A20856FC5111DBAED114C048432F165D376B1C21611",
+    "bytes": 3840,
+    "path": "overlay/server/providers/cctv/wallStream.js"
+  },
+  {
+    "sha256": "AAA69DB633DA1EA1206D04F7E863534921BE1A545F37151ABEC90F61C3648D41",
+    "bytes": 14380,
+    "path": "overlay/server/providers/nlsc-service-snapshot.json"
+  },
+  {
+    "sha256": "96833E49FD15F7136438A7A90B10F9882E2ECB454313DE3862E40E2763AB3337",
+    "bytes": 8216,
+    "path": "overlay/server/providers/nlscBuildingAnalysis.js"
+  },
+  {
+    "sha256": "6B98C8040D5C3FDEA5D5A84D0FE88E48395C28C19BF798F041813FC462F3818B",
+    "bytes": 9755,
+    "path": "overlay/server/providers/overpass.js"
+  },
+  {
+    "sha256": "76C239FCAC0C82B6B2F9D7F4A126BDF74AFB0673053995145DBD9AAC1EF24433",
+    "bytes": 4717,
+    "path": "overlay/server/providers/overpass/cache.js"
+  },
+  {
+    "sha256": "119E73641B3A046F9040C0F3CA683D988AC12A72E83469C30E000F44C2175117",
+    "bytes": 6018,
+    "path": "overlay/server/providers/overpass/transport.js"
+  },
+  {
+    "sha256": "C14DDA08F61677A4E9617A3F16FB9956F9B1AB49C4D4548E1658A3AC4279211F",
+    "bytes": 582,
+    "path": "overlay/server/providers/taiwan-dpapi.ps1"
+  },
+  {
+    "sha256": "DB661B8B861D6FA7EA1B2A5E34965B1CFC4AAAB887E4C197FD46AD30673B18ED",
+    "bytes": 14336,
+    "path": "overlay/server/providers/taiwanAi.js"
+  },
+  {
+    "sha256": "01C3EF3CB95AD8FD808CB164DEAC39488E6C45646F7FF2A4FA7B879405FD4118",
+    "bytes": 4261,
+    "path": "overlay/server/providers/taiwanCctvWall.js"
+  },
+  {
+    "sha256": "EEA1BD44B328C5CC18117BCC6EB4F94008EA1B77DA49B0555F28571A637A0483",
+    "bytes": 5216,
+    "path": "overlay/server/providers/taiwanChat.js"
+  },
+  {
+    "sha256": "A917C749490E198992A4E80B87AA9FE3A9BCE9D626C8ED043900E2E5AF0DB99B",
+    "bytes": 4110,
+    "path": "overlay/server/providers/taiwanCredentialStore.js"
+  },
+  {
+    "sha256": "D577AEBF914F0D2D0762720795DF9E6BB697F5E3DAAFFBC000651E41C6863892",
+    "bytes": 7641,
+    "path": "overlay/server/providers/taiwanDtm.js"
+  },
+  {
+    "sha256": "6AD68C35DA5CE339D144197132C726ED15BBA1A56C3B8926403E5BED902B2F61",
+    "bytes": 4440,
+    "path": "overlay/server/providers/taiwanNlsc.js"
+  },
+  {
+    "sha256": "9633ACE20CF117AB22C3740B0C920EE88ED0AF2E85E1EA35B2F88A8D9A22B2C6",
+    "bytes": 5811,
+    "path": "overlay/server/providers/taiwanResources.js"
+  },
+  {
+    "sha256": "CE55D94EF836CC138523951D99018387FD9EBA7A8AE5875A622AADA3F5B06CE1",
+    "bytes": 36,
+    "path": "overlay/src-tauri/build.rs"
+  },
+  {
+    "sha256": "0665FA424A61E397999A78694EAB0142007B7DA0B56353552C2CB6E58170451E",
+    "bytes": 213,
+    "path": "overlay/src-tauri/capabilities/default.json"
+  },
+  {
+    "sha256": "03B736651408AA2C6B7360B5E97825292E107F9F14AC4901ECA703A4D2DC82A8",
+    "bytes": 874,
+    "path": "overlay/src-tauri/Cargo.toml"
+  },
+  {
+    "sha256": "88E55D3FC7AA6A5FBDAB1970CABF8168C7849557FBA375D03A8383658522998C",
+    "bytes": 31263,
+    "path": "overlay/src-tauri/icons/128x128.png"
+  },
+  {
+    "sha256": "BFB6B141A7CCB4D3BABAC7777E9E1457AF09D233D65217866152E74BB4C1C0D5",
+    "bytes": 109621,
+    "path": "overlay/src-tauri/icons/128x128@2x.png"
+  },
+  {
+    "sha256": "A09496FEFEB8EBB0ED6029CBAFE5F2744D1773A0E9CBD26AFB2741E7701C38D0",
+    "bytes": 2754,
+    "path": "overlay/src-tauri/icons/32x32.png"
+  },
+  {
+    "sha256": "39160A4F18E93C01148739101627593A8CDDC0404EF08262CFFEE3A8B7F82B57",
+    "bytes": 160832,
+    "path": "overlay/src-tauri/icons/icon.ico"
+  },
+  {
+    "sha256": "9A34C93724DFA9B232109F56D409A6886FD25C2B238C7E52B689F27DC7A23792",
+    "bytes": 1078,
+    "path": "overlay/src-tauri/src/cesium_health.rs"
+  },
+  {
+    "sha256": "58C50D1E8EE71AB26B4543A8FDBA375CE4DF4CEDE4F66DA94985549239EAC70A",
+    "bytes": 1802,
+    "path": "overlay/src-tauri/src/gemini.rs"
+  },
+  {
+    "sha256": "A66AA8424D571FA12521207B2F94D36E904F7282BCD42552E83445E86219BE80",
+    "bytes": 2375,
+    "path": "overlay/src-tauri/src/lib.rs"
+  },
+  {
+    "sha256": "D2527ED2EAD6F83FABC20F7BB39242E6129A4E6DAFFD89CDC8846841766F1DCC",
+    "bytes": 115,
+    "path": "overlay/src-tauri/src/main.rs"
+  },
+  {
+    "sha256": "09E9D6F0549AF146CAE16D3539D352D6DD4B19E453183C44377F541458DBD154",
+    "bytes": 2892,
+    "path": "overlay/src-tauri/src/offline_speech.rs"
+  },
+  {
+    "sha256": "CDD53607B839738A600F73BA27275BB88905F8E000134E1C8DB3C79921141DC6",
+    "bytes": 6354,
+    "path": "overlay/src-tauri/src/openrouter.rs"
+  },
+  {
+    "sha256": "7C57B2A9E8E265089C005EB3C7CAE1B8D9C6B724C3D62F2227571EA63C6E97D2",
+    "bytes": 1537,
+    "path": "overlay/src-tauri/src/resources.rs"
+  },
+  {
+    "sha256": "F0165633EEE2AA4493C00BB9B97DFB6347DD8AB8FB78F3D164128C3DD4440C83",
+    "bytes": 1218,
+    "path": "overlay/src-tauri/src/secrets.rs"
+  },
+  {
+    "sha256": "6C5195DD7A1DE76ADEC723AC19858041AF238AFD5E0A6E4DB8B2F415879B4397",
+    "bytes": 2889,
+    "path": "overlay/src-tauri/src/tomtom.rs"
+  },
+  {
+    "sha256": "7C07F0A04B63639FBF0E4F600B544B24CEA0DEF66DCC305CF13263FCB805575B",
+    "bytes": 1354,
+    "path": "overlay/src-tauri/tauri.conf.json"
+  },
+  {
+    "sha256": "092A3C2A23AC026712B238F905DA794A73AFF6D7B9069A94B94775E06619A381",
+    "bytes": 379,
+    "path": "overlay/src-tauri/windows/hooks.nsh"
+  },
+  {
+    "sha256": "B8441D6B0D90F9C595CD04B03061CD8DD12E4D0FE653E4875D4242F2E47B1D98",
+    "bytes": 16019,
+    "path": "overlay/src/maps/controller.js"
+  },
+  {
+    "sha256": "049A50451BB00FC84012E737229E0D2F89D91378A47F9B62FFFD7DA49FF71DFF",
+    "bytes": 2832,
+    "path": "overlay/src/maps/defaultSources.js"
+  },
+  {
+    "sha256": "29B2832FF58BA4471B544799D11AC09F641D06858083372EBC50F2142A04650A",
+    "bytes": 1735,
+    "path": "overlay/src/taiwan/ai.js"
+  },
+  {
+    "sha256": "F846AD38C38EFA8BA91A2BAC392B1858172C7B1060526014FEBD41D02C829B50",
+    "bytes": 2811,
+    "path": "overlay/src/taiwan/analysis.js"
+  },
+  {
+    "sha256": "5CCB203A2EA4ED1D7BDF871A7933C24CE331E86CB609BCCC7426CA71BDC2CCDE",
+    "bytes": 2129,
+    "path": "overlay/src/taiwan/browserAi.js"
+  },
+  {
+    "sha256": "FE20FD931436ADDE8088D317E050693710A176F9DC0C6321EFB4336047F58252",
+    "bytes": 24245,
+    "path": "overlay/src/taiwan/builtinLayers.js"
+  },
+  {
+    "sha256": "C4DCBC2C60E2A6C802FCEE01149A4464E5AC8FFD332629A99838FED34519B2FD",
+    "bytes": 5503,
+    "path": "overlay/src/taiwan/cctvWall.js"
+  },
+  {
+    "sha256": "2BE7EEF792F26C486D8A87C0BC6C8F03F0B91FC5CF73DBD1ED332D3B1DD70972",
+    "bytes": 5251,
+    "path": "overlay/src/taiwan/cctvWallViewer.js"
+  },
+  {
+    "sha256": "FC5DD67EE2DB0A13F07C04CE7E82FA8FEB92F479CFF6C2D9AC2BC0A7A07B5505",
+    "bytes": 4113,
+    "path": "overlay/src/taiwan/chatFormat.js"
+  },
+  {
+    "sha256": "81EEA6D65B89E2A6B600B0FCF64E25E93FBA6FCE4C668DA9032551619B061268",
+    "bytes": 517964,
+    "path": "overlay/src/taiwan/data/osm-coastline-national.geojson.gz"
+  },
+  {
+    "sha256": "FEC42A694EF319723F2861A19E1D72F3293461E14C9895E7C0FB29A52DA862A7",
+    "bytes": 3785,
+    "path": "overlay/src/taiwan/data/osm-national-metadata.json"
+  },
+  {
+    "sha256": "D2F0BBF35370185EF43B85F1CB32EEE24D9FAB5DA4CE02EB1BC20796F4A9A8A5",
+    "bytes": 46915474,
+    "path": "overlay/src/taiwan/data/osm-roads-national.geojson.gz"
+  },
+  {
+    "sha256": "08E0C5A271B7D50DBCDD58F76B947EBD0E5C82CADF8923EB327D7D612B92AFF7",
+    "bytes": 6365715,
+    "path": "overlay/src/taiwan/data/osm-water-national.geojson.gz"
+  },
+  {
+    "sha256": "9F3C62A9F1D0861304C71101DA336AB43802F37F0A5F66988B9E15E40DCD6C46",
+    "bytes": 11263416,
+    "path": "overlay/src/taiwan/data/osm-waterways-national.geojson.gz"
+  },
+  {
+    "sha256": "8452463A139B88FCC92FD95261B8A98BE520A775834E6314D894A1AF175D42FF",
+    "bytes": 1924257,
+    "path": "overlay/src/taiwan/data/taiwan-counties.geojson"
+  },
+  {
+    "sha256": "121A7E239D2E2039BC3F8EC8D86FDD1EC23C95864CBBA73512624CBC57351839",
+    "bytes": 3571859,
+    "path": "overlay/src/taiwan/data/taiwan-rail.geojson"
+  },
+  {
+    "sha256": "1B3F9EDDF4CA9738DE8135D9520D74783393A0EADA0ADB4D797D4E840796B08C",
+    "bytes": 802,
+    "path": "overlay/src/taiwan/data/taiwan-towns-metadata.json"
+  },
+  {
+    "sha256": "671CDCA01C1960A23739479774DB50B060BB85D51E7C08BDC1C4D838916BFEDC",
+    "bytes": 3127442,
+    "path": "overlay/src/taiwan/data/taiwan-towns.geojson.gz"
+  },
+  {
+    "sha256": "84FD77CA7E023DDBF6FEF0ECD43A3377F3A444F1088AD555728AA82DBC9F5805",
+    "bytes": 6465,
+    "path": "overlay/src/taiwan/dataImport.js"
+  },
+  {
+    "sha256": "4531B86F70487EE86CEEB980738332F6C03439C5A8E312B37A38256E64165A87",
+    "bytes": 4219,
+    "path": "overlay/src/taiwan/dataScope.js"
+  },
+  {
+    "sha256": "AC003A69FE302F721721CAE029E455E5C8C2473D8F519CE7C5F93102067D5E6E",
+    "bytes": 309,
+    "path": "overlay/src/taiwan/db.js"
+  },
+  {
+    "sha256": "66DDD8E640C9064367512747F1B17FC82EB24ADB42A3F3F55A03FE33924F355D",
+    "bytes": 8393,
+    "path": "overlay/src/taiwan/drawing.js"
+  },
+  {
+    "sha256": "6ED304A299799DC2635CF470E4E7B81E0597536456223C8619AC19208C10135A",
+    "bytes": 8599,
+    "path": "overlay/src/taiwan/drawingInputs.js"
+  },
+  {
+    "sha256": "9E6349625CB9BE2E9B8E5819448484AC40BFF5FDAA08341A71310752DC6935C2",
+    "bytes": 20927,
+    "path": "overlay/src/taiwan/geminiLive.js"
+  },
+  {
+    "sha256": "CF68F75F19B3ADE0CB57180025DEAAF7796893C619CBA3DFD72D41E4D504D6BA",
+    "bytes": 6045,
+    "path": "overlay/src/taiwan/i18n.js"
+  },
+  {
+    "sha256": "A1652F1647F28EBAC5A23C714C9B8B93AE3D86C1C882C91EC451BC957A69C339",
+    "bytes": 4003,
+    "path": "overlay/src/taiwan/index.js"
+  },
+  {
+    "sha256": "DCC4BF991BD22941EEE19F602552B6A952681D3FC798AC7190BCE9FB024F276F",
+    "bytes": 2737,
+    "path": "overlay/src/taiwan/layerRegistry.js"
+  },
+  {
+    "sha256": "D5A2FEFC3A134094B7C38676EABE21BF6B05484662E5A7DF584050D5A8744BD2",
+    "bytes": 4264,
+    "path": "overlay/src/taiwan/liveDataHealth.js"
+  },
+  {
+    "sha256": "86B42DC23F0A9B1816E5E200C74D9AC9E74BE957048111A741D0B222A7C33927",
+    "bytes": 3037,
+    "path": "overlay/src/taiwan/liveDescription.js"
+  },
+  {
+    "sha256": "2D8F9D9361B449AD4DF42F93638647DB3B4FEDC56D471B59FC123DEAEC77CE48",
+    "bytes": 17150,
+    "path": "overlay/src/taiwan/navigation.js"
+  },
+  {
+    "sha256": "645083DAC02BFDD88CB67BDCA542F6F9A94D3710A231A53D47BC2F7B9C2920B7",
+    "bytes": 7942,
+    "path": "overlay/src/taiwan/officialTerrain.js"
+  },
+  {
+    "sha256": "21FEA4506D92E0C9F7BD7BAB82491A8B81418D48FAF48A72CDF8822BB6BEAAD4",
+    "bytes": 1503,
+    "path": "overlay/src/taiwan/places.js"
+  },
+  {
+    "sha256": "8025E8874D7A707FEAE005DFFBB06F4DC1D15A1F21CD127A3A02B7EACC9305A8",
+    "bytes": 6495,
+    "path": "overlay/src/taiwan/projectManager.js"
+  },
+  {
+    "sha256": "AF523D179C2FE12A0E3B5C37DF0A46F6ECB98399AB2AE9048D9BB81EF232287E",
+    "bytes": 14654,
+    "path": "overlay/src/taiwan/providerSettings.js"
+  },
+  {
+    "sha256": "D94DCAC6F37F8D72BC1C092AAE6AA746703BA626A5882760569CD25D6F440BCA",
+    "bytes": 3535,
+    "path": "overlay/src/taiwan/resourceGovernor.js"
+  },
+  {
+    "sha256": "DBC869FD3DC532D7E8C35A0061AADFC4E12FA15D1B489006AB29D3EC3AC40567",
+    "bytes": 493,
+    "path": "overlay/src/taiwan/runtimeConfig.js"
+  },
+  {
+    "sha256": "81FAB4C21958182EECE0333F41B9C9B1FD039ACAB9F68F6A3FE79AA195D4E429",
+    "bytes": 7939,
+    "path": "overlay/src/taiwan/serviceLayers.js"
+  },
+  {
+    "sha256": "949E611055DDDE07E389C1D4BF2795BF4FBECDB826E90E2177395EE05C375C12",
+    "bytes": 5015,
+    "path": "overlay/src/taiwan/spatialContext.js"
+  },
+  {
+    "sha256": "4918370AAF93221B9CC0F57BA6EF6366B23FA71C14BFE5202F471A2B461E5FCD",
+    "bytes": 76112,
+    "path": "overlay/src/taiwan/taiwan.css"
+  },
+  {
+    "sha256": "A49029360B5F4E81D3AB29DA20947A4346580A5D5B37FEED698B916EE40C9D2D",
+    "bytes": 2419,
+    "path": "overlay/src/taiwan/terrainAnalysis.js"
+  },
+  {
+    "sha256": "9DE5B8D7DDA38C287A9D2C377F3956920D30828532C0B0739107266D21F9C256",
+    "bytes": 2885,
+    "path": "overlay/src/taiwan/trafficDots.js"
+  },
+  {
+    "sha256": "DAA716FED3B2204247E874BF2D63852FE60A542D01D14519378362B5804E3412",
+    "bytes": 126714,
+    "path": "overlay/src/taiwan/ui.js"
+  },
+  {
+    "sha256": "318CADE820BCDDE821C3D1F0AA2837551C51D14D00186DEB99ADCAFFDA70A642",
+    "bytes": 6034,
+    "path": "overlay/src/taiwan/viewportLines.js"
+  },
+  {
+    "sha256": "C6E25FCD23C61515AD9B753D5470E75629B27726A1571C827471AB3DA24FCF8F",
+    "bytes": 510,
+    "path": "package.json"
+  },
+  {
+    "sha256": "98D808E6B99B9CECCD93A6AD3C3A43E873DE07BE5C31911F7342568DFCD747C2",
+    "bytes": 9611,
+    "path": "README.md"
+  },
+  {
+    "sha256": "0AD3247B6C36FC7851AF1632B85975D25D5E136A23376A466D51DFC5C617629A",
+    "bytes": 2682,
+    "path": "ROADMAP.md"
+  },
+  {
+    "sha256": "FEF66CDCB058A659B39D138DF5176F133C9D95828E55624EB6F9CA8A330831E6",
+    "bytes": 2157,
+    "path": "scripts/agent-install-windows.ps1"
+  },
+  {
+    "sha256": "F9A9545E6111C4261ABEAD5CE310847E9751BA2DAC8885BCBB72B7FB383E1B7A",
+    "bytes": 18718,
+    "path": "scripts/apply-overlay.mjs"
+  },
+  {
+    "sha256": "D53AEBD8FD23BCF202C0361DA48546F7F01F3C932D4D61FE86722014E140D5CF",
+    "bytes": 2713,
+    "path": "scripts/create-desktop-shortcut.ps1"
+  },
+  {
+    "sha256": "2B2ADEB1C460E210287D3172879B8033370953254F4DA9D107939E18DA6D711C",
+    "bytes": 3146,
+    "path": "scripts/download-national-osm.mjs"
+  },
+  {
+    "sha256": "9C773373623AAD69800246C7E827F468E3595E1326C5B078EF491EF5C352D912",
+    "bytes": 1529,
+    "path": "scripts/install-browser.mjs"
+  },
+  {
+    "sha256": "A518C062C5F75C9A72A0511ECE9A682959D81AE9B7FD029D875578DDCEA13400",
+    "bytes": 1969,
+    "path": "scripts/install-official-dtm.ps1"
+  },
+  {
+    "sha256": "D93A45CA9D7346F91A276A1895282271CDC069885DE56FA1D5F660DA4D09A491",
+    "bytes": 2139,
+    "path": "scripts/launching.html"
+  },
+  {
+    "sha256": "020FF27610C652B4F3D5094F0C5F1E4C25E4840D4B0F3AF2A06FBC0F8B78200A",
+    "bytes": 2806,
+    "path": "scripts/package-github.ps1"
+  },
+  {
+    "sha256": "4AFFCEA2F94C6FAA76042D749A07734602BEF4CC9AC5884A3655FB89FDF6644B",
+    "bytes": 5836,
+    "path": "scripts/prepare-national-osm.py"
+  },
+  {
+    "sha256": "C801F79D0074B90F39626A48242B1AC63EABA54F9C5965AF05D5ADFA3202E3DE",
+    "bytes": 3309,
+    "path": "scripts/prepare-official-rail.mjs"
+  },
+  {
+    "sha256": "1263F8A47ED841860ED0AF160B384F1ED679C07671141EB3DEC8E1EAEA52D991",
+    "bytes": 1593,
+    "path": "scripts/prepare-upstream.mjs"
+  },
+  {
+    "sha256": "EEA915C9EEE304D743103C26C9C2B7E57BD64C7B27E3695BB7DDCA7578D30C28",
+    "bytes": 81,
+    "path": "scripts/prepare-upstream.ps1"
+  },
+  {
+    "sha256": "4E61F31143238AECB7E688B76FAF00435ECE2B621F3F88FBAEF7AF8E1C569B2A",
+    "bytes": 438,
+    "path": "scripts/rebuild-desktop-shortcut.ps1"
+  },
+  {
+    "sha256": "68E2C5CB57F1D4F719DFE44C8A325AD0E694C52CD49DB2A3ABAECA1717FA6E43",
+    "bytes": 4405,
+    "path": "scripts/start-gods-eye-browser.mjs"
+  },
+  {
+    "sha256": "8873539D411F7EBCF021F6EFF1AF7B8C3007C2FA6CA30A86E7EB8356D1E8E4A9",
+    "bytes": 4473,
+    "path": "scripts/start-gods-eye-taiwan.ps1"
+  },
+  {
+    "sha256": "A96A4085F46E14439893BBA2D5DD4CB9D012C86AF02B806F75D15C4124A7D310",
+    "bytes": 6221,
+    "path": "scripts/verify-ai-gis-fixes.mjs"
+  },
+  {
+    "sha256": "BFD2274837057BABAEA9A99957953E9F16B58EA2985924897A85B591D7E44050",
+    "bytes": 2691,
+    "path": "SECURITY-TRIAGE-2026-09-29.md"
+  },
+  {
+    "sha256": "A8615CEEE9A95D7B0FED7390784B2E6C932C95A5840DD8BBD64DBFE53F511307",
+    "bytes": 3128,
+    "path": "THIRD_PARTY_NOTICES.md"
+  },
+  {
+    "sha256": "CDEB427F4F14739391778201450B671D1B56B51C02F76F5B0594D4E7AD0BCEA1",
+    "bytes": 131,
+    "path": "UPSTREAM.lock"
+  },
+  {
+    "sha256": "A5241B52206F61C9DFD6F0F53A8EF19076F9528EAD2DB1E039A66D7E03817BFC",
+    "bytes": 689664,
+    "path": "vendor/whispercpp/bin/ggml-base.dll"
+  },
+  {
+    "sha256": "5A5B11DCD38E321B13F85C95414940DB9EAB1132BE3DA6342F03DFB1D8E51BD5",
+    "bytes": 864256,
+    "path": "vendor/whispercpp/bin/ggml-cpu-alderlake.dll"
+  },
+  {
+    "sha256": "2C858781450B52EDA95C381232CC65C9E19CBF621CC7B254D8C44FDBAB77791E",
+    "bytes": 908288,
+    "path": "vendor/whispercpp/bin/ggml-cpu-cannonlake.dll"
+  },
+  {
+    "sha256": "DDF49BB749B34800AFCB3D6224544966A05C5D00F1D0B6565BEE9F3B010DD53C",
+    "bytes": 904704,
+    "path": "vendor/whispercpp/bin/ggml-cpu-cascadelake.dll"
+  },
+  {
+    "sha256": "6B772E094B8976E22B4C043BE86A1A8DEDA4B50511DC803A693B652C51B24944",
+    "bytes": 866304,
+    "path": "vendor/whispercpp/bin/ggml-cpu-haswell.dll"
+  },
+  {
+    "sha256": "BBD87EA5920EDC401054848071AD2EF8C96BBF8007C4E4CD0EA82BA9B9E3BD10",
+    "bytes": 904704,
+    "path": "vendor/whispercpp/bin/ggml-cpu-icelake.dll"
+  },
+  {
+    "sha256": "DE2AD5F84C7DFA557D515B3678D6452CE0216590268B2CA79CC537FE87CF239D",
+    "bytes": 860672,
+    "path": "vendor/whispercpp/bin/ggml-cpu-sandybridge.dll"
+  },
+  {
+    "sha256": "9FA3F9D984CA42D568181DD345072299DB2978B328800343218C2C7F000B7152",
+    "bytes": 908288,
+    "path": "vendor/whispercpp/bin/ggml-cpu-skylakex.dll"
+  },
+  {
+    "sha256": "740FC769EF433985DFDB24A609A42D5ACF188ABDA52287A4D89B89B567507C19",
+    "bytes": 846848,
+    "path": "vendor/whispercpp/bin/ggml-cpu-sse42.dll"
+  },
+  {
+    "sha256": "43CCF32B9B70AA4C47D0A12AC2ED3C241E0045571ACDAD565ECD9D1F99FFC08B",
+    "bytes": 850432,
+    "path": "vendor/whispercpp/bin/ggml-cpu-x64.dll"
+  },
+  {
+    "sha256": "C6E88687D6AA0238F2E834A87958F38D2DC96075A6A7BF6FB8B9CD728A0FAED2",
+    "bytes": 62464,
+    "path": "vendor/whispercpp/bin/ggml.dll"
+  },
+  {
+    "sha256": "19B976E037C02C0DE712FA26096842D4EBAFCA03C976B12E8E6123215E7AAB58",
+    "bytes": 479232,
+    "path": "vendor/whispercpp/bin/whisper-cli.exe"
+  },
+  {
+    "sha256": "B7BB4BA92BD36B8AFE0C00059CA6A0F69C6767193BFB5F0761E9ED27B1087803",
+    "bytes": 1368576,
+    "path": "vendor/whispercpp/bin/whisper.dll"
+  },
+  {
+    "sha256": "818710568DA3CA15689E31A743197B520007872FF9576237BDA97BD1B469C3D7",
+    "bytes": 32152673,
+    "path": "vendor/whispercpp/ggml-tiny-q5_1.bin"
+  },
+  {
+    "sha256": "94F29BBED6A22C35B992C5C6EBF0E7C92F13B836B90F36F461C9CF2F0F1D010D",
+    "bytes": 1078,
+    "path": "vendor/whispercpp/LICENSE"
+  },
+  {
+    "sha256": "355E1CCA09C227449D498B4D361EE1CC08C1E65BF484C924251504FB5D11A137",
+    "bytes": 1044,
+    "path": "vendor/whispercpp/README.md"
+  }
+]

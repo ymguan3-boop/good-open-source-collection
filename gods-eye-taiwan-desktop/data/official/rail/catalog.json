@@ -1,0 +1,58 @@
+{
+  "provider": "內政部國土測繪中心",
+  "downloadedAt": "2026-09-30",
+  "license": "政府資料開放授權條款第1版",
+  "sourceCrs": "來源各 ZIP 的 .prj；TWD97 TM2 121",
+  "crs": "EPSG:4326",
+  "sources": [
+    {
+      "file": "taiwan-rail.zip",
+      "category": "臺灣鐵路",
+      "dataset": "73220",
+      "url": "https://opdadm.moi.gov.tw/api/v1/no-auth/resource/api/dataset/299841E1-714A-40BA-AF4B-D6527EEA2A41/resource/801DECA5-E75E-40A4-816C-1BD6A1F322C9/download",
+      "sha256": "924f0b41f28205f4d77d3f6e27e753ecc29060e131f000457ea030ef76bf653b",
+      "sourceFiles": [
+        "RAIL_1150409"
+      ],
+      "count": 2607
+    },
+    {
+      "file": "hsrail.zip",
+      "category": "高速鐵路",
+      "dataset": "73221",
+      "url": "https://www.tgos.tw/tgos/VirtualDir/Product/db6bff0a-58a5-40c1-81fb-ac8312213784/HSRAIL_1130417.zip",
+      "sha256": "2dc18b4abc90da3c3005705fc3844a7a50c6f18fb737c479c0c557d87becb5c4",
+      "sourceFiles": [
+        "HSRAIL_1130417"
+      ],
+      "count": 134
+    },
+    {
+      "file": "mrt.zip",
+      "category": "捷運",
+      "dataset": "73222",
+      "url": "https://opdadm.moi.gov.tw/api/v1/no-auth/resource/api/dataset/159E4D93-A053-4382-A6BD-9DE6B5C4E19F/resource/9D9CF5D4-EEA3-4E1C-ACB0-ECDBBA27C713/download",
+      "sha256": "f5b8e8f38e2653786e779d3bc2eaf9a75aa5d7040f1ffd09ba9441079a9790f9",
+      "sourceFiles": [
+        "MRT_1150409"
+      ],
+      "count": 405
+    },
+    {
+      "file": "lrt.zip",
+      "category": "輕軌捷運",
+      "dataset": "73229",
+      "url": "https://opdadm.moi.gov.tw/api/v1/no-auth/resource/api/dataset/E58E306B-37FA-4EF5-82EE-C700F854ED10/resource/5C569FD6-6024-4FF5-86B0-FDAE2B243FF2/download",
+      "sha256": "e41b2075575ee1b55548297b254226b4db580e1ce7ad631d732e352b926ef049",
+      "sourceFiles": [
+        "LRT_1150409"
+      ],
+      "count": 29
+    }
+  ],
+  "featureCount": 3175,
+  "limitations": [
+    "固定版本軌道線型；非即時營運或班表資料",
+    "各類資料版本不同，以來源檔名與圖徵更新欄位為準"
+  ]
+}
