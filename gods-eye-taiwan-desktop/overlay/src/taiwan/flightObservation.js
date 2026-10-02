@@ -1,18 +1,31 @@
+import * as Cesium from 'cesium';
+import { makePanelDraggable } from './draggablePanel.js';
 /** UI entry points for the upstream aircraft tracker and cockpit controller. */
-export function createFlightObservation({ root, dataManager, styleManager, onStatus = () => {} }) {
+export function createFlightObservation({ root, viewer, dataManager, styleManager, onStatus = () => {} }) {
   const card = document.createElement('section');
   card.className = 'tw-aircraft-card';
   card.hidden = true;
   card.setAttribute('aria-label', '飛機觀察視角');
   card.innerHTML = '<p data-aircraft-label></p><p data-aircraft-status role="status"></p><dl class="tw-flight-info" data-aircraft-info></dl><div class="tw-actions"><button data-aircraft-view="first">第一人稱</button><button data-aircraft-view="third">第三人稱</button><button data-aircraft-view="stop">停止觀察</button></div>';
   root.appendChild(card);
-  let pending = null, disposed = false, ownsContext = false, restoreMode = null;
+  const disposeDrag=makePanelDraggable(card,card.querySelector('[data-aircraft-label]'));
+  // A small, depth-independent silhouette remains visible when a streamed GLB
+  // is missing or hidden. It follows the tracker's exact rendered position.
+  const silhouette='data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><path d="M20 3L23 16L36 24L36 28L23 24L23 32L28 36L28 39L20 36L12 39L12 36L17 32L17 24L4 28L4 24L17 16Z" fill="#43eaff" stroke="#062d3c" stroke-width="1.5"/></svg>');
+  const marker=viewer.entities.add({id:'tw-aircraft-observation-marker',show:false,position:new Cesium.CallbackProperty(time=>{
+    const tracked=viewer.trackedEntity;
+    return tracked?.position?.getValue(time) || module()?.getTrackedSubject?.()?.position;
+  },false),billboard:{image:silhouette,width:32,height:32,disableDepthTestDistance:Number.POSITIVE_INFINITY}});
+  let pending = null, disposed = false, ownsContext = false, restoreMode = null, pendingTarget=null;
   const module = () => dataManager?.layers.get('flights')?.module;
   const cockpitActive = () => styleManager?.getCockpitState?.()?.active === true;
   const ownCockpit = () => {const state=styleManager?.getCockpitState?.();return state?.active && state.subject?.layerId==='flights';};
   function update() {
     if (disposed) return;
-    const subject = module()?.getTrackedSubject?.();
+    marker.show=dataManager?.isEnabled('flights') && !!module()?.getTrackedSubject?.() && !cockpitActive();
+    const heading=module()?.getTrackedInfo?.()?.track;
+    if(Number.isFinite(heading))marker.billboard.rotation=Cesium.Math.toRadians((viewer.camera.heading*180/Math.PI)-heading);
+    const subject = module()?.getTrackedSubject?.() || pendingTarget || (ownCockpit() ? styleManager.getCockpitState().subject : null);
     if (!dataManager?.isEnabled('flights') || !subject) {
       if(!dataManager?.isEnabled('flights') && ownCockpit())void styleManager.controlCockpit('exit');
       if (!pending) { card.hidden = true; }
@@ -34,10 +47,10 @@ export function createFlightObservation({ root, dataManager, styleManager, onSta
   async function setView(mode) {
     if (mode === 'stop') return stop();
     if (!['first', 'third'].includes(mode)) throw new Error('不支援的飛機觀察視角');
-    const target = module()?.getTrackedSubject?.();
+    const target = module()?.getTrackedSubject?.() || (ownCockpit() ? styleManager.getCockpitState().subject : null);
     if (!target || !dataManager?.isEnabled('flights')) throw new Error('請先點選一架已載入的飛機');
     pending?.abort();
-    const controller = new AbortController(); pending = controller; update();
+    const controller = new AbortController(); pending = controller; pendingTarget=target;update();
     const priorMode=styleManager?.getContextModeState?.()?.mode || null;
     let contextChanged=false;
     try {
@@ -49,17 +62,21 @@ export function createFlightObservation({ root, dataManager, styleManager, onSta
           if (!result?.ok) throw new Error('飛機觀察模式尚未就緒，請稍後再試');
         }
         controller.signal.throwIfAborted();
-        if (module()?.getTrackedSubject?.()?.id !== target.id) throw new Error('選取飛機已變更，請重新選擇視角');
+        if(module()?.getTrackedSubject?.()?.id!==target.id && !module()?.trackById?.(target.id,{origin:'user'}))throw new Error('此飛機已離開資料範圍');
         const result = await styleManager.controlCockpit('enter', { targetLayer: 'flights', selectedTarget: target });
         if (!result?.ok) throw new Error('無法進入此飛機的第一人稱視角，請稍後再試');
         if(contextChanged){ownsContext=true;restoreMode=priorMode;}
       } else {
         if (cockpitActive()) await styleManager.controlCockpit('exit');
         controller.signal.throwIfAborted();
-        // Force the existing tracker to reacquire its normal camera frame.
-        module()?.stopTracking?.({ origin: 'user' });
-        if (!module()?.trackById?.(target.id, { origin: 'user' })) throw new Error('此飛機已離開資料範圍');
-        module()?.refocusTrackedById?.(target.id, { origin: 'user' });
+        // Preserve the current track instead of destroying its visual model.
+        if((!viewer.trackedEntity || module()?.getTrackedSubject?.()?.id!==target.id) && !module()?.trackById?.(target.id,{origin:'user'}))throw new Error('此飛機已離開資料範圍');
+        const entity=viewer.trackedEntity;
+        if(!entity)throw new Error('第三人稱追蹤尚未就緒');
+        entity.show=true;
+        entity.viewFrom=new Cesium.Cartesian3(0,-2200,1100);
+        if(!module()?.refocusTrackedById?.(target.id,{origin:'user'}))throw new Error('第三人稱追蹤尚未就緒');
+        viewer.scene.requestRender();
       }
       controller.signal.throwIfAborted();
       return { ok: true, id: target.id, view: mode };
@@ -67,15 +84,15 @@ export function createFlightObservation({ root, dataManager, styleManager, onSta
       if(contextChanged && styleManager?.getContextModeState?.()?.mode==='flights' && !cockpitActive())await styleManager.setContextMode(priorMode,{claimVisualAuthority:false});
       throw error;
     } finally {
-      if (pending === controller) pending = null;
+      if (pending === controller) {pending = null;pendingTarget=null;}
       update();
     }
   }
   async function stop() {
-    pending?.abort(); pending = null;
+    pending?.abort(); pending = null;pendingTarget=null;
     if (ownCockpit()) styleManager?.controlCockpit?.('exit');
     module()?.stopTracking?.({ origin: 'user' });
-    card.hidden = true;
+    card.hidden = true; marker.show=false;
     const restore=ownsContext && styleManager?.getContextModeState?.()?.mode==='flights',mode=restoreMode;ownsContext=false;restoreMode=null;
     if(restore)await styleManager.setContextMode(mode,{claimVisualAuthority:false});
     return { ok: true, message: '已停止飛機觀察' };
@@ -95,6 +112,6 @@ export function createFlightObservation({ root, dataManager, styleManager, onSta
     window.removeEventListener('gev:awareness-subject-selected', selection);
     window.removeEventListener('gev:awareness-subject-cleared', selection);
     window.removeEventListener('gev:cockpit-mode-changed', update);
-    card.removeEventListener('click', click); card.remove();
+    disposeDrag();viewer.entities.remove(marker);card.removeEventListener('click', click); card.remove();
   } };
 }

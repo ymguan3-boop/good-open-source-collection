@@ -1,3 +1,5 @@
+import { freeTextModels } from './freeTextModels.js';
+const cooldown=new Map();let lastSuccessfulModel='';
 // SSE keeps long provider responses observable and stops work on disconnect.
 export async function streamTaiwanChat(res, key, data) {
   if (typeof data.model !== 'string' || data.model.length > 160 || !Array.isArray(data.messages) || data.messages.length > 24) throw new Error('模型或對話格式不正確');
@@ -11,32 +13,43 @@ export async function streamTaiwanChat(res, key, data) {
   const heartbeat = setInterval(() => { if (!res.destroyed) res.write(': waiting\n\n'); },10000);
   let partial = '';
   try {
-    const candidates = [...new Set([data.model || 'openrouter/free','openrouter/free'])];
+    let models=[];
+    try{models=await freeTextModels(abort.signal);}catch{if(abort.signal.aborted)return;}
+    const preferred=data.model || 'openrouter/free';
+    // All fallbacks come from a current zero-price catalog. The free router is
+    // retained if catalog discovery is unavailable; never guess paid models.
+    const rank=model=>model.id===lastSuccessfulModel?0:/qwen|gemma/i.test(model.id)?1:2;
+    const fallback=models.filter(model=>model.id!==preferred && (cooldown.get(model.id)||0)<=Date.now()).sort((a,b)=>rank(a)-rank(b)||a.id.localeCompare(b.id));
+    const candidates=[...new Set([preferred,...fallback.map(model=>model.id),'openrouter/free'])];
+    const deadline=Date.now()+240000;let failures=0;
     for (let attempt=0;attempt<candidates.length;attempt++) {
-      const model = candidates[attempt];
-      send('status',{message:attempt ? '原模型暫時無法回覆，改用可用免費模型…' : '已送出資料摘要，等待模型回覆…',model});
+      if(Date.now()>=deadline)break;
+      const model = candidates[attempt];partial='';
+      if(attempt)send('reset',{});
+      send('status',{message:attempt ? `原模型未能正常回覆，正在嘗試第 ${attempt+1} 個免費模型…` : '已送出資料摘要，等待模型回覆…',model});
       let reader; let firstTimer;
       const requestAbort = new AbortController();
       const stop = () => requestAbort.abort();
       abort.signal.addEventListener('abort',stop,{once:true});
       if (abort.signal.aborted) stop();
-      const overallTimer = setTimeout(stop,150000);
-      firstTimer = setTimeout(stop,60000);
+      const overallTimer = setTimeout(stop,Math.min(45000,deadline-Date.now()));
+      firstTimer = setTimeout(stop,20000);
       try {
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',signal:requestAbort.signal,
           headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json','X-OpenRouter-Title':'Gods Eye Taiwan'},
-          body:JSON.stringify({model,messages,stream:true,max_tokens:1800,reasoning:{effort:'low',exclude:true}})});
+          body:JSON.stringify({model,provider:{max_price:{prompt:0,completion:0,request:0}},messages,stream:true,max_tokens:1800,reasoning:{effort:'low',exclude:true}})});
         if (!response.ok) {
           const error = await response.json().catch(() => ({}));
           const problem = new Error(error.error?.message || `OpenRouter HTTP ${response.status}`);
-          problem.noRetry = [401,402,403,429].includes(response.status);
+          problem.noRetry = response.status===401;problem.status=response.status;
           throw problem;
         }
         reader = response.body.getReader();
-        const decoder = new TextDecoder(); let pending = ''; let actualModel = model; let finished = false;
+        const decoder = new TextDecoder(); let pending = ''; let actualModel = model; let finished = false;let completed=false;
         while (!finished) {
           const chunk = await reader.read();
           pending += decoder.decode(chunk.value || new Uint8Array(),{stream:!chunk.done}).replace(/\r/g,'');
+          if(chunk.done && pending.trim())pending+='\n\n';
           let split;
           while ((split=pending.indexOf('\n\n')) >= 0) {
             const frame = pending.slice(0,split); pending = pending.slice(split+2);
@@ -48,20 +61,25 @@ export async function streamTaiwanChat(res, key, data) {
             actualModel = value.model || actualModel;
             const delta = value.choices?.[0]?.delta?.content;
             if (typeof delta === 'string' && delta) { clearTimeout(firstTimer); partial += delta; send('delta',{text:delta}); }
-            if (value.choices?.[0]?.finish_reason === 'error') throw new Error('模型服務回覆中斷');
+            const reason=value.choices?.[0]?.finish_reason;
+            if(reason==='error' || reason==='content_filter')throw new Error('模型未完成可用回覆');
+            if(reason==='stop' || reason==='length')completed=true;
           }
-          if (chunk.done) { if (!finished) throw new Error('模型連線提前關閉'); break; }
+          if (chunk.done) { if (!finished && !completed) throw new Error('模型連線提前關閉'); break; }
         }
-        if (!partial.trim()) throw new Error('模型沒有回傳文字');
+        const usable=partial.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi,'').replace(/<analysis>[\s\S]*?(?:<\/analysis>|$)/gi,'').trim();
+        if (!usable) throw new Error('模型沒有回傳文字');
+        if(usable!==partial.trim()){send('reset',{});send('delta',{text:usable});}
+        lastSuccessfulModel=model;cooldown.delete(model);
         send('done',{model:actualModel});
         return;
       } catch (error) {
         if (abort.signal.aborted) return;
-        if (partial || error.noRetry || attempt === candidates.length-1) {
-          send('error',{message:requestAbort.signal.aborted ? '模型回覆逾時。可點右上 ↻ 更新模型，或改選「自動選擇免費模型」後重試。' : error.message,partial:!!partial});
-          return;
-        }
+        failures++;cooldown.set(model,Date.now()+(error.status===429?60000:30000));
+        if(error.noRetry){send('reset',{});send('error',{message:'AI 金鑰無效，請重新儲存金鑰'});return;}
+
       } finally { clearTimeout(firstTimer); clearTimeout(overallTimer); abort.signal.removeEventListener('abort',stop); await reader?.cancel().catch(() => {}); }
     }
+    if(!abort.signal.aborted){send('reset',{});send('error',{message:`已自動嘗試 ${failures} 個免費模型，仍未取得正常文字回覆；可能額度不足或服務忙碌，請稍後重試。`});}
   } finally { clearInterval(heartbeat); res.removeListener('close',disconnect); if (!res.destroyed) res.end(); }
 }

@@ -9,7 +9,7 @@ export function applyAnnotationLabel(layer){
   const style=normalizeLabelStyle(layer.dataMetadata.annotationLabel);
   for(const entity of layer.dataSource.entities.values){
     entity.billboard=undefined;entity.point=undefined;
-    entity.label={text:style.text,font:`${style.weight} ${style.size}px "${family[style.font]}", sans-serif`,fillColor:Cesium.Color.fromCssColorString(style.color),style:Cesium.LabelStyle.FILL_AND_OUTLINE,outlineColor:Cesium.Color.BLACK,outlineWidth:1,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,pixelOffset:new Cesium.Cartesian2(0,-12),disableDepthTestDistance:Infinity};
+    entity.label={text:style.text,font:`${style.weight} ${style.size}px "${family[style.font]}", sans-serif`,fillColor:Cesium.Color.fromCssColorString(style.color),style:Cesium.LabelStyle.FILL_AND_OUTLINE,outlineColor:Cesium.Color.BLACK,outlineWidth:1,heightReference:layer.geojson?.features?.[0]?.geometry?.coordinates?.length>=3 ? Cesium.HeightReference.NONE : Cesium.HeightReference.CLAMP_TO_GROUND,pixelOffset:new Cesium.Cartesian2(0,-12),disableDepthTestDistance:Infinity};
   }
   layer.viewer.scene.requestRender();
 }

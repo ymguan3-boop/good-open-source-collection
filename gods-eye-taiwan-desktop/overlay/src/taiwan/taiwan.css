@@ -673,3 +673,16 @@ body *{font-weight:400!important}
 .tw-flight-info{display:grid;grid-template-columns:84px 1fr;gap:3px 10px;margin:8px 0 12px;font-size:12px}.tw-flight-info dt{color:#9bb7c9}.tw-flight-info dd{margin:0;overflow-wrap:anywhere}#tw-shell .tw-aircraft-card{max-height:calc(100dvh - 150px);overflow:auto}
 .tw-label-controls{display:flex;flex-wrap:wrap;gap:8px}.tw-label-controls label:first-child{flex-basis:100%}.tw-label-controls input[type=number]{width:65px}.tw-label-controls input[type=color]{width:35px;height:30px}.tw-label-controls select{max-width:150px}.tw-route-stops input{flex:1;min-width:120px}.tw-vision-model{display:flex;gap:8px;padding:8px;align-items:center}.tw-vision-model select{min-width:0;flex:1;background:#071b2b;color:#e5f6ff;padding:7px}.tw-cctv-wall-grid [data-camera-analysis]{max-height:280px;overflow:auto;font-size:12px}.tw-cctv-wall-grid button[data-wall-action=analyze]{padding:7px;background:#103b50;color:#e5f6ff;border:1px solid #3b809a;border-radius:6px;cursor:pointer}.tw-cctv-wall-grid button:disabled{opacity:.5}
 @media(max-width:760px){#tw-shell .tw-record-preview{left:12px;top:76px;width:calc(100vw - 24px);height:calc(100dvh - 100px)}}
+
+/* v16 compact archives and draggable aircraft heading */
+.tw-drag-handle{cursor:grab;touch-action:none;user-select:none}.tw-drag-handle.tw-dragging{cursor:grabbing}
+#tw-shell .tw-record-row{padding:8px 10px;margin:0 0 7px}
+#tw-shell .tw-record-heading{display:flex;align-items:center;gap:7px;margin:0}
+#tw-shell .tw-record-heading input[type=checkbox]{flex:none;width:14px;height:14px;padding:0;margin:0}
+#tw-shell .tw-record-heading .tw-record-filename{padding:2px 0;margin:0;border:0;font-size:12px}
+#tw-shell .tw-record-summary{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
+#tw-shell .tw-record-summary p{font-size:11px;margin:2px 0;color:#a5bed0}
+#tw-shell .tw-record-summary .tw-actions{display:flex;gap:5px;margin:0}
+#tw-shell .tw-record-summary button{font-size:11px;padding:4px 6px;margin:0}
+#tw-shell .tw-record-preview .tw-chat-content{padding:8px 12px;line-height:1.45;margin:0}
+#tw-shell .tw-record-preview h4{margin:8px 0 3px;font-size:1.02em}

@@ -23,7 +23,7 @@ function table(header,rows) {
   }
   return `<div class="tw-chat-table"><table><thead><tr>${header.map(cell=>`<th scope="col">${inline(cell)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${Array.from({length:header.length},(_,i)=>`<td>${inline(row[i] || '')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>${charts.join('')}`;
 }
-export function renderChatMarkdown(value) {
+export function renderChatMarkdown(value,{compact=false}={}) {
   const text=String(value || '').replace(/<think>[\s\S]*?(?:<\/think>|$)/gi,'').replace(/<analysis>[\s\S]*?(?:<\/analysis>|$)/gi,'');
   const source=text.split('\n');let code=false;const lines=[];
   for(let i=0;i<source.length;i++) {
@@ -37,6 +37,7 @@ export function renderChatMarkdown(value) {
     const heading=line.match(/^\s*#{1,6}\s+(.+)$/);
     if(heading){lines.push(`<h4>${inline(heading[1])}</h4>`);continue;}
     const bullet=line.match(/^\s*[-*+]\s+(.+)$/);
+    if(compact && !line.trim())continue;
     lines.push(bullet ? `<div class="tw-md-item">• ${inline(bullet[1])}</div>` : line.trim() ? `<div>${inline(line)}</div>` : '<br>');
   }
   if(code)lines.push('</code></pre>');

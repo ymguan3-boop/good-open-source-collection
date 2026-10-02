@@ -11,13 +11,13 @@
     },
     {
         "path":  "AGENTS.md",
-        "sha256":  "968DE430D0D83DA1C47C9404077F08E9C4DB82157FC343E30F525EAAD2DFE39C",
-        "bytes":  6112
+        "sha256":  "AD9F02D65A0A5650DC0D384D9594ED73FFB2E2149548CF5BC75E61CE6F82B5D4",
+        "bytes":  6814
     },
     {
         "path":  "ARCHITECTURE.md",
-        "sha256":  "9F2940B83BD889F7CC04231B8AE915F44F4EB3236AEFF80C5AE330578DB9DE03",
-        "bytes":  2722
+        "sha256":  "E2BA9BC4CF558252DA976A46D5A46B72F61D893BF37B77B40A853CC6FEC1206C",
+        "bytes":  4161
     },
     {
         "path":  "branding/ai-voice-assistant.png",
@@ -266,8 +266,8 @@
     },
     {
         "path":  "DEVELOPMENT-STATUS.md",
-        "sha256":  "3BB862162082E97155A92A0BDAAC4F596AAC91CCA672EB8B300B784ED3F643D0",
-        "bytes":  12291
+        "sha256":  "5C73BEBD3EE431C030D1B74F4574F94912CB8F9F78DF9B3A21F43648CAAFA323",
+        "bytes":  12694
     },
     {
         "path":  "docs/browser-fixes-v11-20261001.md",
@@ -293,6 +293,11 @@
         "path":  "docs/browser-fixes-v15-20261002.md",
         "sha256":  "B1F5D94E81A4B9EED66BE5D16C900312EB5DF9819D9AAAB16D4C77E32718F612",
         "bytes":  4477
+    },
+    {
+        "path":  "docs/browser-fixes-v16-20261002.md",
+        "sha256":  "4833E57EBDE6F8D7D176AB05F90AA4A072A7F32BC726500CB2235E827915C23A",
+        "bytes":  4315
     },
     {
         "path":  "docs/browser-update-20261001.md",
@@ -411,8 +416,8 @@
     },
     {
         "path":  "GITHUB-STATUS.md",
-        "sha256":  "0A7BAC24B9E4FD17EB88FA24761C4F74BF14D926E475F3E35C8FD2CFD3675FE0",
-        "bytes":  863
+        "sha256":  "7C8A9987421FA9B048DC00002905E5E145F278AA4B049D74D894B649964CDFBA",
+        "bytes":  879
     },
     {
         "path":  "LICENSE",
@@ -438,6 +443,11 @@
         "path":  "overlay/server/providers/cctv/wallStream.js",
         "sha256":  "A2A2C34CFEF2162882064A20856FC5111DBAED114C048432F165D376B1C21611",
         "bytes":  3840
+    },
+    {
+        "path":  "overlay/server/providers/freeTextModels.js",
+        "sha256":  "F5DBA1E76C718159D291576CC18DFA349DD183128478EB2E5E533A4B791F402A",
+        "bytes":  945
     },
     {
         "path":  "overlay/server/providers/nlscBuildingAnalysis.js",
@@ -466,8 +476,8 @@
     },
     {
         "path":  "overlay/server/providers/taiwanAi.js",
-        "sha256":  "EC8B934CC35E49A65DFAFD68B44DF1ABECD9F06931971949469C7648330830A6",
-        "bytes":  16910
+        "sha256":  "89F175A3014F036A2AB27BF11171058BFD67BA1B55369A7EB9EF88465C4771DE",
+        "bytes":  17250
     },
     {
         "path":  "overlay/server/providers/taiwanCctvWall.js",
@@ -476,8 +486,8 @@
     },
     {
         "path":  "overlay/server/providers/taiwanChat.js",
-        "sha256":  "EEA1BD44B328C5CC18117BCC6EB4F94008EA1B77DA49B0555F28571A637A0483",
-        "bytes":  5216
+        "sha256":  "D72E4C8B6ED4B697900BA05921BDC42ED279241E201D8796EEE2968390C5B165",
+        "bytes":  6764
     },
     {
         "path":  "overlay/server/providers/taiwanCredentialStore.js",
@@ -503,6 +513,11 @@
         "path":  "overlay/server/providers/taiwanResources.js",
         "sha256":  "9633ACE20CF117AB22C3740B0C920EE88ED0AF2E85E1EA35B2F88A8D9A22B2C6",
         "bytes":  5811
+    },
+    {
+        "path":  "overlay/server/providers/taiwanUserSettings.js",
+        "sha256":  "35D3B2825C67285511A1690CF67203529E6A02CE5B3122807493E8154AF5AEF6",
+        "bytes":  1478
     },
     {
         "path":  "overlay/server/providers/taiwanVisualAnalysis.js",
@@ -541,8 +556,8 @@
     },
     {
         "path":  "overlay/src/taiwan/browserAi.js",
-        "sha256":  "74B90423E7CB01009A48FD03859CB613F017FC8BF34ADAFC00619CCCD5E80E21",
-        "bytes":  2185
+        "sha256":  "782D19CC9BB3801D0D017F2F77CB28434512C6C4D173B4371252EED46AEC24D1",
+        "bytes":  2260
     },
     {
         "path":  "overlay/src/taiwan/buildingDisplay.js",
@@ -566,13 +581,13 @@
     },
     {
         "path":  "overlay/src/taiwan/chatArchive.js",
-        "sha256":  "31A58CCF95AF9D8B8E804F9AE157667B80D33397E151F4A6F9ED0DCC43FF2B7D",
-        "bytes":  4777
+        "sha256":  "3E6F55754EC514CA8152178A354C86F6708E2B464360C71389041FEE2953A3DC",
+        "bytes":  4963
     },
     {
         "path":  "overlay/src/taiwan/chatFormat.js",
-        "sha256":  "FC5DD67EE2DB0A13F07C04CE7E82FA8FEB92F479CFF6C2D9AC2BC0A7A07B5505",
-        "bytes":  4113
+        "sha256":  "6CE33391E387213E8751135DDE790312E32C47063E14FF35B9A1C488E152ACEF",
+        "bytes":  4174
     },
     {
         "path":  "overlay/src/taiwan/data/osm-coastline-national.geojson.gz",
@@ -635,6 +650,11 @@
         "bytes":  375
     },
     {
+        "path":  "overlay/src/taiwan/draggablePanel.js",
+        "sha256":  "B7F457B784543A6CDBF0BD2A75A5C173962FA11EFCE7316CA5A903AAB4109803",
+        "bytes":  2148
+    },
+    {
         "path":  "overlay/src/taiwan/drawing.js",
         "sha256":  "66DDD8E640C9064367512747F1B17FC82EB24ADB42A3F3F55A03FE33924F355D",
         "bytes":  8393
@@ -646,13 +666,13 @@
     },
     {
         "path":  "overlay/src/taiwan/flightObservation.js",
-        "sha256":  "981F02CFD81169F0DF5BB38687FBC4E338F022F775B3359A7209F8AFA1592D3F",
-        "bytes":  7271
+        "sha256":  "F11D5ED59AEC6538CB5A71D6688F8E7E5852CFD6BAE049006E6BB492C4DC76DC",
+        "bytes":  9232
     },
     {
         "path":  "overlay/src/taiwan/geminiLive.js",
-        "sha256":  "941EBBA6604773BDCEF22A2657B3DE7D91154897F1A1482E9815192D7A162515",
-        "bytes":  22888
+        "sha256":  "6F7675AD13A08D32DB39569FA936252EEFF053241AABB45B2C11D9D66B66975A",
+        "bytes":  23486
     },
     {
         "path":  "overlay/src/taiwan/i18n.js",
@@ -666,13 +686,13 @@
     },
     {
         "path":  "overlay/src/taiwan/labelAnnotations.js",
-        "sha256":  "B3137E657D5010D129EEDA32EBC2791B5511C4EBFAABCF0C98E8485274E83703",
-        "bytes":  1978
+        "sha256":  "CF37E85B53EE6C07B4B7E49D8DA08E7746E7A2767AA790EF381C46C284746303",
+        "bytes":  6110
     },
     {
         "path":  "overlay/src/taiwan/labelStyles.js",
-        "sha256":  "947B025EC2C1105E87DB37246A7ACC83F31E823E912C33C87608E684755C7A4E",
-        "bytes":  1315
+        "sha256":  "01FD92A89D0B3DF11E86A1815FB7F05BD67CDBAE6D8D5E54D3F273C7B9F624E4",
+        "bytes":  1425
     },
     {
         "path":  "overlay/src/taiwan/layerRegistry.js",
@@ -681,8 +701,8 @@
     },
     {
         "path":  "overlay/src/taiwan/layerVoiceActions.js",
-        "sha256":  "3F4DA1D812FAFB277FAA1665735033F13C0F161074EE125BE1B0607BEB18B02D",
-        "bytes":  9043
+        "sha256":  "6ED72E5782D0C612C24E731F15B1BE6250FF53C3CD59F968755260DA48EF256A",
+        "bytes":  12747
     },
     {
         "path":  "overlay/src/taiwan/liveDataHealth.js",
@@ -726,8 +746,8 @@
     },
     {
         "path":  "overlay/src/taiwan/responseSettings.js",
-        "sha256":  "31B34006AD5B885EB724E35B108F2389083A8F35D7FDAA617378B69C158B01EE",
-        "bytes":  1325
+        "sha256":  "2E03C13FE624EAFEEC8AA4BE5C40765128916313D14D57E7E7B5904BDDBCDCBC",
+        "bytes":  2305
     },
     {
         "path":  "overlay/src/taiwan/runtimeConfig.js",
@@ -746,8 +766,8 @@
     },
     {
         "path":  "overlay/src/taiwan/taiwan.css",
-        "sha256":  "0FE29E1F00A35B64F974006C4AB3DF9AF15418C8277EE5F0FAD5D685159D17A8",
-        "bytes":  80280
+        "sha256":  "528C2256A01EABE7555B925F64EB723842FBBC3A23233E3DE3B7503DE10E0AF1",
+        "bytes":  81292
     },
     {
         "path":  "overlay/src/taiwan/taiwanRelief.js",
@@ -766,13 +786,18 @@
     },
     {
         "path":  "overlay/src/taiwan/ui.js",
-        "sha256":  "DF5844BF96DE3253C66FDDD661902DDE50BA67B6A55228CCB4702C9B945921AD",
-        "bytes":  147492
+        "sha256":  "8360E585A48B91BD25AB82084719CBB40A8695DCCCF9A355FDE60E39858EE8EF",
+        "bytes":  148681
     },
     {
         "path":  "overlay/src/taiwan/viewportLines.js",
         "sha256":  "318CADE820BCDDE821C3D1F0AA2837551C51D14D00186DEB99ADCAFFDA70A642",
         "bytes":  6034
+    },
+    {
+        "path":  "overlay/src/taiwan/voiceScope.js",
+        "sha256":  "74645D588DB7B85189CB30E4A072125514A14B9CF8800042B7878EDDF76BB82A",
+        "bytes":  3505
     },
     {
         "path":  "overlay/src-tauri/build.rs",
@@ -821,8 +846,8 @@
     },
     {
         "path":  "overlay/src-tauri/src/lib.rs",
-        "sha256":  "A66AA8424D571FA12521207B2F94D36E904F7282BCD42552E83445E86219BE80",
-        "bytes":  2375
+        "sha256":  "033EEBBD393B0123D5D361869923BF7480F2D035638896E42D37382DD803B53D",
+        "bytes":  2494
     },
     {
         "path":  "overlay/src-tauri/src/main.rs",
@@ -836,13 +861,18 @@
     },
     {
         "path":  "overlay/src-tauri/src/openrouter.rs",
-        "sha256":  "CDD53607B839738A600F73BA27275BB88905F8E000134E1C8DB3C79921141DC6",
-        "bytes":  6354
+        "sha256":  "3E370B11175E0BA838ACE40FAA89B428D5008F03AE78268DB4AE8427C179D114",
+        "bytes":  8214
     },
     {
         "path":  "overlay/src-tauri/src/resources.rs",
         "sha256":  "7C57B2A9E8E265089C005EB3C7CAE1B8D9C6B724C3D62F2227571EA63C6E97D2",
         "bytes":  1537
+    },
+    {
+        "path":  "overlay/src-tauri/src/response_settings.rs",
+        "sha256":  "DBE80F9FFDBED6EAC46F9516DB27CF51F81B1C86B9289725BA64A41BBB2F006E",
+        "bytes":  2446
     },
     {
         "path":  "overlay/src-tauri/src/secrets.rs",
@@ -871,8 +901,8 @@
     },
     {
         "path":  "README.md",
-        "sha256":  "2ADD373D72E585CBFAD3B8A33310AC46A8BE1860E31F5319C5206E548FA65B69",
-        "bytes":  16051
+        "sha256":  "E36AD70A102C907572CBD17CDB6FF3E7FF4F8B641AE4DD62B491979E6147BEC0",
+        "bytes":  18492
     },
     {
         "path":  "ROADMAP.md",

@@ -20,12 +20,12 @@ export function createChatArchive({root,open,download,onStatus}) {
   }
   async function render(){
     const records=await db.chatRecords.orderBy('createdAt').reverse().toArray();
-    open('記錄',`<div class="tw-actions"><button data-archive="export-selected">匯出勾選紀錄</button><button data-archive="export-all">匯出全部紀錄</button></div><p class="tw-note">AI 空間助理按「儲存對話」後，Markdown 檔會暫存在目前瀏覽器。點檔名可查看；清除網站資料將刪除暫存，請另行匯出。</p>${records.map(record=>`<article class="tw-card"><label><input type="checkbox" data-record-select value="${record.id}"><button class="tw-record-filename" data-archive="view" data-id="${record.id}">${escape(record.filename)}</button></label><p>${escape(new Date(record.createdAt).toLocaleString('zh-TW'))} · ${record.messageCount} 則訊息</p><div class="tw-actions"><button data-archive="export-one" data-id="${record.id}">匯出紀錄</button><button data-archive="delete" data-id="${record.id}">刪除紀錄</button></div></article>`).join('') || '<p>尚無對話紀錄。</p>'}`);
+    open('記錄',`<div class="tw-actions"><button data-archive="export-selected">匯出勾選紀錄</button><button data-archive="export-all">匯出全部紀錄</button></div><p class="tw-note">AI 空間助理按「儲存對話」後，Markdown 檔會暫存在目前瀏覽器。點檔名可查看；清除網站資料將刪除暫存，請另行匯出。</p>${records.map(record=>`<article class="tw-card tw-record-row"><div class="tw-record-heading"><input type="checkbox" aria-label="勾選 ${escape(record.filename)}" data-record-select value="${record.id}"><button class="tw-record-filename" data-archive="view" data-id="${record.id}">${escape(record.filename)}</button></div><div class="tw-record-summary"><p>${escape(new Date(record.createdAt).toLocaleString('zh-TW'))} · ${record.messageCount} 則訊息</p><div class="tw-actions"><button data-archive="export-one" data-id="${record.id}">匯出紀錄</button><button data-archive="delete" data-id="${record.id}">刪除紀錄</button></div></div></article>`).join('') || '<p>尚無對話紀錄。</p>'}`);
   }
   async function view(id){
     const record=await db.chatRecords.get(id);if(!record)throw new Error('找不到對話紀錄');
     preview?.remove();preview=document.createElement('section');preview.className='tw-record-preview';preview.setAttribute('aria-label','對話紀錄檢視');
-    preview.innerHTML=`<header><span>${escape(record.filename)}</span><button data-record-close aria-label="關閉紀錄">×</button></header><div class="tw-chat-content">${renderChatMarkdown(record.markdown)}</div><footer>可拖曳右下角調整視窗大小。</footer>`;
+    preview.innerHTML=`<header><span>${escape(record.filename)}</span><button data-record-close aria-label="關閉紀錄">×</button></header><div class="tw-chat-content">${renderChatMarkdown(record.markdown,{compact:true})}</div><footer>可拖曳右下角調整視窗大小。</footer>`;
     preview.querySelector('[data-record-close]').onclick=()=>{preview.remove();preview=null;};root.append(preview);
   }
   async function exportRecords(ids){

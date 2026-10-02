@@ -4,6 +4,7 @@ mod openrouter;
 mod offline_speech;
 mod resources;
 mod secrets;
+mod response_settings;
 mod tomtom;
 
 #[tauri::command]
@@ -49,6 +50,8 @@ pub fn run() {
     .invoke_handler(tauri::generate_handler![
       open_provider_key_url,
       restart_after_key_save,
+      response_settings::read_response_style,
+      response_settings::write_response_style,
       resources::resource_snapshot,
       secrets::save_api_key,
       secrets::has_api_key,

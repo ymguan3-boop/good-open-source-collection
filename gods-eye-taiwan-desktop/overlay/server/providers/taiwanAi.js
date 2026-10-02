@@ -1,3 +1,4 @@
+import { readResponseStyle,writeResponseStyle } from './taiwanUserSettings.js';
 import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -80,6 +81,8 @@ export function taiwanAiProxy() {
         if (!local(req) || !['GET', 'POST', 'DELETE'].includes(req.method)) return json(res, 403, { error:'僅允許本機同來源瀏覽器' });
         const route = (req.url || '').split('?')[0];
         try {
+          if (route==='/response-style' && req.method==='GET')return json(res,200,{setting:await readResponseStyle()});
+          if (route==='/response-style' && req.method==='POST')return json(res,200,{setting:await writeResponseStyle(await body(req))});
           if (!(route === '/keys' && req.method === 'POST')) await credentialsReady;
           if (route === '/runtime' && req.method === 'GET') return json(res,200,{googleMapsApiKey:getCredential('GOOGLE_MAPS_API_KEY'),cesiumIonToken:getCredential('CESIUM_ION_TOKEN')});
           if (route === '/search' && req.method === 'POST') {

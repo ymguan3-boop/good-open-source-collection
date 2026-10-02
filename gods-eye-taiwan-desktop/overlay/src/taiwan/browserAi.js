@@ -29,6 +29,7 @@ export async function streamBrowserChat(data,{signal,onDelta=()=>{},onStatus=()=
         if (!raw) continue;
         const value = JSON.parse(raw);
         if (event === 'status') onStatus(value.message);
+        if (event === 'reset') {content='';answer=undefined;onDelta('');}
         if (event === 'delta') { content += value.text; onDelta(content); }
         if (event === 'error') throw new Error(value.message);
         if (event === 'done') answer = {content,model:value.model};
