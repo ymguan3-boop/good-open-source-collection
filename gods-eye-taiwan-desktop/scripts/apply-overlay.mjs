@@ -27,7 +27,7 @@ copyTree(resolve(repo, 'overlay', 'src', 'maps'), resolve(dest, 'src', 'maps'));
 copyTree(resolve(repo, 'overlay', 'src-tauri'), resolve(dest, 'src-tauri'));
 copyTree(resolve(repo, 'overlay', 'server'), resolve(dest, 'server'));
 copyTree(resolve(repo, 'branding'), resolve(dest, 'branding'));
-for (const name of ['title-art-user-v4.png', 'icon-user-v4.png', 'icon-master.png', 'toolbar-bezel-v6.png', 'toolbar-toggle-v4.png', 'toolbar-collapse-user.png', 'toolbar-expand-user.png', 'voice-control-panel-transparent-v4.png', 'quick-menu-logo-user.png', 'sidebar-user.png']) {
+for (const name of ['title-art-user-v4.png', 'icon-user-v4.png', 'icon-master.png', 'toolbar-bezel-v6.png', 'toolbar-toggle-v4.png', 'toolbar-collapse-user.png', 'toolbar-expand-user.png', 'voice-control-panel-transparent-v4.png', 'quick-menu-logo-user.png', 'sidebar-user.png', 'toolbar-sheet-v9.png', 'toolbar-record-sheet-v10.png']) {
   copyTree(resolve(repo, 'branding', name), resolve(dest, 'public', 'branding', name));
 }
 copyTree(resolve(repo, 'branding', 'ui-icons'), resolve(dest, 'public', 'branding', 'ui-icons'));

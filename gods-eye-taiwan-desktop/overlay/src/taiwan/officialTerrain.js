@@ -1,3 +1,4 @@
+import { prepareBuildingSurface,configureBuildingTileset } from './buildingDisplay.js';
 import * as Cesium from 'cesium';
 import proj4 from 'proj4';
 import { addGeoJSON } from './dataImport.js';
@@ -72,8 +73,9 @@ export async function loadNlscBuildings(url, viewer, { name='NLSC 3D 建物', fl
   const parsed = new URL(url);
   if (parsed.protocol !== 'https:' || !/(^|\.)nlsc\.gov\.tw$/.test(parsed.hostname)) throw new Error('請貼上國土測繪中心核發的 HTTPS 3D Tiles 服務網址');
   signal?.throwIfAborted();
+  await prepareBuildingSurface(viewer,{signal});
   let timeout; let abortListener; let discarded = false; let tileset;
-  const loading = Cesium.Cesium3DTileset.fromUrl(parsed.href,{maximumScreenSpaceError:24,maximumMemoryUsage:256});
+  const loading = Cesium.Cesium3DTileset.fromUrl(parsed.href,{maximumScreenSpaceError:8,cacheBytes:268435456,maximumCacheOverflowBytes:134217728});
   loading.then(value=>{ if (discarded && !value.isDestroyed()) value.destroy(); },()=>{});
   try {
     tileset = await Promise.race([loading,
@@ -85,6 +87,7 @@ export async function loadNlscBuildings(url, viewer, { name='NLSC 3D 建物', fl
   finally { clearTimeout(timeout); if (abortListener) signal.removeEventListener('abort',abortListener); }
   viewer.scene.primitives.add(tileset);
   const layer = registerLayer({ name, kind:'3d-tiles', source:'國土測繪中心免申請 3D Tiles', serviceUrl:parsed.href, nationwideAuto, tileset, viewer });
+  configureBuildingTileset(layer);
   if (flyTo) await viewer.zoomTo(tileset);
   return layer;
 }

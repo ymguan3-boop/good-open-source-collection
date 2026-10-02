@@ -1,5 +1,7 @@
 # GitHub 發布狀態
 
-2026-10-02：台灣版v12，目的倉庫ymguan3-boop/good-open-source-collection，main/gods-eye-taiwan-desktop。依使用者要求清除原目錄後重新加入完整本機原始碼，更新倉庫根README、台灣版README及Whisper後端README。其他專案不變，保留Git歷史。
+2026-10-02：台灣版 v15，發布至 [ymguan3-boop/good-open-source-collection 的台灣版資料夾](https://github.com/ymguan3-boop/good-open-source-collection/tree/main/gods-eye-taiwan-desktop)。使用最新 main 的獨立發布工作區，更新台灣版原始碼與倉庫根 README，保留其他程式與 Git 歷史。
 
-版本包含視野完整道路／水系、22縣市界與368鄉鎮市區界、TomTom細線與車流示意、瀏覽器首次安裝腳本。詳見docs/browser-fixes-v12-20261002.md。發布檔與SHA-256清單由scripts/package-github.ps1建立；未包含安裝工作區、金鑰或暫存檔。
+本版包含 v13、v14 累積功能，以及 NLSC 建物地形遮蔽／圖磚進度修正、CCTV 自動免費影像模型與失敗替換、工具列記錄圖示及對話按鈕樣式修正。安裝方式見 README，驗收見 docs/browser-fixes-v15-20261002.md。
+
+發布檔與 SHA-256 清單由 scripts/package-github.ps1 建立；不含安裝工作區、本機服務金鑰、暫存影像、日誌與官方 DTM 原始格網。官方 DTM 可依 README 另行下載。未重新產出或驗收 Tauri EXE。

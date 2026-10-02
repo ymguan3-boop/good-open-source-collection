@@ -1,3 +1,4 @@
+import { applyAnnotationLabel } from './labelStyles.js';
 import * as Cesium from 'cesium';
 import shp from 'shpjs';
 import { registerLayer,removeLayer } from './layerRegistry.js';
@@ -78,6 +79,7 @@ export async function addGeoJSON(geojson, name, viewer, style={}) {
     ...metadata,
   };
   if(style.kind === 'annotation' || style.customized) updateLayerStyle(item,item.style);
+  applyAnnotationLabel(item);
   if (style.stageOnly) return item;
   await viewer.dataSources.add(ds);
   if (style.flyTo !== false) viewer.flyTo(ds);

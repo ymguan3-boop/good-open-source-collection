@@ -1,9 +1,12 @@
+import { renderChatMarkdown } from './chatFormat.js';
+import { browserAi } from './browserAi.js';
 const escape=value=>String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const PAGE_SIZE=12;
-export function openCctvWall({root,cameras,onClose}){
+export function openCctvWall({root,cameras,onClose,onAnalyze}){
   let page=0,controller=null,retry=null,closed=false,paused=false,generation=0;
+  const analysisControllers=new Set();let visionModels=[];
   const wall=document.createElement('section');wall.className='tw-cctv-wall';wall.setAttribute('aria-label','CCTV 多畫面總覽');
-  wall.innerHTML=`<header><b>CCTV 多畫面總覽 · ${cameras.length} 支</b><button data-wall-action="refresh">重新連線全部畫面</button><button data-wall-action="pause">暫停</button><button data-wall-action="close" aria-label="關閉 CCTV 總覽">×</button></header><p data-wall-status role="status"></p><div class="tw-actions"><button data-wall-action="previous">上一頁</button><span data-page-label></span><button data-wall-action="next">下一頁</button></div><div class="tw-cctv-wall-grid"></div><footer>全台灣官方國道目錄；每頁最多 12 路同時連續播放，切換頁面會釋放前頁連線。各路來源時間不同，不是同步錄影。<a href="https://data.gov.tw/dataset/37665" target="_blank" rel="noopener noreferrer">來源與授權</a> · 可拖曳右下角調整視窗。</footer>`;
+  wall.innerHTML=`<header><b>CCTV 多畫面總覽 · ${cameras.length} 支</b><button data-wall-action="refresh">重新連線全部畫面</button><button data-wall-action="pause">暫停</button><button data-wall-action="close" aria-label="關閉 CCTV 總覽">×</button></header><p data-wall-status role="status"></p><div class="tw-actions"><button data-wall-action="previous">上一頁</button><span data-page-label></span><button data-wall-action="next">下一頁</button></div><label class="tw-vision-model">影像分析模型<select data-vision-model><option value="auto-free">自動選擇免費模型（失敗自動替換）</option></select></label><div class="tw-cctv-wall-grid"></div><footer>全台灣官方國道目錄；每頁最多 12 路同時連續播放，切換頁面會釋放前頁連線。各路來源時間不同，不是同步錄影。<a href="https://data.gov.tw/dataset/37665" target="_blank" rel="noopener noreferrer">來源與授權</a> · 可拖曳右下角調整視窗。</footer>`;
   root.append(wall);
   const visible=()=>cameras.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE);
   function halt(){generation++;clearTimeout(retry);retry=null;controller?.abort();controller=null;}
@@ -17,7 +20,7 @@ export function openCctvWall({root,cameras,onClose}){
       if(response.headers.get('X-CCTV-Source')!=='upstream-live')throw new Error('來源未確認為官方連續影像');
       const reader=response.body.getReader(),decoder=new TextDecoder();let pending='';
       try{while(!local.signal.aborted){const {value,done}=await reader.read();if(done)break;pending+=decoder.decode(value,{stream:true});if(pending.length>4*1024*1024)throw new Error('影像回傳超過大小限制');let end;while((end=pending.indexOf('\n'))>=0){const row=pending.slice(0,end);pending=pending.slice(end+1);if(!row)continue;const event=JSON.parse(row);if(current!==generation)return;const tile=[...wall.querySelectorAll('[data-camera-id]')].find(el=>el.dataset.cameraId===event.id);if(!tile)continue;
-        if(event.type==='frame'&&typeof event.image==='string'){tile.querySelector('img').src=`data:image/jpeg;base64,${event.image}`;tile.querySelector('small').textContent=`${event.source==='upstream-live'?'官方連續影像':'官方單張更新'} · ${new Date(event.observedAt).toLocaleTimeString('zh-TW')}`;seen.add(event.id);status(`本頁 ${pageCameras.length} 路並行播放，已取得 ${seen.size} 路畫面；來源離線不影響其他畫面。`);}
+        if(event.type==='frame'&&typeof event.image==='string'){tile.querySelector('img').src=`data:image/jpeg;base64,${event.image}`;tile.querySelector('small').textContent=`${event.source==='upstream-live'?'官方連續影像':'官方單張更新'} · ${new Date(event.observedAt).toLocaleTimeString('zh-TW')}`;tile.dataset.observedAt=new Date(event.observedAt).toISOString();tile.dataset.frameSource=event.source;seen.add(event.id);status(`本頁 ${pageCameras.length} 路並行播放，已取得 ${seen.size} 路畫面；來源離線不影響其他畫面。`);}
         else if(event.type==='status')tile.querySelector('small').textContent=event.message;
       }}}finally{await reader.cancel().catch(()=>{});}
       if(!local.signal.aborted)throw new Error('連線已中斷');
@@ -27,16 +30,33 @@ export function openCctvWall({root,cameras,onClose}){
     halt();const pages=Math.ceil(cameras.length/PAGE_SIZE);
     wall.querySelector('[data-page-label]').textContent=`第 ${page+1}／${pages} 頁 · 共 ${cameras.length} 支`;
     wall.querySelector('[data-wall-action="previous"]').disabled=page===0;wall.querySelector('[data-wall-action="next"]').disabled=page+1>=pages;
-    wall.querySelector('.tw-cctv-wall-grid').innerHTML=visible().map(c=>`<article data-camera-id="${escape(c.id)}"><b>${escape(c.name)}</b><img alt="${escape(c.name)}官方影像"><small>正在連線，尚未取得畫面</small></article>`).join('');
+    wall.querySelector('.tw-cctv-wall-grid').innerHTML=visible().map(c=>`<article data-camera-id="${escape(c.id)}"><b>${escape(c.name)}</b><img alt="${escape(c.name)}官方影像"><small>正在連線，尚未取得畫面</small><button data-wall-action="analyze">AI 辨識車輛／車流</button><div class="tw-chat-content" data-camera-analysis role="status"></div></article>`).join('');
     if(paused)status('已暫停；按重新連線全部畫面恢復');else void connect();
   }
-  wall.addEventListener('click',event=>{const action=event.target.closest('button')?.dataset.wallAction;if(!action)return;
+  wall.addEventListener('click',event=>{const button=event.target.closest('button'),action=button?.dataset.wallAction;if(!action)return;
+    if(action==='analyze')return void analyze(button);
     if(action==='close')return onClose();
     if(action==='pause'){paused=true;halt();status('所有畫面已暫停，保留最後一張影像');return;}
     if(action==='refresh'){paused=false;return void connect();}
     if(action==='previous'&&page>0){page--;render();}
     if(action==='next'&&(page+1)*PAGE_SIZE<cameras.length){page++;render();}
   });
+  async function analyze(button){
+    const tile=button.closest('[data-camera-id]'),image=tile.querySelector('img').src,out=tile.querySelector('[data-camera-analysis]'),model=wall.querySelector('[data-vision-model]').value;
+    if(!/^data:image\/jpeg;base64,/.test(image)){out.textContent='尚未取得可分析的官方影像';return;}
+    
+    const controller=new AbortController();analysisControllers.add(controller);button.disabled=true;out.textContent='正在使用免費模型辨識；忙碌或失敗時自動替換其他免費模型…';
+    const camera=cameras.find(camera=>camera.id===tile.dataset.cameraId);
+    try{const result=await onAnalyze({model,image,cameraName:camera?.name || tile.dataset.cameraId,cameraId:tile.dataset.cameraId,observedAt:tile.dataset.observedAt,source:tile.dataset.frameSource},{signal:controller.signal});
+      if(closed || controller.signal.aborted || !out.isConnected)return;
+      out.innerHTML=renderChatMarkdown(`免費模型：${result.modelName || result.model} · 自動替換 ${result.fallbackCount || 0} 次\n影像時間：${result.observedAt?new Date(result.observedAt).toLocaleString('zh-TW'):'來源未提供'}\n\n${result.content}`);
+    }catch(error){if(!controller.signal.aborted && out.isConnected)out.textContent=error.message;}
+    finally{analysisControllers.delete(controller);button.disabled=false;}
+  }
+  void browserAi('/vision-models').then(result=>{
+    if(closed)return;visionModels=(result.models || []).filter(model=>model.free);
+    const select=wall.querySelector('[data-vision-model]');select.innerHTML='<option value="auto-free">自動選擇免費模型（失敗自動替換）</option>'+visionModels.sort((a,b)=>Number(b.free)-Number(a.free)).map(model=>`<option value="${escape(model.id)}">${escape(model.name)} · 免費</option>`).join('');
+  }).catch(error=>{if(!closed)status(`${error.message}；按分析時會重新查詢免費模型`);});
   const visibility=()=>{if(document.hidden){halt();status('分頁在背景，已暫停影像更新');}else if(!paused)void connect();};document.addEventListener('visibilitychange',visibility);
-  render();return()=>{closed=true;halt();document.removeEventListener('visibilitychange',visibility);wall.querySelectorAll('img').forEach(img=>img.removeAttribute('src'));wall.remove();};
+  render();return()=>{closed=true;halt();for(const controller of analysisControllers)controller.abort();analysisControllers.clear();document.removeEventListener('visibilitychange',visibility);wall.querySelectorAll('img').forEach(img=>img.removeAttribute('src'));wall.remove();};
 }

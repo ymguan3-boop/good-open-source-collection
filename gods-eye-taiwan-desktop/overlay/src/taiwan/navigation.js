@@ -17,7 +17,9 @@ export function createNavigationController({ viewer, onStatus=()=>{},onRoute=()=
   let previewTimer=null;
   let driveMode=false,driveHeights=[];
 
-  async function planRoute({ origin='', destination='' }) {
+  async function planRoute({origin='',destination='',waypoints=[],travelMode='car'}) {
+    if(!['car','motorcycle'].includes(travelMode))throw new Error('請選擇汽車或機車');
+    if(!Array.isArray(waypoints))throw new Error('中途點格式不正確');
     stopMotion();
     const epoch = ++planEpoch;
     const ensureCurrent = () => { if (epoch !== planEpoch) throw new DOMException('路線規劃已停止', 'AbortError'); };
@@ -30,19 +32,20 @@ export function createNavigationController({ viewer, onStatus=()=>{},onRoute=()=
     const end = await resolveLocation(destination, false);
     ensureCurrent();
 
-    onStatus('正在向 TomTom 計算含即時交通的行車路線…');
-    const request = {
-      originLat:start.lat,
-      originLon:start.lon,
-      destinationLat:end.lat,
-      destinationLon:end.lon,
-      travelMode:'car',
-    };
-    const raw = globalThis.__TAURI_INTERNALS__ ? await invoke('tomtom_route',request) : await browserAi('/route',{method:'POST',data:request});
-    ensureCurrent();
-    const payload = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    const route = payload?.routes?.[0];
-    if (!route) throw new Error('TomTom 沒有回傳可用路線');
+    const stops=[];
+    for(const waypoint of waypoints){if(typeof waypoint==='string' && !waypoint.trim())continue;ensureCurrent();stops.push(await resolveLocation(waypoint,false));}
+    ensureCurrent();const locations=[start,...stops,end],routes=[];
+    for(let i=0;i<locations.length-1;i++){
+      ensureCurrent();onStatus(`正在計算第 ${i+1}／${locations.length-1} 段${travelMode==='motorcycle'?'機車':'汽車'}路線…`);
+      const from=locations[i],to=locations[i+1],request={originLat:from.lat,originLon:from.lon,destinationLat:to.lat,destinationLon:to.lon,travelMode};
+      const raw=globalThis.__TAURI_INTERNALS__?await invoke('tomtom_route',request):await browserAi('/route',{method:'POST',data:request});
+      ensureCurrent();const payload=typeof raw==='string'?JSON.parse(raw):raw,legRoute=payload?.routes?.[0];
+      if(!legRoute)throw new Error(`第 ${i+1} 段沒有可用路線`);routes.push(legRoute);
+    }
+    // Two-point requests keep both native and browser paths compatible and allow any number of stops.
+    let offset=0;
+    const guidance=routes.flatMap(route=>{const items=(route.guidance?.instructions||[]).map(item=>({...item,routeOffsetInMeters:Number(item.routeOffsetInMeters||0)+offset}));offset+=Number(route.summary?.lengthInMeters||0);return items;});
+    const route={legs:routes.flatMap(route=>route.legs||[]),summary:{lengthInMeters:routes.reduce((sum,route)=>sum+Number(route.summary?.lengthInMeters||0),0),travelTimeInSeconds:routes.reduce((sum,route)=>sum+Number(route.summary?.travelTimeInSeconds||0),0),trafficDelayInSeconds:routes.reduce((sum,route)=>sum+Number(route.summary?.trafficDelayInSeconds||0),0)},guidance:{instructions:guidance},segments:routes};
 
     const coords = [];
     for (const leg of route.legs || []) {
@@ -88,6 +91,8 @@ export function createNavigationController({ viewer, onStatus=()=>{},onRoute=()=
     currentRoute = {
       start,
       end,
+      stops,
+      travelMode,
       coordinates:line.geometry.coordinates,
       summary:route.summary || {},
       guidance:route.guidance?.instructions || [],
@@ -96,7 +101,7 @@ export function createNavigationController({ viewer, onStatus=()=>{},onRoute=()=
     currentRoute.line=turf.lineString(currentRoute.coordinates);
     currentRoute.cumulative=[0];for(let i=1;i<currentRoute.coordinates.length;i++)currentRoute.cumulative.push(currentRoute.cumulative[i-1]+turf.distance(currentRoute.coordinates[i-1],currentRoute.coordinates[i]));
     currentRoute.lengthKm=currentRoute.cumulative.at(-1);
-    for(const [place,label,color] of [[start,'起點','#35e586'],[end,'終點','#ffbf35']])layer.dataSource.entities.add({position:Cesium.Cartesian3.fromDegrees(place.lon,place.lat,12),point:{pixelSize:11,color:Cesium.Color.fromCssColorString(color),outlineColor:Cesium.Color.BLACK,outlineWidth:2,disableDepthTestDistance:Infinity},label:{text:`${label}：${place.label}`,font:'14px IBM Plex Sans TC',fillColor:Cesium.Color.WHITE,showBackground:true,backgroundColor:Cesium.Color.fromCssColorString('#071a2b').withAlpha(.9),pixelOffset:new Cesium.Cartesian2(0,label==='起點' ? -26 : 26),disableDepthTestDistance:Infinity}});
+    for(const [place,label,color] of [[start,'起點','#35e586'],...stops.map((stop,index)=>[stop,`中途 ${index+1}`,'#b39dff']),[end,'終點','#ffbf35']])layer.dataSource.entities.add({position:Cesium.Cartesian3.fromDegrees(place.lon,place.lat,12),point:{pixelSize:11,color:Cesium.Color.fromCssColorString(color),outlineColor:Cesium.Color.BLACK,outlineWidth:2,disableDepthTestDistance:Infinity},label:{text:`${label}：${place.label}`,font:'14px IBM Plex Sans TC',fillColor:Cesium.Color.WHITE,showBackground:true,backgroundColor:Cesium.Color.fromCssColorString('#071a2b').withAlpha(.9),pixelOffset:new Cesium.Cartesian2(0,label==='起點' ? -26 : 26),disableDepthTestDistance:Infinity}});
     layer.setVisibility=visible=>{if(!visible)stopMotion();onRoute(visible ? routeSummary(currentRoute) : null);};
     layer.dispose=()=>{stopMotion();positionEntity=null;currentRoute=null;routeLayerId=null;onRoute(null);};
     onRoute(routeSummary(currentRoute));
@@ -312,6 +317,8 @@ function routeSummary(route) {
   return {
     origin:route.start.label,
     destination:route.end.label,
+    waypoints:(route.stops||[]).map(stop=>({name:stop.label,lat:stop.lat,lon:stop.lon})),
+    travelMode:route.travelMode || 'car',
     lengthMeters:route.summary?.lengthInMeters || 0,
     travelTimeSeconds:route.summary?.travelTimeInSeconds || 0,
     trafficDelaySeconds:route.summary?.trafficDelayInSeconds || 0,

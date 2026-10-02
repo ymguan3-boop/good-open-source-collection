@@ -578,7 +578,7 @@ body.gev-tw-minimal:has(#tw-shell .tw-drawer:not([hidden])) #world-overlay-root{
 #tw-shell .tw-nav button em{font-size:11px!important}
 #tw-shell .tw-drawer{left:calc(var(--tw-rail-left) + var(--tw-rail-width) + 12px)!important;width:min(420px,calc(100vw - var(--tw-rail-left) - var(--tw-rail-width) - 24px))!important}
 #tw-shell .tw-chat-panel-head{gap:3px;flex:none}
-#tw-shell .tw-chat-panel-head button[data-act=chat-clear],#tw-shell .tw-chat-panel-head button[data-act=chat-style]{font-size:12px;padding:5px;border:1px solid #355362;border-radius:5px}
+#tw-shell .tw-chat-panel-head button[data-act=chat-save],#tw-shell .tw-chat-panel-head button[data-act=chat-clear],#tw-shell .tw-chat-panel-head button[data-act=chat-style]{font-size:12px;padding:5px;border:1px solid #355362;border-radius:5px}
 .tw-chat-style{padding:9px;border-bottom:1px solid #355362;max-height:45%;overflow:auto;flex:none;font-size:12px}
 .tw-chat-style[hidden]{display:none}
 .tw-chat-style textarea{display:block;box-sizing:border-box;width:100%;margin:6px 0;padding:8px;border:1px solid #355362;border-radius:7px;background:#091f2e;color:#edf9ff;resize:vertical;min-height:64px}
@@ -653,3 +653,23 @@ body *{font-weight:400!important}
 .tw-navigation-card p{margin:0 0 7px;overflow-wrap:anywhere}.tw-navigation-card .tw-actions{flex-wrap:wrap}.tw-navigation-card button{padding:5px 8px;border:1px solid #3b809a;border-radius:6px;background:#102d40;color:#e4f7ff;cursor:pointer}
 @media(max-width:760px){#tw-shell{--tw-rail-left:18px}.tw-navigation-card{max-height:40dvh;overflow:auto}}
 @media(min-width:1050px){#tw-shell:has(.tw-drawer:not([hidden])) .tw-navigation-card{left:calc(var(--tw-rail-left) + var(--tw-rail-width) + 444px);width:min(480px,calc(100vw - var(--tw-rail-left) - var(--tw-rail-width) - 660px))}}
+
+/* V13: collapsible project groups and boundary outline controls. */
+#tw-shell .tw-group-heading{display:flex;align-items:center;gap:7px;text-align:left;flex:1;min-width:0;background:transparent;border:0;color:inherit;padding:9px 6px;cursor:pointer;font:inherit}
+#tw-shell .tw-group-heading span:last-child{overflow-wrap:anywhere}#tw-shell .tw-group-arrow{width:12px;flex:none;color:#85cfdf}
+#tw-shell .tw-group-content[hidden]{display:none!important}#tw-shell .tw-outline-controls .tw-fill-control{display:none}
+#tw-shell .tw-outline-controls{padding:8px 0}#tw-shell .tw-style-controls input[type=number]{min-width:50px}
+
+/* Aircraft view controls remain available while the original cockpit owns the camera. */
+#tw-shell .tw-aircraft-card{position:absolute;right:18px;top:112px;width:min(360px,calc(100vw - 36px));box-sizing:border-box;padding:12px;background:#071b2bee;color:#e4f7ff;border:1px solid #3b809a;border-radius:10px;pointer-events:auto;z-index:16;font-size:13px;font-weight:400;line-height:1.6}
+#tw-shell .tw-aircraft-card[hidden]{display:none}
+.tw-aircraft-card p{margin:0 0 8px;overflow-wrap:anywhere}.tw-aircraft-card .tw-actions{display:flex;flex-wrap:wrap;gap:8px}.tw-aircraft-card button{padding:6px 10px;border:1px solid #3b809a;border-radius:6px;background:#102d40;color:#e4f7ff;cursor:pointer;font:inherit;font-weight:400}.tw-aircraft-card button[aria-pressed="true"]{background:#155b72;border-color:#48d7ff}.tw-aircraft-card button:disabled{opacity:.55;cursor:wait}
+@media(max-width:760px){#tw-shell .tw-aircraft-card{top:76px;right:12px;width:min(300px,calc(100vw - var(--tw-rail-left) - var(--tw-rail-width) - 36px));max-height:40dvh;overflow:auto}}
+
+/* Only the record sprite uses the edited sheet; all other buttons retain v9. */
+#tw-shell .tw-nav button[data-sprite=results]{background-image:url('/branding/toolbar-record-sheet-v10.png')!important}
+#tw-shell .tw-record-preview{position:absolute;left:clamp(110px,20vw,340px);top:100px;width:min(780px,calc(100vw - 130px));height:min(600px,calc(100dvh - 120px));min-width:260px;min-height:180px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);resize:both;overflow:hidden;display:flex;flex-direction:column;background:#081c2bf5;border:1px solid #38bdf8;border-radius:12px;color:#e5f6ff;pointer-events:auto;z-index:40;box-sizing:border-box;font-weight:400}
+.tw-record-preview header{display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid #3b809a}.tw-record-preview header span{flex:1;overflow-wrap:anywhere}.tw-record-preview header button{background:#102d40;color:#e5f6ff;border:1px solid #3b809a;border-radius:6px;font-size:20px;cursor:pointer}.tw-record-preview .tw-chat-content{flex:1;overflow:auto;padding:14px;min-height:0}.tw-record-preview footer{padding:6px 12px;color:#91afc1;font-size:12px}.tw-record-filename{background:none!important;color:#61dbff!important;text-align:left!important;overflow-wrap:anywhere;cursor:pointer}
+.tw-flight-info{display:grid;grid-template-columns:84px 1fr;gap:3px 10px;margin:8px 0 12px;font-size:12px}.tw-flight-info dt{color:#9bb7c9}.tw-flight-info dd{margin:0;overflow-wrap:anywhere}#tw-shell .tw-aircraft-card{max-height:calc(100dvh - 150px);overflow:auto}
+.tw-label-controls{display:flex;flex-wrap:wrap;gap:8px}.tw-label-controls label:first-child{flex-basis:100%}.tw-label-controls input[type=number]{width:65px}.tw-label-controls input[type=color]{width:35px;height:30px}.tw-label-controls select{max-width:150px}.tw-route-stops input{flex:1;min-width:120px}.tw-vision-model{display:flex;gap:8px;padding:8px;align-items:center}.tw-vision-model select{min-width:0;flex:1;background:#071b2b;color:#e5f6ff;padding:7px}.tw-cctv-wall-grid [data-camera-analysis]{max-height:280px;overflow:auto;font-size:12px}.tw-cctv-wall-grid button[data-wall-action=analyze]{padding:7px;background:#103b50;color:#e5f6ff;border:1px solid #3b809a;border-radius:6px;cursor:pointer}.tw-cctv-wall-grid button:disabled{opacity:.5}
+@media(max-width:760px){#tw-shell .tw-record-preview{left:12px;top:76px;width:calc(100vw - 24px);height:calc(100dvh - 100px)}}

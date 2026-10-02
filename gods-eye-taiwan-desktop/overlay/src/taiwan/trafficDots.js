@@ -1,40 +1,106 @@
 import * as Cesium from 'cesium';
 
-// Match the original moving-dot presentation. These are flow illustrations,
-// driven by the measured speed ratio, rather than individual vehicle tracks.
-export function createTrafficDots(viewer){
-  const points=viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());let dots=[],last=0,visible=true,elapsed=0;
-  function replace(segments){
-    points.removeAll();dots=[];
-    const moving=segments.filter(s=>!s.closure&&s.coords.length>1);
-    const step=Math.max(1,Math.ceil(moving.length/800));
-    for(let i=0;i<moving.length;i+=step){
-      const segment=moving[i],coords=segment.coords,lengths=[0],heights=[];
-      for(let k=0;k<coords.length;k++){
-        const [lon,lat]=coords[k],c=Cesium.Cartographic.fromDegrees(lon,lat);
-        // Terrain height lookup is CPU-only; synchronous scene.sampleHeight
-        // reads the GPU for every vertex and freezes dense street views.
-        heights.push((viewer.scene.globe.getHeight(c)||0)+2);
-        if(k){const a=coords[k-1];lengths.push(lengths[k-1]+Math.hypot((lon-a[0])*111320*Math.cos(lat*Math.PI/180),(lat-a[1])*110540));}
+// Draw the pulse on the same ground-classified path as the road overlay.
+// Cartesian point sprites at terrain height do not follow Google 3D road height.
+// The material animates on the GPU; no per-vertex GPU height reads are needed.
+const DOT_MATERIAL = `
+uniform vec4 color;
+uniform float phase;
+czm_material czm_getMaterial(czm_materialInput materialInput)
+{
+    czm_material material = czm_getDefaultMaterial(materialInput);
+    vec2 st = materialInput.st;
+    float delta = abs(fract(st.s - phase + 0.5) - 0.5);
+#if (__VERSION__ == 300 || defined(GL_OES_standard_derivatives))
+    float halfLength = max(abs(fwidth(st.s)) * 2.0 * czm_pixelRatio, 0.000001);
+#else
+    float halfLength = 0.015;
+#endif
+    vec2 offset = vec2(delta / halfLength, (st.t - 0.5) * 2.0);
+    float alpha = 1.0 - smoothstep(0.65, 1.0, length(offset));
+    material.diffuse = color.rgb;
+    material.alpha = color.a * alpha;
+    return material;
+}
+`;
+
+export function createTrafficDots(viewer) {
+  const primitives = viewer.scene.groundPrimitives.add(new Cesium.PrimitiveCollection());
+  let batches = [], visible = true, disposed = false, elapsed = 0, last = 0;
+  function replace(segments) {
+    if (disposed) return 0;
+    primitives.removeAll(); batches = [];
+    const moving = segments.filter(segment => !segment.closure && segment.trafficLevel > 0 && segment.coords.length > 1);
+    const step = Math.max(1, Math.ceil(moving.length / 800)), groups = new Map();
+    let count = 0;
+    for (let index = 0; index < moving.length; index += step) {
+      const segment = moving[index], coords = segment.coords;
+      let length = 0;
+      for (let k = 1; k < coords.length; k++) {
+        const [lon, lat] = coords[k], previous = coords[k - 1];
+        length += Math.hypot((lon - previous[0]) * 111320 * Math.cos(lat * Math.PI / 180), (lat - previous[1]) * 110540);
       }
-      const length=lengths.at(-1);if(length<5)continue;
-      const color=Cesium.Color.fromCssColorString(segment.trafficLevel<.4?'#ff5c54':segment.trafficLevel<.75?'#ffd45c':'#70ffc7');
-      const base=/(motorway|freeway|trunk)/i.test(segment.roadType)?24:12;
-      const point=points.add({position:Cesium.Cartesian3.fromDegrees(coords[0][0],coords[0][1],heights[0]),pixelSize:4,color,outlineColor:Cesium.Color.BLACK.withAlpha(.7),outlineWidth:1,disableDepthTestDistance:Number.POSITIVE_INFINITY});
-      dots.push({coords,lengths,heights,length,speed:base*segment.trafficLevel,distance:(i*.61803398875%1)*length,point});
+      if (!Number.isFinite(length) || length < 5) continue;
+      const colorBand = segment.trafficLevel < .4 ? 0 : segment.trafficLevel < .75 ? 1 : 2;
+      const base = /(motorway|freeway|trunk)/i.test(segment.roadType) ? 24 : 12;
+      // Batch similar traversal rates; the pulses are speed illustrations,
+      // not measured positions of individual vehicles. sqrt(2) buckets limit
+      // the rate approximation to about 19% while keeping draw calls bounded.
+      const rate = base * segment.trafficLevel / length;
+      const rateBucket = Math.round(Math.log2(rate) * 2);
+      const key = `${colorBand}:${rateBucket}`;
+      let group = groups.get(key);
+      if (!group) {
+        group = { colorBand, rate: 2 ** (rateBucket / 2), instances: [] };
+        groups.set(key, group);
+      }
+      group.instances.push(new Cesium.GeometryInstance({
+        geometry: new Cesium.GroundPolylineGeometry({
+          positions: Cesium.Cartesian3.fromDegreesArray(coords.flatMap(point => point.slice(0, 2))),
+          width: 4,
+        }),
+      }));
+      count++;
     }
-    last=0;viewer.scene.requestRender();return dots.length;
-  }
-  const remove=viewer.scene.preUpdate.addEventListener(()=>{
-    const now=performance.now();if(!visible||!dots.length){last=now;return;}
-    const dt=last?Math.min(.15,(now-last)/1000):0;last=now;elapsed+=dt;if(elapsed<1/24)return;const tick=elapsed;elapsed=0;
-    for(const dot of dots){
-      dot.distance=(dot.distance+dot.speed*tick)%dot.length;let k=1;while(k<dot.lengths.length-1&&dot.lengths[k]<dot.distance)k++;
-      const t=(dot.distance-dot.lengths[k-1])/Math.max(.001,dot.lengths[k]-dot.lengths[k-1]),a=dot.coords[k-1],b=dot.coords[k];
-      dot.point.position=Cesium.Cartesian3.fromDegrees(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,dot.heights[k-1]+(dot.heights[k]-dot.heights[k-1])*t);
+    for (const group of groups.values()) {
+      const offset = (batches.length * .61803398875) % 1;
+      const material = new Cesium.Material({
+        fabric: { type: 'TaiwanTrafficRoadDot', uniforms: {
+          color: Cesium.Color.fromCssColorString(['#ff5c54', '#ffd45c', '#70ffc7'][group.colorBand]),
+          phase: offset,
+        }, source: DOT_MATERIAL },
+        translucent: true,
+      });
+      primitives.add(new Cesium.GroundPolylinePrimitive({
+        geometryInstances: group.instances,
+        classificationType: Cesium.ClassificationType.BOTH,
+        appearance: new Cesium.PolylineMaterialAppearance({ material, translucent: true }),
+        allowPicking: false,
+      }));
+      batches.push({ material, rate: group.rate, offset });
     }
+    elapsed = 0; last = 0;
+    primitives.show = visible;
     viewer.scene.requestRender();
+    return count;
+  }
+  const remove = viewer.scene.preUpdate.addEventListener(() => {
+    const now = performance.now();
+    if (!visible || !batches.length) { last = now; return; }
+    elapsed += last ? Math.min(.15, (now - last) / 1000) : 0;
+    last = now;
+    for (const batch of batches) batch.material.uniforms.phase = (batch.offset + elapsed * batch.rate) % 1;
   });
-  const timer=setInterval(()=>{if(visible&&dots.length)viewer.scene.requestRender();},1000/24);
-  return {replace,setVisibility(value){visible=value;points.show=value;last=0;},dispose(){clearInterval(timer);remove();viewer.scene.primitives.remove(points);dots=[];}};
+  const timer = setInterval(() => {
+    if (visible && batches.length) viewer.scene.requestRender();
+  }, 1000 / 24);
+  return {
+    replace,
+    setVisibility(value) { visible = !!value; primitives.show = visible; last = 0; },
+    dispose() {
+      if (disposed) return;
+      disposed = true; clearInterval(timer); remove();
+      viewer.scene.groundPrimitives.remove(primitives); batches = [];
+    },
+  };
 }

@@ -9,3 +9,5 @@ db.version(1).stores({
   analyses: '++id,projectId,createdAt,title',
 });
 db.version(2).stores({ results:'++id,createdAt,name' });
+
+db.version(3).stores({chatRecords:'++id,createdAt,filename'});

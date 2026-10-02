@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path';
 import { keySetupStatus } from '../../src/keySetupCore.mjs';
 import { credentialsReady, getCredential, saveCredential, credentialPresence } from './taiwanCredentialStore.js';
 import { streamTaiwanChat } from './taiwanChat.js';
+import { analyzeCctvImage,planInspectionRoute,getFreeVisionModels } from './taiwanVisualAnalysis.js';
 
 const keys = { has:name => !!getCredential(name), get:getCredential };
 const MAX_BODY = 3_000_000;
@@ -109,8 +110,32 @@ export function taiwanAiProxy() {
             const coordinates = ['originLat','originLon','destinationLat','destinationLon'].map(name=>Number(data[name]));
             if (!coordinates.every(Number.isFinite) || Math.abs(coordinates[0]) > 90 || Math.abs(coordinates[2]) > 90 || Math.abs(coordinates[1]) > 180 || Math.abs(coordinates[3]) > 180) throw new Error('路線座標不正確');
             const url = new URL(`https://api.tomtom.com/routing/1/calculateRoute/${coordinates[0]},${coordinates[1]}:${coordinates[2]},${coordinates[3]}/json`);
-            url.search = new URLSearchParams({key,traffic:'true',travelMode:'car',language:'zh-TW',instructionsType:'text'});
+            const mode=data.travelMode || 'car';if(!['car','motorcycle'].includes(mode))throw new Error('不支援的行車模式');
+            url.search = new URLSearchParams({key,traffic:'true',travelMode:mode,language:'zh-TW',instructionsType:'text',...(mode==='motorcycle'?{avoid:'motorways'}:{})});
             return json(res,200,await provider(url));
+          }
+          if(route==='/vision-models' && req.method==='GET'){
+            const models=await getFreeVisionModels();
+            return json(res,200,{models:models.map(model=>({id:model.id,name:model.name,free:true})),defaultModel:'auto-free'});
+          }
+          if (route === '/cctv-analyze' && req.method === 'POST') {
+            if(!keys.has('openrouter'))throw new Error('未輸入金鑰');
+            const data=await body(req),controller=new AbortController(),cancel=()=>controller.abort();res.once('close',cancel);
+            try{return json(res,200,await analyzeCctvImage(data,keys.get('openrouter'),{signal:controller.signal}));}finally{res.removeListener('close',cancel);}
+          }
+          if (route === '/inspection-plan' && req.method === 'POST') {
+            if(!keys.has('openrouter'))throw new Error('未輸入金鑰');
+            return json(res,200,await planInspectionRoute(await body(req),keys.get('openrouter')));
+          }
+          if (route === '/school-candidates' && req.method === 'POST') {
+            const data=await body(req),region=String(data.region||'').trim();if(!region || region.length>100)throw new Error('請輸入學校所在地區');
+            const key=getCredential('TOMTOM_API_KEY');if(!key)throw new Error('未輸入金鑰');
+            const url=new URL(`https://api.tomtom.com/search/2/poiSearch/${encodeURIComponent(region+' 學校')}.json`);
+            url.search=new URLSearchParams({key,language:'zh-TW',countrySet:'TW',limit:'100',categorySet:'7372,7377'});
+            const value=await provider(url);
+            const normalize=value=>String(value || '').replace(/臺/g,'台');
+            const candidates=(value.results||[]).filter(hit=>Number.isFinite(hit.position?.lat)&&Number.isFinite(hit.position?.lon) && normalize(hit.address?.freeformAddress || hit.address?.countrySubdivision).includes(normalize(region))).map(hit=>({name:hit.poi?.name||hit.address?.freeformAddress,lat:hit.position.lat,lon:hit.position.lon,address:hit.address?.freeformAddress,source:'TomTom POI'}));
+            return json(res,200,{candidates,notice:'TomTom 查得的學校候選名單，最多 100 處，並非官方完整學校清冊；請確認所在地與名稱，可自行新增或刪除。'});
           }
           if (route === '/keys' && req.method === 'GET') return json(res,200,credentialPresence());
           if (/^\/traffic-vector\/\d+\/\d+\/\d+\.pbf$/.test(route) && req.method === 'GET') {

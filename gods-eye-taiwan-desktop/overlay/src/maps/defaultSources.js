@@ -1,4 +1,5 @@
 import { MAP_STACKS } from './catalog.js';
+import { createNlscImagery } from './nlscImagery.js';
 import { photorealUnavailableReason } from './availability.js';
 import { keySetupRequirement } from '../keySetupCore.mjs';
 import {
@@ -49,7 +50,9 @@ export function createDefaultMapSources({
           createTileset:async()=>{const result=await loadPhotorealisticTileset(Cesium,{googleApiKey,cesiumToken});if(!result.tileset)throw new Error('Google 擬真 3D 無法連線；請檢查金鑰權限、額度與網路後重試');return result.tileset;},
         };
       const imagery =
-        descriptor.kind === 'ion'
+        descriptor.kind === 'nlsc'
+          ? () => createNlscImagery(descriptor.nlscLayer)
+          : descriptor.kind === 'ion'
           ? () => createIonImagery(descriptor.style, ionToken)
           : descriptor.id === 'osm'
             ? createOsmImagery

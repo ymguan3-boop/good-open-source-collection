@@ -5,10 +5,11 @@ import { listLayers, getLayer } from './layerRegistry.js';
 import { runBuffer } from './analysis.js';
 import { browserAi } from './browserAi.js';
 import { resolvePlace as searchPlace } from './places.js';
+import { LAYER_VOICE_TOOLS } from './layerVoiceActions.js';
 
 const MODEL = 'gemini-3.8-live';
 
-export function createGeminiLiveController({ viewer, navigation, onStatus = () => {}, onTranscript = () => {} }) {
+export function createGeminiLiveController({ viewer, navigation, layerActions, onStatus = () => {}, onTranscript = () => {} }) {
   let session = null;
   let pendingStart = null;
   let generation = 0;
@@ -20,6 +21,9 @@ export function createGeminiLiveController({ viewer, navigation, onStatus = () =
   let outputContext = null;
   let nextPlayAt = 0;
   const playingSources = new Set();
+  const toolControllers = new Map();
+  const cancelledToolIds = new Set();
+  function cancelTools(){for(const controller of toolControllers.values())controller.abort();toolControllers.clear();}
   let lastUserTranscript = '';
   let orbitFrame = null;
   let finishOrbit = null;
@@ -28,6 +32,7 @@ export function createGeminiLiveController({ viewer, navigation, onStatus = () =
 
   const tools = [{
     functionDeclarations: [
+      ...LAYER_VOICE_TOOLS,
       {
         name:'list_layers',
         description:'列出上帝之眼目前載入的自訂 GIS 圖層。',
@@ -60,6 +65,8 @@ export function createGeminiLiveController({ viewer, navigation, onStatus = () =
           type:'OBJECT',
           properties:{
             origin:{type:'STRING',description:'起點名稱，可省略'},
+            waypoints:{type:'ARRAY',items:{type:'STRING'},description:'依序經過的中途點名稱'},
+            travelMode:{type:'STRING',enum:['car','motorcycle'],description:'汽車或機車'},
             destination:{type:'STRING',description:'目的地名稱'}
           },
           required:['destination']
@@ -109,6 +116,7 @@ export function createGeminiLiveController({ viewer, navigation, onStatus = () =
     if (session) return;
     if (pendingStart) return pendingStart;
     const current = ++generation;
+    cancelledToolIds.clear();
     outputTranscript='';languageCorrectionPending=false;
     outputContext ||= new AudioContext({sampleRate:24000});
     void outputContext.resume().catch(()=>{});
@@ -129,7 +137,7 @@ export function createGeminiLiveController({ viewer, navigation, onStatus = () =
         onclose:(e) => {
           if (current !== generation) return;
           onStatus(`Gemini Live 已中斷${e?.reason ? '：'+e.reason : ''}`);
-          generation++;cancelOrbit();session = null;
+          generation++;cancelTools();cancelOrbit();session = null;
           void releaseAudio();
         },
         onmessage:(message) => { if (current === generation) void handleMessage(message,current).catch(error=>{if(current===generation)onStatus(`語音訊息處理失敗：${error.message}`);}); },
@@ -139,7 +147,7 @@ export function createGeminiLiveController({ viewer, navigation, onStatus = () =
         inputAudioTranscription:{},
         outputAudioTranscription:{},
         speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Kore'}}},
-        systemInstruction:languagePolicy+'你是「上帝之眼・台灣版」即時 3D 地圖語音助理。使用繁體中文，先完整理解使用者一句話的所有動作。說「帶我到台北101並繞該建物一圈」代表鏡頭飛往建物並環繞，直接呼叫 fly_to_and_orbit_place(place="台北101")，不要詢問目的地，也不要呼叫行車導航。其他「帶我到」「飛到」「看看」用 fly_to_place。只有明確提到開車、行車路線或道路導航才呼叫 plan_driving_route；想沿路線開過去或看行車視角時呼叫 drive_route，不要求 GPS；只有明確要求依裝置實際定位導航才呼叫 start_navigation。需要操作時必須呼叫工具，不可假裝已完成。工具失敗時說明實際原因。',
+        systemInstruction:languagePolicy+'你是「上帝之眼・台灣版」即時 3D 地圖語音助理。使用繁體中文，先完整理解使用者一句話的所有動作。說「帶我到台北101並繞該建物一圈」代表鏡頭飛往建物並環繞，直接呼叫 fly_to_and_orbit_place(place="台北101")，不要詢問目的地，也不要呼叫行車導航。其他「帶我到」「飛到」「看看」用 fly_to_place。只有明確提到開車、行車路線或道路導航才呼叫 plan_driving_route；想沿路線開過去或看行車視角時呼叫 drive_route，不要求 GPS；只有明確要求依裝置實際定位導航才呼叫 start_navigation。需要操作時必須呼叫工具，不可假裝已完成。工具失敗時說明實際原因。使用者要求載入、顯示、隱藏、更新或切換工具列圖資時，先查 list_available_data_layers，使用清單 id 呼叫 control_data_layer；切換到底圖用 show，切換圖層顯示狀態用 toggle。一鍵載入用 load_all_data_layers，一鍵隱藏用 hide_all_data_layers。這兩個一鍵操作範圍與工具列相同，不需要逐項詢問；不要將一鍵載入解讀為同時啟用所有付費服務與即時串流。只有工具結果 ok 才表示完成；partial、空資料或載入失敗應如實以中文說明。',
         tools,
       }
     });
@@ -167,6 +175,7 @@ export function createGeminiLiveController({ viewer, navigation, onStatus = () =
 
   async function stop() {
     generation++;
+    cancelTools();
     cancelOrbit();
     try { session?.sendRealtimeInput?.({ audioStreamEnd:true }); } catch {}
     await releaseAudio();
@@ -220,6 +229,7 @@ export function createGeminiLiveController({ viewer, navigation, onStatus = () =
 
   async function handleMessage(message,current) {
     if(current!==generation)return;
+    for(const id of message?.toolCallCancellation?.ids || []){cancelledToolIds.add(id);toolControllers.get(id)?.abort();toolControllers.delete(id);}
     const inputText = message?.serverContent?.inputTranscription?.text;
     const outputText = message?.serverContent?.outputTranscription?.text;
     if (inputText) { lastUserTranscript=(lastUserTranscript+inputText).slice(-1000);onTranscript({ role:'user', text:inputText }); }
@@ -239,13 +249,17 @@ export function createGeminiLiveController({ viewer, navigation, onStatus = () =
       const job=toolQueue.catch(()=>{}).then(async()=>{const responses = [];
       for (const fc of message.toolCall.functionCalls) {
         if(current!==generation)return;
+        if(cancelledToolIds.has(fc.id))continue;
+        const controller=new AbortController();toolControllers.set(fc.id,controller);
         try {
-          responses.push({ id:fc.id, name:fc.name, response:{ result:await executeTool(fc.name, fc.args || {}) } });
+          const result=await executeTool(fc.name,fc.args || {},{signal:controller.signal});
+          controller.signal.throwIfAborted();
+          responses.push({ id:fc.id, name:fc.name, response:{ result } });
         } catch (error) {
-          responses.push({ id:fc.id, name:fc.name, response:{ error:error?.message || String(error) } });
-        }
+          if(!controller.signal.aborted)responses.push({ id:fc.id, name:fc.name, response:{ error:error?.message || String(error) } });
+        }finally{if(toolControllers.get(fc.id)===controller)toolControllers.delete(fc.id);}
       }
-      if(current===generation)session?.sendToolResponse({ functionResponses:responses.map(item=>({...item,response:{...item.response,replyLanguage:'請用台灣中文（國語）解釋執行結果；不要照念英文欄位。'}})) });
+      if(current===generation && responses.length)session?.sendToolResponse({ functionResponses:responses.map(item=>({...item,response:{...item.response,replyLanguage:'請用台灣中文（國語）解釋執行結果；不要照念英文欄位。'}})) });
       });toolQueue=job;await job;
     }
 
@@ -259,7 +273,9 @@ export function createGeminiLiveController({ viewer, navigation, onStatus = () =
     else if (typeof message?.data === 'string') queueAudio(message.data);
   }
 
-  async function executeTool(name, args) {
+  async function executeTool(name,args,context={}) {
+    context.signal?.throwIfAborted();
+    if(LAYER_VOICE_TOOLS.some(tool=>tool.name===name)){if(!layerActions)throw new Error('圖資語音工具尚未就緒');return layerActions.execute(name,args,context);}
     if (name === 'list_layers') {
       return listLayers().map(l => ({ id:l.id, name:l.name, kind:l.kind, featureCount:l.geojson?.features?.length ?? null }));
     }
@@ -281,6 +297,7 @@ export function createGeminiLiveController({ viewer, navigation, onStatus = () =
       if (!navigation) throw new Error('導航工具尚未初始化');
       return navigation.planRoute({
         origin:String(args.origin || ''),
+        waypoints:Array.isArray(args.waypoints)?args.waypoints:[],travelMode:args.travelMode || 'car',
         destination:String(args.destination || ''),
       });
     }

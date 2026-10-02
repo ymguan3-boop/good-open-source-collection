@@ -2,7 +2,7 @@ import * as Cesium from 'cesium';
 import * as turf from '@turf/turf';
 import { openCctvWall } from './cctvWallViewer.js';
 
-export function createCctvWall({viewer,root,onChange}) {
+export function createCctvWall({viewer,root,onChange,onAnalyze}) {
   let cameras=[],selected=[],handler=null,points=[],drawing=false,priorInputs=true,overlay=null,markers=null,epoch=0,controller=null;
   const state=()=>({total:cameras.length,count:selected.length,selecting:!!handler});
   function notify(message){onChange(message,state());}
@@ -44,7 +44,7 @@ export function createCctvWall({viewer,root,onChange}) {
   function show() {
     if(!selected.length)throw new Error('圈選範圍內沒有 CCTV，請重新圈選或使用一鍵觀看所有影像');
     cancelSelection();closeWall();if(markers)markers.show=false;
-    closeViewer=openCctvWall({root,cameras:selected,onClose:closeWall});
+    closeViewer=openCctvWall({root,cameras:selected,onClose:closeWall,onAnalyze});
   }
   async function showAll(){if(!cameras.length)await load();selected=[...cameras];show();notify(`已開啟全台 ${selected.length} 支目錄；每頁 12 路連續播放。`);}
   return {load,begin,show,showAll,stop,hideMarkers,state,destroy:stop};

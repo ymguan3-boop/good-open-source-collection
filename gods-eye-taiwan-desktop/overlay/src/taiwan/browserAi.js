@@ -1,8 +1,8 @@
 const BASE = '/api/taiwan/ai';
 
-export async function browserAi(path, { method='GET', data } = {}) {
+export async function browserAi(path, { method='GET', data, signal } = {}) {
   const response = await fetch(`${BASE}${path}`, {
-    method,
+    method,signal,
     headers:data === undefined ? {} : { 'Content-Type':'application/json' },
     body:data === undefined ? undefined : JSON.stringify(data),
     cache:'no-store',

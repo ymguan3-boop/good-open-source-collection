@@ -50,6 +50,7 @@ pub async fn tomtom_route(
     p.append_pair("routeType", "fastest");
     p.append_pair("traffic", "true");
     p.append_pair("travelMode", &mode);
+    if mode == "motorcycle" { p.append_pair("avoid", "motorways"); }
     p.append_pair("routeRepresentation", "polyline");
     p.append_pair("instructionsType", "text");
     p.append_pair("language", "zh-TW");
