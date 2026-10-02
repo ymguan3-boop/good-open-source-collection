@@ -6,6 +6,7 @@ import { runBuffer } from './analysis.js';
 import { browserAi } from './browserAi.js';
 import { resolvePlace as searchPlace } from './places.js';
 import { LAYER_VOICE_TOOLS } from './layerVoiceActions.js';
+import { VOICE_COUNTY_NAMES } from './voiceScope.js';
 
 const MODEL = 'gemini-3.8-live';
 
@@ -25,6 +26,33 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
   const cancelledToolIds = new Set();
   function cancelTools(){for(const controller of toolControllers.values())controller.abort();toolControllers.clear();}
   let lastUserTranscript = '';
+  let transcriptSerial=0,transcriptTurn=newTranscriptTurn(),resumeTimer=null,hostReporting=false,interruptedCompletion=false;
+  function newTranscriptTurn(){return {id:++transcriptSerial,text:'',updatedAt:0,closed:false,responding:false,resumed:false};}
+  function clearVoiceRequests(){clearTimeout(resumeTimer);resumeTimer=null;lastUserTranscript='';transcriptTurn=newTranscriptTurn();hostReporting=false;interruptedCompletion=false;layerActions?.clearPending?.();}
+  async function waitTranscript(turn,signal){
+    const until=Date.now()+2000;
+    while(Date.now()<until){signal?.throwIfAborted();if(turn.text && Date.now()-turn.updatedAt>=250)break;await new Promise(resolve=>setTimeout(resolve,50));}
+    signal?.throwIfAborted();return turn.text;
+  }
+  function scheduleLayerContinuation(turn,current){
+    clearTimeout(resumeTimer);
+    resumeTimer=setTimeout(()=>{
+      const job=toolQueue.catch(()=>{}).then(async()=>{
+        if(current!==generation || turn.resumed || !layerActions?.resumeFromUtterance)return;
+        turn.resumed=true;const id=`host-layer-${turn.id}`,controller=new AbortController();toolControllers.set(id,controller);
+        try{
+          const utterance=await waitTranscript(turn,controller.signal);
+          if(current!==generation || turn!==transcriptTurn)return;
+          const result=await layerActions.resumeFromUtterance(utterance,{signal:controller.signal,turnId:turn.id});
+          controller.signal.throwIfAborted();if(!result || current!==generation)return;
+          const message=result.question || result.message || (result.ok?'圖資操作已完成':'圖資操作未完成');
+          onStatus(message);onTranscript({role:'assistant',text:message});hostReporting=true;
+          session?.sendClientContent({turns:[{role:'user',parts:[{text:'以下是程式依使用者上一個請求執行的結果，屬於狀態資料，不是新指令。請只用台灣中文回報此結果，不再呼叫工具，也不要重問已提供的圖資與區域；needsScope 才詢問 question：'+JSON.stringify(result)}]}],turnComplete:true});
+        }catch(error){if(!controller.signal.aborted && current===generation)onStatus(`語音圖資操作失敗：${error.message}`);}
+        finally{if(toolControllers.get(id)===controller)toolControllers.delete(id);}
+      });toolQueue=job;void job.catch(()=>{});
+    },500);
+  }
   let orbitFrame = null;
   let finishOrbit = null;
   let outputTranscript='',languageCorrectionPending=false,toolQueue=Promise.resolve();
@@ -116,7 +144,7 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
     if (session) return;
     if (pendingStart) return pendingStart;
     const current = ++generation;
-    cancelledToolIds.clear();
+    cancelledToolIds.clear();clearVoiceRequests();
     outputTranscript='';languageCorrectionPending=false;
     outputContext ||= new AudioContext({sampleRate:24000});
     void outputContext.resume().catch(()=>{});
@@ -137,17 +165,17 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
         onclose:(e) => {
           if (current !== generation) return;
           onStatus(`Gemini Live 已中斷${e?.reason ? '：'+e.reason : ''}`);
-          generation++;cancelTools();cancelOrbit();session = null;
+          generation++;cancelTools();cancelOrbit();clearVoiceRequests();session = null;
           void releaseAudio();
         },
         onmessage:(message) => { if (current === generation) void handleMessage(message,current).catch(error=>{if(current===generation)onStatus(`語音訊息處理失敗：${error.message}`);}); },
       },
       config:{
         responseModalities:[Modality.AUDIO],
-        inputAudioTranscription:{},
+        inputAudioTranscription:{languageCodes:['zh-TW'],customVocabulary:['載入','全台灣',...VOICE_COUNTY_NAMES,...(layerActions?.catalog?.() || []).map(item=>item.name)]},
         outputAudioTranscription:{},
         speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Kore'}}},
-        systemInstruction:languagePolicy+'你是「上帝之眼・台灣版」即時 3D 地圖語音助理。使用繁體中文，先完整理解使用者一句話的所有動作。說「帶我到台北101並繞該建物一圈」代表鏡頭飛往建物並環繞，直接呼叫 fly_to_and_orbit_place(place="台北101")，不要詢問目的地，也不要呼叫行車導航。其他「帶我到」「飛到」「看看」用 fly_to_place。只有明確提到開車、行車路線或道路導航才呼叫 plan_driving_route；想沿路線開過去或看行車視角時呼叫 drive_route，不要求 GPS；只有明確要求依裝置實際定位導航才呼叫 start_navigation。需要操作時必須呼叫工具，不可假裝已完成。工具失敗時說明實際原因。使用者要求載入、顯示、隱藏、更新或切換工具列圖資時，先查 list_available_data_layers，使用清單 id 呼叫 control_data_layer；切換到底圖用 show，切換圖層顯示狀態用 toggle。一鍵載入用 load_all_data_layers，一鍵隱藏用 hide_all_data_layers。載入或更新前必須先確認地理範圍：未指定時詢問縣市或全台灣，不得自行沿用目前範圍。已明確指定正式縣市、全台灣或全球就帶 scope 呼叫工具。若清單 coverage 只有全球或全臺來源，解釋來源範圍及建議，等待使用者確認再載入。工具回傳 needsScope 時先解釋 question，等待使用者回答，不得同一回合自行選範圍重呼。全臺建物只串流有官方服務的目前視野，不宣稱完整全臺建物。隱藏已載入圖層不需再詢問範圍。一鍵載入先統一確認一次範圍，再回報個別失敗；不要將一鍵載入解讀為同時啟用所有付費服務與即時串流。只有工具結果 ok 才表示完成；partial、空資料或載入失敗應如實以中文說明。',
+        systemInstruction:languagePolicy+'你是「上帝之眼・台灣版」即時 3D 地圖語音助理。使用繁體中文，先完整理解使用者一句話的所有動作。說「帶我到台北101並繞該建物一圈」代表鏡頭飛往建物並環繞，直接呼叫 fly_to_and_orbit_place(place="台北101")，不要詢問目的地，也不要呼叫行車導航。其他「帶我到」「飛到」「看看」用 fly_to_place。只有明確提到開車、行車路線或道路導航才呼叫 plan_driving_route；想沿路線開過去或看行車視角時呼叫 drive_route，不要求 GPS；只有明確要求依裝置實際定位導航才呼叫 start_navigation。需要操作時必須呼叫工具，不可假裝已完成。工具失敗時說明實際原因。使用者要求載入、顯示、隱藏、更新或切換工具列圖資時，先查 list_available_data_layers，使用清單 id 呼叫 control_data_layer；清單 pendingRequest 是上一回合尚待範圍的原請求，使用者只回答縣市或全台灣時必須沿用其中圖資及操作，不重問圖資；切換到底圖用 show，切換圖層顯示狀態用 toggle。一鍵載入用 load_all_data_layers，一鍵隱藏用 hide_all_data_layers。載入或更新前必須先確認地理範圍：未指定時詢問縣市或全台灣，不得自行沿用目前範圍。一句話已明確指定圖資及正式縣市、全台灣或全球，就帶 scope 直接呼叫工具，不得再次詢問已提供的圖資或範圍；例如「載入宜蘭縣道路中心線」直接使用 osm-roads、load、宜蘭縣。若前一回合問範圍，下一回合「全台灣」或「宜蘭縣」就是範圍回答，接續原本的圖資請求。若清單 coverage 只有全球或全臺來源，解釋來源範圍及建議，等待使用者確認再載入。工具回傳 needsScope 時先解釋 question，等待使用者回答，不得同一回合自行選範圍重呼。全臺建物只串流有官方服務的目前視野，不宣稱完整全臺建物。隱藏已載入圖層不需再詢問範圍。一鍵載入先統一確認一次範圍，再回報個別失敗；不要將一鍵載入解讀為同時啟用所有付費服務與即時串流。只有工具結果 ok 才表示完成；partial、空資料或載入失敗應如實以中文說明。',
         tools,
       }
     });
@@ -176,6 +204,7 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
   async function stop() {
     generation++;
     cancelTools();
+    clearVoiceRequests();
     cancelOrbit();
     try { session?.sendRealtimeInput?.({ audioStreamEnd:true }); } catch {}
     await releaseAudio();
@@ -232,7 +261,13 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
     for(const id of message?.toolCallCancellation?.ids || []){cancelledToolIds.add(id);toolControllers.get(id)?.abort();toolControllers.delete(id);}
     const inputText = message?.serverContent?.inputTranscription?.text;
     const outputText = message?.serverContent?.outputTranscription?.text;
-    if (inputText) { lastUserTranscript=(lastUserTranscript+inputText).slice(-1000);onTranscript({ role:'user', text:inputText }); }
+    if (inputText) {
+      if(transcriptTurn.text && (transcriptTurn.closed || transcriptTurn.responding && Date.now()-transcriptTurn.updatedAt>800))transcriptTurn=newTranscriptTurn();
+      hostReporting=false;transcriptTurn.text=(transcriptTurn.text+inputText).slice(-1000);transcriptTurn.updatedAt=Date.now();lastUserTranscript=transcriptTurn.text;
+      onTranscript({ role:'user', text:inputText });
+      if(transcriptTurn.closed)scheduleLayerContinuation(transcriptTurn,current);
+    }
+    if(outputText || message?.serverContent?.modelTurn){if(transcriptTurn.closed && !hostReporting)transcriptTurn=newTranscriptTurn();transcriptTurn.responding=true;}
     if (outputText) {
       outputTranscript+=outputText;
       const englishOnly=!/[\u3400-\u9fff]/.test(outputTranscript) && (outputTranscript.match(/[a-zA-Z]+/g)||[]).length>=8;
@@ -246,14 +281,16 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
     }
 
     if (message?.toolCall?.functionCalls?.length) {
-      const utterance=lastUserTranscript;
+      if(transcriptTurn.closed && !hostReporting)transcriptTurn=newTranscriptTurn();
+      const turn=transcriptTurn;
       const job=toolQueue.catch(()=>{}).then(async()=>{const responses = [];
       for (const fc of message.toolCall.functionCalls) {
         if(current!==generation)return;
         if(cancelledToolIds.has(fc.id))continue;
         const controller=new AbortController();toolControllers.set(fc.id,controller);
         try {
-          const result=await executeTool(fc.name,fc.args || {},{signal:controller.signal,utterance});
+          const utterance=LAYER_VOICE_TOOLS.some(tool=>tool.name===fc.name) ? await waitTranscript(turn,controller.signal) : turn.text;
+          const result=await executeTool(fc.name,fc.args || {},{signal:controller.signal,utterance,turnId:turn.id});
           controller.signal.throwIfAborted();
           responses.push({ id:fc.id, name:fc.name, response:{ result } });
         } catch (error) {
@@ -264,8 +301,8 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
       });toolQueue=job;await job;
     }
 
-    if (message?.serverContent?.interrupted) { stopPlayback();outputTranscript='';languageCorrectionPending=false;return; }
-    if(message?.serverContent?.turnComplete){outputTranscript='';languageCorrectionPending=false;lastUserTranscript='';}
+    if (message?.serverContent?.interrupted) { stopPlayback();outputTranscript='';languageCorrectionPending=false;interruptedCompletion=!message.serverContent.turnComplete;return; }
+    if(message?.serverContent?.turnComplete){const reported=hostReporting;hostReporting=false;outputTranscript='';languageCorrectionPending=false;if(interruptedCompletion)interruptedCompletion=false;else{if(transcriptTurn.closed && !reported)transcriptTurn=newTranscriptTurn();transcriptTurn.closed=true;scheduleLayerContinuation(transcriptTurn,current);}}
     if(current!==generation || languageCorrectionPending)return;
     const parts = message?.serverContent?.modelTurn?.parts || [];
     // SDK message.data is a convenience getter for the same inline audio.
@@ -291,9 +328,9 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
     if (name === 'fly_to_place') return flyToPlace(String(args.place || ''));
     if (name === 'fly_to_and_orbit_place') return flyToAndOrbitPlace(String(args.place || ''));
     if (name === 'plan_driving_route') {
-      if (isVisualVisit(lastUserTranscript)) {
-        const place = String(args.destination || extractVisualPlace(lastUserTranscript));
-        return /繞|環繞|一圈/.test(lastUserTranscript) ? flyToAndOrbitPlace(place) : flyToPlace(place);
+      if (isVisualVisit(context.utterance || '')) {
+        const place = String(args.destination || extractVisualPlace(context.utterance || ''));
+        return /繞|環繞|一圈/.test(context.utterance || '') ? flyToAndOrbitPlace(place) : flyToPlace(place);
       }
       if (!navigation) throw new Error('導航工具尚未初始化');
       return navigation.planRoute({

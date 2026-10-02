@@ -84,3 +84,9 @@ Dexie 用於工作中自動保存；JSZip 用於 portable project。
 - 瀏覽器對話由 `taiwanChat.js` SSE 逐一輪替免費模型，原生對話仍透過 Rust Credential Manager 讀取金鑰並輪替，沒有把金鑰送至前端或變更儲存來源。
 
 桌面版透過 Rust 的 `read_response_style`／`write_response_style` 讀寫相同 Windows 使用者設定檔，不依賴瀏覽器版 API；瀏覽器版透過本機服務存取。
+
+## v17 語音請求接續
+
+layerVoiceActions保存待補範圍請求的工具、圖資、操作、問題及回合識別，清單提供pendingRequest。host從逐字稿擷取唯一有效區域，補上模型漏傳的scope；完整新指令優先於舊請求。同回合去重，取消與停止清除。繁簡字及有限同音誤字統一對照，不任意模糊猜縣市。
+
+geminiLive保留逐字稿物件，等待獨立到達的輸入片段；model turnComplete不清空使用者原文。回合結束後可接續已確認請求並回報實際結果；保留工具排隊、取消、generation。ASR指定zh-TW與地名／圖資詞彙。

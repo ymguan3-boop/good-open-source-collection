@@ -1,5 +1,9 @@
-const normalize=value=>String(value || '').replace(/臺/g,'台').replace(/\s/g,'');
-const names=['臺北市','新北市','桃園市','臺中市','臺南市','高雄市','基隆市','新竹市','嘉義市','新竹縣','苗栗縣','彰化縣','南投縣','雲林縣','嘉義縣','屏東縣','宜蘭縣','花蓮縣','臺東縣','澎湖縣','金門縣','連江縣'];
+// ASR may return simplified Chinese even when the reply language is zh-TW.
+const traditional={臺:'台',县:'縣',湾:'灣',兰:'蘭',线:'線',载:'載',显:'顯',隐:'隱',乡:'鄉',镇:'鎮',边:'邊',区:'區',图:'圖',层:'層',铁:'鐵',轨:'軌',动:'動',飞:'飛',机:'機',标:'標',参:'參',测:'測',绘:'繪',资:'資',请:'請',帮:'幫',开:'開',换:'換',义:'義',云:'雲',东:'東',连:'連',莲:'蓮',门:'門',议:'議',览:'覽',这:'這',变:'變',个:'個',选:'選',择:'擇',围:'圍',语:'語',国:'國',后:'後',对:'對',确:'確',认:'認',当:'當',叠:'疊',园:'園',气:'氣',划:'劃',询:'詢',绍:'紹',么:'麼',为:'為',吗:'嗎'};
+export const normalizeVoiceText=value=>String(value || '').replace(/./gu,char=>traditional[char] || char).replace(/心北市|欣北市/g,'新北市').replace(/宜藍縣/g,'宜蘭縣');
+const normalize=value=>normalizeVoiceText(value).replace(/\s/g,'');
+export const VOICE_COUNTY_NAMES=['臺北市','新北市','桃園市','臺中市','臺南市','高雄市','基隆市','新竹市','嘉義市','新竹縣','苗栗縣','彰化縣','南投縣','雲林縣','嘉義縣','屏東縣','宜蘭縣','花蓮縣','臺東縣','澎湖縣','金門縣','連江縣'];
+const names=VOICE_COUNTY_NAMES;
 export function parseVoiceScope(value,current){
   const text=normalize(value);
   if(/^(全台灣|全台|台灣|全國)$/.test(text))return {mode:'taiwan',label:'全台灣'};
@@ -21,6 +25,15 @@ export function scopeInUtterance(scope,utterance,current){
   if(scope.mode==='global')return said(['全球','全世界','世界']);
   if(scope.mode==='original')return said(['原始資料範圍','原始範圍']);
   return said([normalize(scope.county)]);
+}
+// Read only a unique, non-negated geographic choice from the user's transcript.
+export function extractVoiceScope(utterance,current){
+  const choices=[...names.map(county=>({mode:'county',county,label:county})),{mode:'taiwan',label:'全台灣'},{mode:'global',label:'全球'},{mode:'original',label:'原始資料範圍'}];
+  const text=normalize(utterance);
+  let matches=choices.filter(scope=>scopeInUtterance(scope,utterance,current) && (scope.mode!=='taiwan' || /全台|全國|台灣(?:的|範圍|地區)/.test(text) || /^(?:請|我要|我選|就用)?台灣[。，！!?？]*$/.test(text)));
+  if(matches.some(scope=>scope.mode==='county') && /全球地形/.test(text) && !/全世界|世界範圍|全球範圍|全球的/.test(text))matches=matches.filter(scope=>scope.mode!=='global');
+  if(/目前範圍|當前範圍/.test(text) && current){const scope=parseVoiceScope('目前範圍',current);if(scopeInUtterance(scope,utterance,current) && !matches.some(item=>item.mode===scope.mode && item.county===scope.county))matches.push(scope);}
+  return matches.length===1 ? matches[0] : null;
 }
 export function scopeCapabilities(item){
   if(item.kind==='loaded')return {modes:['original'],coverage:'匯入檔案的原始資料範圍，無法補齊檔案以外的資料'};
