@@ -11,13 +11,13 @@
     },
     {
         "path":  "AGENTS.md",
-        "sha256":  "AB0BD2B60D4D5744C9AD0DDA651A071102E829F29E0FB850E7C6C36EA90D18A8",
-        "bytes":  7272
+        "sha256":  "F154B9357B81A2E7E7E44C8058596111BF720CA8F949B09FF1917672EAABD3C8",
+        "bytes":  7986
     },
     {
         "path":  "ARCHITECTURE.md",
-        "sha256":  "BE22ABD86590FD2C62153160E8F25C96337B9BD8E18090D66589E585206B7A9A",
-        "bytes":  4806
+        "sha256":  "F6D3C3AAE0B946067151EEE3597083E88755415D420D73618ED2695646A852D8",
+        "bytes":  6100
     },
     {
         "path":  "branding/ai-voice-assistant.png",
@@ -266,8 +266,8 @@
     },
     {
         "path":  "DEVELOPMENT-STATUS.md",
-        "sha256":  "8C9F96D3FCFC6C53803E70822F2C238596CCA502606938E49D8FBEC4E4753201",
-        "bytes":  13093
+        "sha256":  "A7D9E9BA41DE0170784110458A67D9710925F9423343A1D250DCD6975268769C",
+        "bytes":  13668
     },
     {
         "path":  "docs/browser-fixes-v11-20261001.md",
@@ -415,14 +415,19 @@
         "bytes":  2826
     },
     {
+        "path":  "docs/voice-workflow-fixes-v18-20261003.md",
+        "sha256":  "D37C385DEC0A27B8BADB3F4B4E6309D59DF1731852C17FF4A3E71D2483A543DD",
+        "bytes":  4234
+    },
+    {
         "path":  "DTM_2025_OFFICIAL_CATALOG.csv",
         "sha256":  "5F6E853CCB044D7B76DBE95F4A8A3890F9D5F0613105E0428743F36658AA8869",
         "bytes":  5546
     },
     {
         "path":  "GITHUB-STATUS.md",
-        "sha256":  "5966A77DCCC51918473B04F200A6C26C23FF1774FB350E25846D27768A9D1400",
-        "bytes":  1002
+        "sha256":  "FE21C06AC2ACEC39F0F90C1822DDEFF8AB5065B13319C5953B528F71F508E439",
+        "bytes":  1242
     },
     {
         "path":  "LICENSE",
@@ -676,8 +681,8 @@
     },
     {
         "path":  "overlay/src/taiwan/geminiLive.js",
-        "sha256":  "E16AFF271A28605CBA8361A2B8FCE813C90120C62F7C929BB9CECFD3DECF7D83",
-        "bytes":  27654
+        "sha256":  "EEE67D336731BB0F3839BD77F2CF0BB3B9A8AB67406D17C2CF9742EFECD665A3",
+        "bytes":  34152
     },
     {
         "path":  "overlay/src/taiwan/i18n.js",
@@ -706,8 +711,8 @@
     },
     {
         "path":  "overlay/src/taiwan/layerVoiceActions.js",
-        "sha256":  "A26FDB67FDCD4FBE1B9B7014045F28A9F85A6A9E4202995C542C781A58A18A4B",
-        "bytes":  17151
+        "sha256":  "C7FFA95622B39A66BB41333E4ACEB13D4615F0ECC8A138515E6CB832FF863CD6",
+        "bytes":  17788
     },
     {
         "path":  "overlay/src/taiwan/liveDataHealth.js",
@@ -801,8 +806,8 @@
     },
     {
         "path":  "overlay/src/taiwan/voiceScope.js",
-        "sha256":  "092FEC515C8AB5CFED2DF32274A43A6633BC55F6B290F4DB5394CE480D659185",
-        "bytes":  5508
+        "sha256":  "BBDA466F01CF7A36DC50BE41047F521FD1818F3EF2EB641AF1EFBB45E10B4A7D",
+        "bytes":  6375
     },
     {
         "path":  "overlay/src-tauri/build.rs",
@@ -906,8 +911,8 @@
     },
     {
         "path":  "README.md",
-        "sha256":  "8747305777FED6265D26EF5C1192B2670A1C6D6F5BC5D5E5E3DBCC02292CAB1A",
-        "bytes":  19561
+        "sha256":  "11EC3C59474A160FBD28C348EA51FB9E23522EC1E70598FB7B8E94FE576BC7AD",
+        "bytes":  20914
     },
     {
         "path":  "ROADMAP.md",

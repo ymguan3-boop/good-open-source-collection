@@ -1,16 +1,19 @@
 // ASR may return simplified Chinese even when the reply language is zh-TW.
 const traditional={臺:'台',县:'縣',湾:'灣',兰:'蘭',线:'線',载:'載',显:'顯',隐:'隱',乡:'鄉',镇:'鎮',边:'邊',区:'區',图:'圖',层:'層',铁:'鐵',轨:'軌',动:'動',飞:'飛',机:'機',标:'標',参:'參',测:'測',绘:'繪',资:'資',请:'請',帮:'幫',开:'開',换:'換',义:'義',云:'雲',东:'東',连:'連',莲:'蓮',门:'門',议:'議',览:'覽',这:'這',变:'變',个:'個',选:'選',择:'擇',围:'圍',语:'語',国:'國',后:'後',对:'對',确:'確',认:'認',当:'當',叠:'疊',园:'園',气:'氣',划:'劃',询:'詢',绍:'紹',么:'麼',为:'為',吗:'嗎'};
-export const normalizeVoiceText=value=>String(value || '').replace(/./gu,char=>traditional[char] || char).replace(/心北市|欣北市/g,'新北市').replace(/宜藍縣/g,'宜蘭縣');
+export const normalizeVoiceText=value=>String(value || '').replace(/./gu,char=>traditional[char] || char).replace(/心北市|欣北市/g,'新北市').replace(/宜藍/g,'宜蘭').replace(/(?:再入|在入)/g,'載入');
 const normalize=value=>normalizeVoiceText(value).replace(/\s/g,'');
 export const VOICE_COUNTY_NAMES=['臺北市','新北市','桃園市','臺中市','臺南市','高雄市','基隆市','新竹市','嘉義市','新竹縣','苗栗縣','彰化縣','南投縣','雲林縣','嘉義縣','屏東縣','宜蘭縣','花蓮縣','臺東縣','澎湖縣','金門縣','連江縣'];
 const names=VOICE_COUNTY_NAMES;
+// Short names are useful in spoken replies; 新竹 / 嘉義 remain ambiguous.
+const countyAliases=county=>[normalize(county),...(!['新竹市','新竹縣','嘉義市','嘉義縣'].includes(county)?[normalize(county).replace(/[縣市]$/,'')]:[])];
+export function acceptsVoiceRecommendation(value){return /^(?:那|那就|就|請|嗯|恩|是的)?(?:好|好的|可以|同意|照建議|依建議|就用建議|採用建議|照你說的|照你建議的|沒問題)(?:吧|啊|呀|喔|哦|的|了|載入|請載入|幫我載入|用建議範圍|[\s。，！!?？])*$/u.test(normalize(value));}
 export function parseVoiceScope(value,current){
   const text=normalize(value);
   if(/^(全台灣|全台|台灣|全國)$/.test(text))return {mode:'taiwan',label:'全台灣'};
   if(/^(全球|全世界|世界)$/.test(text))return {mode:'global',label:'全球'};
   if(/^(目前範圍|當前範圍)$/.test(text) && current)return {...current,label:current.mode==='taiwan'?'全台灣':current.county};
   if(/^(原始資料範圍|原始範圍)$/.test(text))return {mode:'original',label:'原始資料範圍'};
-  const county=names.find(name=>normalize(name)===text);
+  const county=names.find(name=>countyAliases(name).includes(text));
   return county ? {mode:'county',county,label:county} : null;
 }
 export function scopeInUtterance(scope,utterance,current){
@@ -24,12 +27,15 @@ export function scopeInUtterance(scope,utterance,current){
   if(scope.mode==='taiwan')return said(['全台灣','全台','全國','台灣']);
   if(scope.mode==='global')return said(['全球','全世界','世界']);
   if(scope.mode==='original')return said(['原始資料範圍','原始範圍']);
-  return said([normalize(scope.county)]);
+  return said(countyAliases(scope.county));
 }
 // Read only a unique, non-negated geographic choice from the user's transcript.
 export function extractVoiceScope(utterance,current){
   const choices=[...names.map(county=>({mode:'county',county,label:county})),{mode:'taiwan',label:'全台灣'},{mode:'global',label:'全球'},{mode:'original',label:'原始資料範圍'}];
   const text=normalize(utterance);
+  // A correction replaces the previous choice rather than creating two scopes.
+  const correction=text.match(/(?:改成|改為|改用|換成|換為|換用)(.+)$/);
+  if(correction)return extractVoiceScope(correction[1],current);
   let matches=choices.filter(scope=>scopeInUtterance(scope,utterance,current) && (scope.mode!=='taiwan' || /全台|全國|台灣(?:的|範圍|地區)/.test(text) || /^(?:請|我要|我選|就用)?台灣[。，！!?？]*$/.test(text)));
   if(matches.some(scope=>scope.mode==='county') && /全球地形/.test(text) && !/全世界|世界範圍|全球範圍|全球的/.test(text))matches=matches.filter(scope=>scope.mode!=='global');
   if(/目前範圍|當前範圍/.test(text) && current){const scope=parseVoiceScope('目前範圍',current);if(scopeInUtterance(scope,utterance,current) && !matches.some(item=>item.mode===scope.mode && item.county===scope.county))matches.push(scope);}

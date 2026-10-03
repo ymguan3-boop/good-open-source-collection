@@ -6,7 +6,9 @@ import { runBuffer } from './analysis.js';
 import { browserAi } from './browserAi.js';
 import { resolvePlace as searchPlace } from './places.js';
 import { LAYER_VOICE_TOOLS } from './layerVoiceActions.js';
-import { VOICE_COUNTY_NAMES } from './voiceScope.js';
+import { addGeoJSON } from './dataImport.js';
+import { removeLayer } from './layerRegistry.js';
+import { VOICE_COUNTY_NAMES, normalizeVoiceText } from './voiceScope.js';
 
 const MODEL = 'gemini-3.8-live';
 
@@ -26,30 +28,53 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
   const cancelledToolIds = new Set();
   function cancelTools(){for(const controller of toolControllers.values())controller.abort();toolControllers.clear();}
   let lastUserTranscript = '';
-  let transcriptSerial=0,transcriptTurn=newTranscriptTurn(),resumeTimer=null,hostReporting=false,interruptedCompletion=false;
-  function newTranscriptTurn(){return {id:++transcriptSerial,text:'',updatedAt:0,closed:false,responding:false,resumed:false};}
-  function clearVoiceRequests(){clearTimeout(resumeTimer);resumeTimer=null;lastUserTranscript='';transcriptTurn=newTranscriptTurn();hostReporting=false;interruptedCompletion=false;layerActions?.clearPending?.();}
+  let transcriptSerial=0,transcriptTurn=newTranscriptTurn(),resumeTimer=null;
+  function newTranscriptTurn(){return {id:++transcriptSerial,text:'',updatedAt:0,closed:false,responding:false,resumed:false,executing:false,handled:false,result:null,actions:new Map(),reports:new Set(),messages:[]};}
+  function clearVoiceRequests(){clearTimeout(resumeTimer);resumeTimer=null;lastUserTranscript='';transcriptTurn=newTranscriptTurn();globalThis.speechSynthesis?.cancel();layerActions?.clearPending?.();}
   async function waitTranscript(turn,signal){
     const until=Date.now()+2000;
-    while(Date.now()<until){signal?.throwIfAborted();if(turn.text && Date.now()-turn.updatedAt>=250)break;await new Promise(resolve=>setTimeout(resolve,50));}
+    while(Date.now()<until){signal?.throwIfAborted();if(turn.text && Date.now()-turn.updatedAt>=300)break;await new Promise(resolve=>setTimeout(resolve,50));}
     signal?.throwIfAborted();return turn.text;
   }
+  function actionKey(name,args={}){return JSON.stringify([name,...(name==='control_data_layer'?[args.target,args.operation]:[args])]);}
+  function reportAction(turn,result,current,remember=true){
+    if(current!==generation || turn!==transcriptTurn || turn.reports.has(result))return;
+    turn.reports.add(result);
+    turn.handled=true;turn.result=result;stopPlayback();
+    const outcome=result.question || result.message || (result.ok?'工作已完成':'工作未完成');
+    turn.messages.push(outcome);const message=turn.messages.join('；');
+    onStatus(message);onTranscript({role:'assistant',text:message});
+    // Record a model-side outcome without creating another user request or
+    // starting another generation. The host speaks the exact observed result.
+    if(remember)session?.sendClientContent({turns:[{role:'model',parts:[{text:message}]}],turnComplete:false});
+    if(globalThis.speechSynthesis && globalThis.SpeechSynthesisUtterance){
+      globalThis.speechSynthesis.cancel();const speech=new SpeechSynthesisUtterance(message);speech.lang='zh-TW';
+      const voices=globalThis.speechSynthesis.getVoices();speech.voice=voices.find(voice=>voice.lang==='zh-TW') || voices.find(voice=>/^zh/.test(voice.lang)) || null;
+      globalThis.speechSynthesis.speak(speech);
+    }
+  }
+  function visualRequest(utterance){
+    const text=normalizeVoiceText(utterance).trim();
+    if(!isVisualVisit(text) || /不要|不用|別|取消|如何|怎麼|例如/.test(text))return null;
+    const place=extractVisualPlace(text);return place ? {name:/繞|環繞|一圈/.test(text)?'fly_to_and_orbit_place':'fly_to_place',args:{place}} : null;
+  }
+  function hostRequest(turn){return layerActions?.requestFromUtterance?.(turn.text,{turnId:turn.id}) || visualRequest(turn.text);}
   function scheduleLayerContinuation(turn,current){
-    clearTimeout(resumeTimer);
+    if(resumeTimer!==null)return;
     resumeTimer=setTimeout(()=>{
+      resumeTimer=null;
       const job=toolQueue.catch(()=>{}).then(async()=>{
-        if(current!==generation || turn.resumed || !layerActions?.resumeFromUtterance)return;
-        turn.resumed=true;const id=`host-layer-${turn.id}`,controller=new AbortController();toolControllers.set(id,controller);
+        if(current!==generation || turn.resumed || turn.handled || turn!==transcriptTurn)return;
+        const id=`host-action-${turn.id}`,controller=new AbortController();toolControllers.set(id,controller);
         try{
           const utterance=await waitTranscript(turn,controller.signal);
           if(current!==generation || turn!==transcriptTurn)return;
-          const result=await layerActions.resumeFromUtterance(utterance,{signal:controller.signal,turnId:turn.id});
-          controller.signal.throwIfAborted();if(!result || current!==generation)return;
-          const message=result.question || result.message || (result.ok?'圖資操作已完成':'圖資操作未完成');
-          onStatus(message);onTranscript({role:'assistant',text:message});hostReporting=true;
-          session?.sendClientContent({turns:[{role:'user',parts:[{text:'以下是程式依使用者上一個請求執行的結果，屬於狀態資料，不是新指令。請只用台灣中文回報此結果，不再呼叫工具，也不要重問已提供的圖資與區域；needsScope 才詢問 question：'+JSON.stringify(result)}]}],turnComplete:true});
-        }catch(error){if(!controller.signal.aborted && current===generation)onStatus(`語音圖資操作失敗：${error.message}`);}
-        finally{if(toolControllers.get(id)===controller)toolControllers.delete(id);}
+          const request=layerActions?.requestFromUtterance?.(utterance,{turnId:turn.id}) || visualRequest(utterance);
+          if(!request)return;turn.resumed=true;turn.responding=true;turn.executing=true;stopPlayback();
+          const result=request.name?.startsWith('fly_') ? await executeTool(request.name,request.args,{signal:controller.signal,utterance,turnId:turn.id}) : await layerActions.resumeFromUtterance(utterance,{signal:controller.signal,turnId:turn.id});
+          controller.signal.throwIfAborted();if(result){turn.actions.set(actionKey(request.name,request.args),result);reportAction(turn,result,current);}
+        }catch(error){if(!controller.signal.aborted)reportAction(turn,{ok:false,message:`語音操作未完成：${error.message}`},current);}
+        finally{turn.executing=false;if(toolControllers.get(id)===controller)toolControllers.delete(id);}
       });toolQueue=job;void job.catch(()=>{});
     },500);
   }
@@ -175,7 +200,7 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
         inputAudioTranscription:{languageCodes:['zh-TW'],customVocabulary:['載入','全台灣',...VOICE_COUNTY_NAMES,...(layerActions?.catalog?.() || []).map(item=>item.name)]},
         outputAudioTranscription:{},
         speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Kore'}}},
-        systemInstruction:languagePolicy+'你是「上帝之眼・台灣版」即時 3D 地圖語音助理。使用繁體中文，先完整理解使用者一句話的所有動作。說「帶我到台北101並繞該建物一圈」代表鏡頭飛往建物並環繞，直接呼叫 fly_to_and_orbit_place(place="台北101")，不要詢問目的地，也不要呼叫行車導航。其他「帶我到」「飛到」「看看」用 fly_to_place。只有明確提到開車、行車路線或道路導航才呼叫 plan_driving_route；想沿路線開過去或看行車視角時呼叫 drive_route，不要求 GPS；只有明確要求依裝置實際定位導航才呼叫 start_navigation。需要操作時必須呼叫工具，不可假裝已完成。工具失敗時說明實際原因。使用者要求載入、顯示、隱藏、更新或切換工具列圖資時，先查 list_available_data_layers，使用清單 id 呼叫 control_data_layer；清單 pendingRequest 是上一回合尚待範圍的原請求，使用者只回答縣市或全台灣時必須沿用其中圖資及操作，不重問圖資；切換到底圖用 show，切換圖層顯示狀態用 toggle。一鍵載入用 load_all_data_layers，一鍵隱藏用 hide_all_data_layers。載入或更新前必須先確認地理範圍：未指定時詢問縣市或全台灣，不得自行沿用目前範圍。一句話已明確指定圖資及正式縣市、全台灣或全球，就帶 scope 直接呼叫工具，不得再次詢問已提供的圖資或範圍；例如「載入宜蘭縣道路中心線」直接使用 osm-roads、load、宜蘭縣。若前一回合問範圍，下一回合「全台灣」或「宜蘭縣」就是範圍回答，接續原本的圖資請求。若清單 coverage 只有全球或全臺來源，解釋來源範圍及建議，等待使用者確認再載入。工具回傳 needsScope 時先解釋 question，等待使用者回答，不得同一回合自行選範圍重呼。全臺建物只串流有官方服務的目前視野，不宣稱完整全臺建物。隱藏已載入圖層不需再詢問範圍。一鍵載入先統一確認一次範圍，再回報個別失敗；不要將一鍵載入解讀為同時啟用所有付費服務與即時串流。只有工具結果 ok 才表示完成；partial、空資料或載入失敗應如實以中文說明。',
+        systemInstruction:languagePolicy+'你是「上帝之眼・台灣版」即時 3D 地圖語音助理。使用繁體中文，先完整理解使用者一句話的所有動作。說「帶我到台北101並繞該建物一圈」代表鏡頭飛往建物並環繞，直接呼叫 fly_to_and_orbit_place(place="台北101")，不要詢問目的地，也不要呼叫行車導航。其他「帶我到」「飛到」「看看」用 fly_to_place。只有明確提到開車、行車路線或道路導航才呼叫 plan_driving_route；想沿路線開過去或看行車視角時呼叫 drive_route，不要求 GPS；只有明確要求依裝置實際定位導航才呼叫 start_navigation。需要操作時必須呼叫工具，不可假裝已完成。工具失敗時說明實際原因。使用者要求載入、顯示、隱藏、更新或切換工具列圖資時，先查 list_available_data_layers，使用清單 id 呼叫 control_data_layer；清單 pendingRequest 是上一回合尚待範圍的原請求，使用者只回答縣市或全台灣時必須沿用其中圖資及操作，不重問圖資；切換到底圖用 show，切換圖層顯示狀態用 toggle。一鍵載入用 load_all_data_layers，一鍵隱藏用 hide_all_data_layers。載入或更新前必須先確認地理範圍：未指定時詢問縣市或全台灣，不得自行沿用目前範圍。一句話已明確指定圖資及縣市（可用宜蘭等簡稱）、全台灣或全球，就帶 scope 直接呼叫工具，不得再次詢問已提供的圖資或範圍；例如「載入宜蘭縣道路中心線」直接使用 osm-roads、load、宜蘭縣。若前一回合問範圍，下一回合「全台灣」或「宜蘭縣」就是範圍回答，接續原本的圖資請求。若清單 coverage 只有全球或全臺來源，解釋來源範圍及建議，等待使用者確認再載入。工具回傳 needsScope 時先解釋 question，等待使用者回答，不得同一回合自行選範圍重呼。全臺建物只串流有官方服務的目前視野，不宣稱完整全臺建物。隱藏已載入圖層不需再詢問範圍。一鍵載入先統一確認一次範圍，再回報個別失敗；不要將一鍵載入解讀為同時啟用所有付費服務與即時串流。使用者已提供圖資及區域就立即執行；禮貌問句「能不能幫我載入」也是操作要求。每個請求只執行一次，工具成功後只簡短回報完成了什麼並結束該次回答，禁止重問同樣問題、推銷下一步或再載入。缺少圖資或範圍才問缺少的一項，不要一次重問所有條件。程式會接續範圍回答並直接播報實際結果；不要重複執行。飛往地點工具會新增可拖曳地點標籤。只有工具結果 ok 才表示完成；partial、空資料或載入失敗應如實以中文說明。',
         tools,
       }
     });
@@ -262,13 +287,14 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
     const inputText = message?.serverContent?.inputTranscription?.text;
     const outputText = message?.serverContent?.outputTranscription?.text;
     if (inputText) {
-      if(transcriptTurn.text && (transcriptTurn.closed || transcriptTurn.responding && Date.now()-transcriptTurn.updatedAt>800))transcriptTurn=newTranscriptTurn();
-      hostReporting=false;transcriptTurn.text=(transcriptTurn.text+inputText).slice(-1000);transcriptTurn.updatedAt=Date.now();lastUserTranscript=transcriptTurn.text;
+      const afterCompletion=transcriptTurn.closed;clearTimeout(resumeTimer);resumeTimer=null;
+      if(transcriptTurn.text && (transcriptTurn.handled || !transcriptTurn.executing && (transcriptTurn.closed || transcriptTurn.responding && Date.now()-transcriptTurn.updatedAt>800))){transcriptTurn=newTranscriptTurn();globalThis.speechSynthesis?.cancel();}
+      transcriptTurn.text=(transcriptTurn.text+inputText).slice(-1000);transcriptTurn.updatedAt=Date.now();lastUserTranscript=transcriptTurn.text;
       onTranscript({ role:'user', text:inputText });
-      if(transcriptTurn.closed)scheduleLayerContinuation(transcriptTurn,current);
+      if(afterCompletion || transcriptTurn.closed || transcriptTurn.responding || message.serverContent.inputTranscription.finished)scheduleLayerContinuation(transcriptTurn,current);
     }
-    if(outputText || message?.serverContent?.modelTurn){if(transcriptTurn.closed && !hostReporting)transcriptTurn=newTranscriptTurn();transcriptTurn.responding=true;}
-    if (outputText) {
+    if(outputText || message?.serverContent?.modelTurn){transcriptTurn.responding=true;if(!transcriptTurn.handled)scheduleLayerContinuation(transcriptTurn,current);}
+    if (outputText && !transcriptTurn.handled && !hostRequest(transcriptTurn)) {
       outputTranscript+=outputText;
       const englishOnly=!/[\u3400-\u9fff]/.test(outputTranscript) && (outputTranscript.match(/[a-zA-Z]+/g)||[]).length>=8;
       const requestsEnglish=/(?:請|改|用|以|切換|翻譯成).{0,12}(?:英文|英語|English)/i.test(lastUserTranscript) && !/(?:不要|別|禁止|不能|不准|不用).{0,8}(?:英文|英語|English)/i.test(lastUserTranscript);
@@ -281,7 +307,8 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
     }
 
     if (message?.toolCall?.functionCalls?.length) {
-      if(transcriptTurn.closed && !hostReporting)transcriptTurn=newTranscriptTurn();
+      const previous=transcriptTurn.closed && transcriptTurn.handled ? transcriptTurn : null;
+      if(transcriptTurn.closed && !transcriptTurn.executing)transcriptTurn=newTranscriptTurn();
       const turn=transcriptTurn;
       const job=toolQueue.catch(()=>{}).then(async()=>{const responses = [];
       for (const fc of message.toolCall.functionCalls) {
@@ -289,21 +316,38 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
         if(cancelledToolIds.has(fc.id))continue;
         const controller=new AbortController();toolControllers.set(fc.id,controller);
         try {
-          const utterance=LAYER_VOICE_TOOLS.some(tool=>tool.name===fc.name) ? await waitTranscript(turn,controller.signal) : turn.text;
-          const result=await executeTool(fc.name,fc.args || {},{signal:controller.signal,utterance,turnId:turn.id});
+          const utterance=await waitTranscript(turn,controller.signal);
+          if(turn!==transcriptTurn)continue;
+          const mutating=!['list_available_data_layers','list_layers'].includes(fc.name);
+          if(mutating && !utterance){
+            const result=previous?.actions.get(actionKey(fc.name,fc.args)) || {ok:false,awaitingUser:true,message:'等待使用者的新指令'};
+            responses.push({id:fc.id,name:fc.name,response:{result}});continue;
+          }
+          // Cache by action within the human turn, allowing distinct steps
+          // while suppressing repeated load / camera calls from the model.
+          const explicit=layerActions?.requestFromUtterance?.(utterance,{turnId:turn.id}) || visualRequest(utterance);
+          if(mutating && explicit?.cancel){const result=await layerActions.resumeFromUtterance(utterance,{signal:controller.signal,turnId:turn.id});if(result){reportAction(turn,result,current,false);responses.push({id:fc.id,name:fc.name,response:{result}});continue;}}
+          const redirected=mutating && explicit && !explicit.cancel && (LAYER_VOICE_TOOLS.some(tool=>tool.name===fc.name) || ['fly_to_place','fly_to_and_orbit_place','plan_driving_route'].includes(fc.name));
+          const request=redirected ? explicit : {name:fc.name,args:fc.args || {}};
+          const key=actionKey(request.name,request.args);
+          let result=mutating ? turn.actions.get(key) : null;
+          if(!result){
+            turn.executing=mutating;result=await executeTool(request.name,request.args,{signal:controller.signal,utterance,turnId:turn.id});
+            if(mutating){turn.actions.set(key,result);turn.resumed=true;reportAction(turn,result,current,false);}
+          }
           controller.signal.throwIfAborted();
           responses.push({ id:fc.id, name:fc.name, response:{ result } });
         } catch (error) {
-          if(!controller.signal.aborted)responses.push({ id:fc.id, name:fc.name, response:{ error:error?.message || String(error) } });
-        }finally{if(toolControllers.get(fc.id)===controller)toolControllers.delete(fc.id);}
+          if(!controller.signal.aborted){const message=`語音操作未完成：${error?.message || String(error)}`;reportAction(turn,{ok:false,message},current,false);responses.push({id:fc.id,name:fc.name,response:{error:message}});}
+        }finally{turn.executing=false;if(toolControllers.get(fc.id)===controller)toolControllers.delete(fc.id);}
       }
       if(current===generation && responses.length)session?.sendToolResponse({ functionResponses:responses.map(item=>({...item,response:{...item.response,replyLanguage:'請用台灣中文（國語）解釋執行結果；不要照念英文欄位。'}})) });
       });toolQueue=job;await job;
     }
 
-    if (message?.serverContent?.interrupted) { stopPlayback();outputTranscript='';languageCorrectionPending=false;interruptedCompletion=!message.serverContent.turnComplete;return; }
-    if(message?.serverContent?.turnComplete){const reported=hostReporting;hostReporting=false;outputTranscript='';languageCorrectionPending=false;if(interruptedCompletion)interruptedCompletion=false;else{if(transcriptTurn.closed && !reported)transcriptTurn=newTranscriptTurn();transcriptTurn.closed=true;scheduleLayerContinuation(transcriptTurn,current);}}
-    if(current!==generation || languageCorrectionPending)return;
+    if (message?.serverContent?.interrupted) { stopPlayback();outputTranscript='';languageCorrectionPending=false; }
+    if(message?.serverContent?.turnComplete){outputTranscript='';languageCorrectionPending=false;transcriptTurn.closed=true;scheduleLayerContinuation(transcriptTurn,current);}
+    if(current!==generation || languageCorrectionPending || transcriptTurn.handled || hostRequest(transcriptTurn))return;
     const parts = message?.serverContent?.modelTurn?.parts || [];
     // SDK message.data is a convenience getter for the same inline audio.
     const audio = parts.filter(part => part.inlineData?.data && /^audio\/pcm/i.test(part.inlineData.mimeType || 'audio/pcm')).map(part => part.inlineData.data);
@@ -318,46 +362,47 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
       return listLayers().map(l => ({ id:l.id, name:l.name, kind:l.kind, featureCount:l.geojson?.features?.length ?? null }));
     }
     if (name === 'fly_to_taiwan') {
-      viewer.camera.flyTo({ destination:Cesium.Rectangle.fromDegrees(119.2,21.6,122.4,25.7), duration:1.2 });
-      return { ok:true, view:'taiwan' };
+      await new Promise((resolve,reject)=>viewer.camera.flyTo({destination:Cesium.Rectangle.fromDegrees(119.2,21.6,122.4,25.7),duration:1.2,complete:resolve,cancel:()=>reject(new Error('鏡頭飛行已取消'))}));context.signal?.throwIfAborted();
+      return { ok:true, message:'已切換到全台灣視角',view:'taiwan' };
     }
     if (name === 'fly_global') {
-      viewer.camera.flyHome(1.2);
-      return { ok:true, view:'global' };
+      viewer.camera.flyHome(1.2);context.signal?.throwIfAborted();
+      return { ok:true, message:'已啟動全球視角切換',view:'global' };
     }
-    if (name === 'fly_to_place') return flyToPlace(String(args.place || ''));
-    if (name === 'fly_to_and_orbit_place') return flyToAndOrbitPlace(String(args.place || ''));
+    if (name === 'fly_to_place') return flyToPlace(String(args.place || ''),context);
+    if (name === 'fly_to_and_orbit_place') return flyToAndOrbitPlace(String(args.place || ''),context);
     if (name === 'plan_driving_route') {
       if (isVisualVisit(context.utterance || '')) {
         const place = String(args.destination || extractVisualPlace(context.utterance || ''));
-        return /繞|環繞|一圈/.test(context.utterance || '') ? flyToAndOrbitPlace(place) : flyToPlace(place);
+        return /繞|環繞|一圈/.test(context.utterance || '') ? flyToAndOrbitPlace(place,context) : flyToPlace(place,context);
       }
       if (!navigation) throw new Error('導航工具尚未初始化');
-      return navigation.planRoute({
+      const result=await navigation.planRoute({
         origin:String(args.origin || ''),
         waypoints:Array.isArray(args.waypoints)?args.waypoints:[],travelMode:args.travelMode || 'car',
         destination:String(args.destination || ''),
       });
+      return {...result,ok:true,message:`已規劃 ${result.origin} 到 ${result.destination} 的${args.travelMode==='motorcycle'?'機車':'汽車'}路線，經過 ${args.waypoints?.length || 0} 個中途點`};
     }
     if (name === 'show_route') {
       if (!navigation) throw new Error('導航工具尚未初始化');
-      return navigation.showRoute();
+      return {...await navigation.showRoute(),ok:true,message:'已顯示整條行車路線'};
     }
     if (name === 'navigation_view') {
       if (!navigation) throw new Error('導航工具尚未初始化');
-      return navigation.navigationView();
+      return {...await navigation.navigationView(),ok:true,message:'已切換到導航視角'};
     }
     if(name==='drive_route'){
       if(!navigation)throw new Error('導航工具尚未初始化');
-      return navigation.driveRoute();
+      return {...await navigation.driveRoute(),ok:true,message:'已啟動行車視角示意；並非 GPS 實際位置'};
     }
     if (name === 'start_navigation') {
       if (!navigation) throw new Error('導航工具尚未初始化');
-      return navigation.startNavigation();
+      return {...await navigation.startNavigation(),ok:true,message:'已啟動裝置位置跟隨導航'};
     }
     if (name === 'stop_navigation') {
       if (!navigation) throw new Error('導航工具尚未初始化');
-      return navigation.stopNavigation();
+      return {...await navigation.stopNavigation(),ok:true,message:'已停止導航，路線仍保留'};
     }
     if (name === 'create_buffer') {
       const layer = getLayer(String(args.layerId || ''));
@@ -365,39 +410,46 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
       const distance = Number(args.distanceMeters);
       if (!Number.isFinite(distance) || distance <= 0 || distance > 100000) throw new Error('Buffer 距離必須在 0–100000 公尺');
       const result = await runBuffer(layer, viewer, distance);
-      return { ok:true, outputLayerId:result.id, outputLayerName:result.name, distanceMeters:distance };
+      return { ok:true, message:`已建立「${result.name}」影響範圍，距離 ${distance} 公尺`,outputLayerId:result.id, outputLayerName:result.name, distanceMeters:distance };
     }
     throw new Error(`不支援的工具：${name}`);
   }
 
   function isVisualVisit(text) {
-    return /帶我到|飛到|看一看|看看|環繞|繞.*一圈/.test(text) && !/開車|駕車|行車|道路導航|規劃路線/.test(text);
+    return /帶我到|帶我去|飛到|飛往|定位到|看一看|看看|環繞|繞.*一圈/.test(text) && !/開車|駕車|行車|道路導航|規劃路線/.test(text);
   }
   function extractVisualPlace(text) {
     if (/台北\s*101|臺北\s*101|Taipei\s*101/i.test(text)) return '台北101';
-    return text.replace(/^(帶我到|飛到|看看|看一看)/,'').replace(/(並且|然後|再)?(繞|環繞).*/,'').trim();
+    return text.replace(/^(?:請|麻煩|可以|能不能|幫我|請幫我|請你|我想|我要|一下|\s)*(?:帶我到|帶我去|飛到|飛往|定位到|看看|看一看)/,'').replace(/(並且|然後|再|並)?(繞|環繞).*/,'').replace(/[。，！!?？]+$/,'').trim();
   }
   async function resolvePlace(place) {
     return searchPlace(place);
   }
-  async function flyToPlace(place) {
-    cancelOrbit();
-    const target = await resolvePlace(place);
+  async function flyToPlace(place,{signal}={}) {
+    cancelOrbit();signal?.throwIfAborted();
+    const target=await resolvePlace(place);signal?.throwIfAborted();
     onStatus(`正在飛往${target.name}…`);
-    await new Promise((resolve,reject) => viewer.camera.flyToBoundingSphere(
-      new Cesium.BoundingSphere(Cesium.Cartesian3.fromDegrees(target.lon,target.lat,target.height/2), Math.max(160,target.height/2)),
-      { duration:2, offset:new Cesium.HeadingPitchRange(0,Cesium.Math.toRadians(-24),Math.max(900,target.height*2)), complete:resolve, cancel:()=>reject(new Error('鏡頭飛行已取消')) }
-    ));
-    onStatus(`已到達${target.name}`);
-    return { ok:true, place:target.name, mode:'3D 視角', coordinates:[target.lat,target.lon], heightMeters:target.height };
+    const layer=await addGeoJSON({type:'FeatureCollection',features:[{type:'Feature',geometry:{type:'Point',coordinates:[target.lon,target.lat]},properties:{name:target.name,source:target.source}}]},`地點：${target.name}`,viewer,{kind:'annotation-label',flyTo:false,metadata:{source:target.source || '地點搜尋',dataMetadata:{annotationLabel:{text:target.name,color:'#ffdf66',weight:'bold',size:20},placeQuery:place}}});
+    const abort=()=>viewer.camera.cancelFlight();signal?.addEventListener('abort',abort,{once:true});
+    try{
+      signal?.throwIfAborted();
+      await new Promise((resolve,reject)=>viewer.camera.flyToBoundingSphere(
+        new Cesium.BoundingSphere(Cesium.Cartesian3.fromDegrees(target.lon,target.lat,target.height/2),Math.max(160,target.height/2)),
+        {duration:2,offset:new Cesium.HeadingPitchRange(0,Cesium.Math.toRadians(-24),Math.max(900,target.height*2)),complete:resolve,cancel:()=>reject(new Error('鏡頭飛行已取消'))}
+      ));signal?.throwIfAborted();viewer.scene.requestRender();
+      const message=`已到達「${target.name}」，並在地圖標示地點；標籤可拖曳或在標註圖層管理。`;
+      onStatus(message);return {ok:true,message,place:target.name,mode:'3D 視角',markerLayerId:layer.id,coordinates:[target.lat,target.lon],heightMeters:target.height};
+    }catch(error){removeLayer(layer.id);throw error;}
+    finally{signal?.removeEventListener('abort',abort);}
   }
-  async function flyToAndOrbitPlace(place) {
-    const result = await flyToPlace(place);
+  async function flyToAndOrbitPlace(place,context={}) {
+    const result = await flyToPlace(place,context);
+    const abort=()=>cancelOrbit();context.signal?.addEventListener('abort',abort,{once:true});
     const target = { name:result.place, lat:result.coordinates[0], lon:result.coordinates[1], height:result.heightMeters };
     const center = Cesium.Cartesian3.fromDegrees(target.lon,target.lat,target.height/2);
     const distance = Math.max(900,target.height*2);
     onStatus(`正環繞${target.name}一圈…`);
-    await new Promise((resolve,reject) => {
+    try{await new Promise((resolve,reject) => {
       let began = null;
       finishOrbit = () => reject(new Error('環繞已停止'));
       const frame = time => {
@@ -410,8 +462,10 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
       };
       orbitFrame = requestAnimationFrame(frame);
     });
-    onStatus(`已完成${target.name}環繞`);
-    return { ...result, mode:'3D 環繞', orbitCompleted:true };
+    }finally{context.signal?.removeEventListener('abort',abort);}
+    context.signal?.throwIfAborted();
+    const message=`已到達並環繞「${target.name}」一圈，地圖已標示地點。`;onStatus(message);
+    return { ...result, message,mode:'3D 環繞', orbitCompleted:true };
   }
   function cancelOrbit() {
     if (orbitFrame !== null) cancelAnimationFrame(orbitFrame);

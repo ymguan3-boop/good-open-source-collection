@@ -1,4 +1,4 @@
-import { parseVoiceScope, normalizeVoiceText, extractVoiceScope, scopeInUtterance, scopeCapabilities, scopeQuestion } from './voiceScope.js';
+import { parseVoiceScope, normalizeVoiceText, extractVoiceScope, scopeInUtterance, scopeCapabilities, scopeQuestion, acceptsVoiceRecommendation } from './voiceScope.js';
 import { listLayers, getLayer, setLayerVisible } from './layerRegistry.js';
 
 export const LAYER_VOICE_TOOLS = [
@@ -63,8 +63,8 @@ export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackC
     let scope=scopeInUtterance(requested,context.utterance,current) ? requested : extractVoiceScope(context.utterance,current),focus=null;
     if(pendingScope && Date.now()-pendingScope.at>120000)pendingScope=null;
     const trusted=scopeInUtterance(scope,context.utterance,current);
-    const accepts=/^(?:好|好的|可以|同意|照建議|依建議|就用建議)(?:[。，！!?？]|$)/.test(normalizeVoiceText(context.utterance).trim());
-    if(!trusted && accepts && pendingScope?.id===item.id && pendingScope.turn!==turnKey(context) && pendingScope.recommendation){scope=pendingScope.recommendation;focus=pendingScope.focus;}
+    const accepts=acceptsVoiceRecommendation(context.utterance);
+    if(!trusted && accepts && pendingScope?.id===item.id && pendingScope.recommendation){scope=pendingScope.recommendation;focus=pendingScope.focus;}
     else if(!trusted){const explicit=typeof args.scope==='string' && context.utterance?.includes(args.scope) ? {label:args.scope} : null;const result=scopeQuestion(item,capability,explicit);pendingScope={id:item.id,at:Date.now(),turn:turnKey(context)};return result;}
     if(!scope || !capability.modes.includes(scope.mode)){
       const result=scopeQuestion(item,capability,scope || {label:String(args.scope || '指定範圍')});
@@ -92,10 +92,12 @@ export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackC
     let selection;
     if(visible && (operation==='load' || operation==='update' || !item.loaded)){
       selection=await confirmScope(item,args,context);if(!selection.ok)return selection;
-      if((selection.changed || context.forceReload) && item.loaded && item.kind!=='basemap')operation='update';
+      const loadedScope=(entryLayer(item.id) || getLayer(item.id))?.dataMetadata?.scope;
+      const mismatched=item.kind==='builtin' && (!loadedScope || loadedScope.mode!==selection.scope.mode || selection.scope.mode==='county' && loadedScope.county!==selection.scope.county);
+      if((selection.changed || context.forceReload || mismatched || item.kind==='service') && item.loaded && item.kind!=='basemap')operation='update';
     }
     if (item.kind === 'basemap') await adapters.setBasemap(item.id, visible, { signal });
-    else if (item.kind === 'live') await adapters.setLive(item.id, visible, { signal, refresh: explicitlyUpdating });
+    else if (item.kind === 'live') await adapters.setLive(item.id, visible, { signal, refresh: explicitlyUpdating || !!selection && item.loaded });
     else {
       let layer = entryLayer(item.id) || getLayer(item.id);
       if (!visible) {
@@ -115,7 +117,7 @@ export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackC
     adapters.refresh();
     const state = catalog().find(candidate => candidate.id === item.id);
     if (state?.visible !== visible) throw new Error(`「${item.name}」未完成${visible ? '載入／顯示' : '隱藏'}`);
-    return { ok: true, scope:selection?.scope || null, partial:!!(entryLayer(item.id) || getLayer(item.id))?.dataMetadata?.partial, message: `已${visible ? operation === 'update' ? '更新' : '顯示' : '隱藏'}「${item.name}」`, data: state, observedAt: new Date().toISOString() };
+    return { ok: true, scope:selection?.scope || null, partial:!!(entryLayer(item.id) || getLayer(item.id))?.dataMetadata?.partial, message: `已${visible ? operation === 'update' ? '更新' : '顯示' : '隱藏'}「${item.name}」${selection?.scope ? `（${selection.scope.label}）` : ''}${(entryLayer(item.id) || getLayer(item.id))?.dataMetadata?.partial ? '；來源只回傳部分資料，請查看圖層說明' : ''}`, data: state, observedAt: new Date().toISOString() };
   }
   async function dispatch(name, args = {}, context = {}) {
     if (name === 'list_available_data_layers') return { ok: true, layers: catalog(), pendingRequest: getPendingRequest(), observedAt: new Date().toISOString() };
@@ -144,7 +146,8 @@ export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackC
   }
   function commandInUtterance(utterance){
     const text=normalize(utterance).replace(/(?:載入|再入|在入)/g,'載入');
-    if(/不要|不用|別|取消|不想|不需要|如何|怎麼|教我|範例|例如|說明|為什麼|有沒有|能不能|是否/.test(text))return null;
+    if(/不要|不用|別|取消|不想|不需要|教我|範例|例如|為什麼|如何操作|怎麼操作/.test(text))return null;
+    if(/(?:一鍵|全部|所有).*隱藏|隱藏.*(?:全部|所有)/.test(text))return {name:'hide_all_data_layers',args:{}};
     if(/(?:一鍵|全部|所有).*(?:載入)|載入.*(?:全部|所有)/.test(text))return {name:'load_all_data_layers',args:{}};
     const operation=/更新/.test(text)?'update':/隱藏/.test(text)?'hide':/切換/.test(text)?'toggle':/載入|顯示|開啟/.test(text)?'load':null;
     if(!operation)return null;
@@ -170,21 +173,24 @@ export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackC
     }
     return result;
   }
-  async function resumeFromUtterance(utterance,context={}){
+  function requestFromUtterance(utterance,context={}){
     const text=String(utterance || '').trim(),plain=normalizeVoiceText(text);if(!text)return null;
     const waiting=getPendingRequest();
-    if(waiting && pendingRequest.turn===turnKey(context) && normalizeVoiceText(pendingRequest.utterance)===normalizeVoiceText(text))return null;
-    if(/^(?:請)?(?:取消|不用了|不要載入|停止載入|別載入)/.test(plain)){if(!waiting)return null;clearPending();return {ok:true,message:'已取消待載入的圖資請求'};}
-    const command=commandInUtterance(text);
-    const scope=extractVoiceScope(text,adapters.getScope());
-    const accepts=/^(?:好|好的|可以|同意|照建議|依建議|就用建議)(?:[。，！!?？]|$)/.test(plain);
+    if(waiting && normalizeVoiceText(pendingRequest.utterance)===plain)return null;
+    if(/^(?:請)?(?:取消|不用了|不要載入|停止載入|別載入)/.test(plain))return waiting ? {cancel:true} : null;
+    const command=commandInUtterance(text),scope=extractVoiceScope(text,adapters.getScope());
     let request=command;
-    if(!request && waiting && pendingRequest.turn!==turnKey(context) && !/飛到|帶我|看看|規劃|導航|分析|查詢|介紹|天氣|如何|怎麼|為什麼|是否/.test(plain) && (scope || accepts))request=waiting;
+    if(!request && waiting && !/飛到|帶我|看看|規劃|導航|分析|查詢|介紹|天氣|為什麼/.test(plain) && (scope || acceptsVoiceRecommendation(plain)))request=waiting;
     if(!request)return null;
     const args={...request.args};if(scope)args.scope=scope.label;
-    const callContext={...context,utterance:text};
-    if(completedRequests.has(requestKey(request.name,args,callContext)))return null;
-    return execute(request.name,args,callContext);
+    return {name:request.name,args};
   }
-  return { execute, catalog, resumeFromUtterance, getPendingRequest, clearPending };
+  async function resumeFromUtterance(utterance,context={}){
+    const request=requestFromUtterance(utterance,context);if(!request)return null;
+    if(request.cancel){clearPending();return {ok:true,message:'已取消待載入的圖資請求'};}
+    const callContext={...context,utterance};
+    if(['control_data_layer','load_all_data_layers'].includes(request.name) && completedRequests.has(requestKey(request.name,request.args,callContext)))return null;
+    return execute(request.name,request.args,callContext);
+  }
+  return { execute, catalog, resumeFromUtterance, requestFromUtterance, getPendingRequest, clearPending };
 }
