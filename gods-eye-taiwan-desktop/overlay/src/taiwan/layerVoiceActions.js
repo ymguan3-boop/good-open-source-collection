@@ -16,10 +16,11 @@ const normalize = value => normalizeVoiceText(value).trim().toLowerCase().replac
 
 export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackController, viewer, adapters }) {
   const services = [
+    {id:'osm-labels',name:'OSM 道路、建物與景點標籤',aliases:['OSM標籤','OSM地名','道路標籤','地名標籤','景點標籤','建物標籤']},
     { id: 'world-terrain', name: '全球地形', aliases: ['地形'] },
     { id: 'taiwan-relief', name: '台灣 3D 地形地貌', aliases: ['台灣地形', '3D示意地形圖'] },
     { id: 'official-dtm-2025', name: '全臺 20 公尺 DTM', aliases: ['DTM', '官方DTM'] },
-    { id: 'nlsc-buildings', name: 'NLSC 3D 建物', aliases: ['3D建物', 'NLSC建物'] },
+    { id: 'nlsc-buildings', name: 'NLSC 3D 建物', aliases: ['3D建物', '3D建築', '三維建物', '三維建築', '立體建物', '立體建築', 'NLSC建物'] },
     { id: 'national-reference', name: 'NLSC 道路、水系與鐵路參考圖', aliases: ['全台參考圖'] },
     { id: 'tomtom-flow-image', name: 'TomTom 即時交通', aliases: ['TomTom', '車流', '即時交通'] },
   ];
@@ -29,7 +30,7 @@ export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackC
     { id: 'local-firms', name: 'NASA FIRMS 熱點', aliases: ['FIRMS', '熱點'] },
     { id: 'earthquakes', name: 'USGS 地震事件', aliases: ['地震'] },
   ];
-  let pendingScope=null,pendingRequest=null;
+  let pendingScope=null,pendingRequest=null,pendingTarget=null;
   const completedRequests=new Map();
   const turnKey=context=>context.turnId ?? context.utterance;
   function entryLayer(id) {
@@ -59,6 +60,7 @@ export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackC
   }
   async function confirmScope(item,args,context){
     const current=adapters.getScope(),capability=scopeCapabilities(item);
+    if(item.id==='osm-labels'){const focus=extractVoiceScope(context.utterance,current);if(focus && ['county','taiwan'].includes(focus.mode))await adapters.focusScope(focus,{signal:context.signal});pendingScope=null;return {ok:true,scope:{mode:'viewport',label:'目前視野'},changed:false};}
     const requested=parseVoiceScope(args.scope,current);
     let scope=scopeInUtterance(requested,context.utterance,current) ? requested : extractVoiceScope(context.utterance,current),focus=null;
     if(pendingScope && Date.now()-pendingScope.at>120000)pendingScope=null;
@@ -96,6 +98,7 @@ export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackC
       const mismatched=item.kind==='builtin' && (!loadedScope || loadedScope.mode!==selection.scope.mode || selection.scope.mode==='county' && loadedScope.county!==selection.scope.county);
       if((selection.changed || context.forceReload || mismatched || item.kind==='service') && item.loaded && item.kind!=='basemap')operation='update';
     }
+    adapters.onActionStart?.({message:`我會${visible ? explicitlyUpdating?'更新':'載入':'隱藏'}「${item.name}」${selection?.scope?`（${selection.scope.label}）`:''}。`});
     if (item.kind === 'basemap') await adapters.setBasemap(item.id, visible, { signal });
     else if (item.kind === 'live') await adapters.setLive(item.id, visible, { signal, refresh: explicitlyUpdating || !!selection && item.loaded });
     else {
@@ -117,9 +120,11 @@ export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackC
     adapters.refresh();
     const state = catalog().find(candidate => candidate.id === item.id);
     if (state?.visible !== visible) throw new Error(`「${item.name}」未完成${visible ? '載入／顯示' : '隱藏'}`);
-    return { ok: true, scope:selection?.scope || null, partial:!!(entryLayer(item.id) || getLayer(item.id))?.dataMetadata?.partial, message: `已${visible ? operation === 'update' ? '更新' : '顯示' : '隱藏'}「${item.name}」${selection?.scope ? `（${selection.scope.label}）` : ''}${(entryLayer(item.id) || getLayer(item.id))?.dataMetadata?.partial ? '；來源只回傳部分資料，請查看圖層說明' : ''}`, data: state, observedAt: new Date().toISOString() };
+    return { ok: true, scope:selection?.scope || null, partial:!!(entryLayer(item.id) || getLayer(item.id))?.dataMetadata?.partial, message: `我已完成「${item.name}」的${visible ? operation === 'update' ? '更新' : operation==='load' ? '載入' : '顯示' : '隱藏'}${selection?.scope ? `（${selection.scope.label}）` : ''}${(entryLayer(item.id) || getLayer(item.id))?.dataMetadata?.partial ? '；來源只回傳部分資料，請查看圖層說明' : ''}`, data: state, observedAt: new Date().toISOString() };
   }
   async function dispatch(name, args = {}, context = {}) {
+    if(name==='load_selected_data_layers'){const results=[];for(const target of [...new Set(args.targets || [])]){context.signal?.throwIfAborted();try{results.push(await control(target,'load',context,{scope:args.scope}));}catch(error){if(context.signal?.aborted)throw error;results.push({ok:false,message:error.message,target});}}return {ok:results.every(result=>result.ok),needsScope:results.some(result=>result.needsScope),question:results.find(result=>result.needsScope)?.question,message:`我已完成 ${results.filter(result=>result.ok).length} 項圖資載入${results.some(result=>!result.ok)?`；未完成：${results.filter(result=>!result.ok).map(result=>result.question || result.message).join('；')}`:''}`,results};}
+    if(name==='confirm_data_intent'){const candidates=(args.candidates || []).filter(id=>catalog().some(item=>item.id===id));const names=candidates.map(id=>catalog().find(item=>item.id===id).name);const question=candidates.length===1?`你要載入的是「${names[0]}」${args.scope?`（${args.scope}）`:''}嗎？`:`你指的是 ${names.map((name,i)=>`${i+1}.「${name}」`).join('、')} 中的哪一項？`;pendingTarget={at:Date.now(),args,candidates,question,scope:args.scope};return {ok:false,needsConfirmation:true,question,candidates: candidates.map(id=>catalog().find(item=>item.id===id))};}
     if (name === 'list_available_data_layers') return { ok: true, layers: catalog(), pendingRequest: getPendingRequest(), observedAt: new Date().toISOString() };
     if (name === 'control_data_layer') return control(args.target, args.operation, context,args);
     if (name === 'hide_all_data_layers') {
@@ -139,8 +144,10 @@ export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackC
     }
     throw new Error('不支援的圖資語音工具');
   }
-  function clearPending(){pendingScope=null;pendingRequest=null;completedRequests.clear();}
+  function clearPending(){pendingScope=null;pendingRequest=null;pendingTarget=null;completedRequests.clear();}
   function getPendingRequest(){
+    if(pendingTarget && Date.now()-pendingTarget.at>120000)pendingTarget=null;
+    if(pendingTarget)return {name:'confirm_data_intent',args:pendingTarget.args,question:pendingTarget.question,candidates:pendingTarget.candidates};
     if(pendingRequest && Date.now()-pendingRequest.at>120000){pendingRequest=null;pendingScope=null;}
     return pendingRequest ? {name:pendingRequest.name,args:{...pendingRequest.args},question:pendingRequest.question} : null;
   }
@@ -149,21 +156,42 @@ export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackC
     if(/不要|不用|別|取消|不想|不需要|教我|範例|例如|為什麼|如何操作|怎麼操作/.test(text))return null;
     if(/(?:一鍵|全部|所有).*隱藏|隱藏.*(?:全部|所有)/.test(text))return {name:'hide_all_data_layers',args:{}};
     if(/(?:一鍵|全部|所有).*(?:載入)|載入.*(?:全部|所有)/.test(text))return {name:'load_all_data_layers',args:{}};
+    if(/地形|地貌/.test(text) && !/全球地形|台灣地形|3d示意地形|台灣3d地形|台灣的3d地形/.test(text))return inferDataIntent(utterance);
+    const named=catalog().filter(item=>item.kind!=='loaded' && [item.name,...item.aliases.filter(alias=>alias.length>2)].some(alias=>text.includes(normalize(alias))));if(/(?:和|及|與|、|還有|以及)/.test(text) && named.length>1 && /載入|顯示|開啟/.test(text) && !named.some(item=>['national-reference','taiwan-relief'].includes(item.id)))return {name:'load_selected_data_layers',args:{targets:named.map(item=>item.id),scope:extractVoiceScope(utterance,adapters.getScope())?.label}};
     const operation=/更新/.test(text)?'update':/隱藏/.test(text)?'hide':/切換/.test(text)?'toggle':/載入|顯示|開啟/.test(text)?'load':null;
-    if(!operation)return null;
+    if(!operation)return /我想|我要|幫我|看看|看一下|觀看|查看|查核|呈現|顯示/.test(text)?inferDataIntent(utterance):null;
     const found=catalog().map(item=>({item,length:Math.max(0,...[item.name,item.id,...item.aliases].filter(value=>text.includes(normalize(value))).map(value=>normalize(value).length))})).filter(match=>match.length>0).sort((a,b)=>b.length-a.length);
-    if(!found.length || found[1]?.length===found[0].length)return null;
+    if(!found.length)return inferDataIntent(utterance);
+    if(found[1]?.length===found[0].length){if(/和|及|與|、|還有|以及/.test(text))return {name:'load_selected_data_layers',args:{targets:found.map(match=>match.item.id),scope:extractVoiceScope(utterance,adapters.getScope())?.label}};const official=found.find(match=>match.item.id==='nlsc-buildings' && /(?:3d|三維|立體)(?:的)?(?:建物|建築)/.test(text));if(official)return {name:'control_data_layer',args:{target:official.item.id,operation}};return null;}
     return {name:'control_data_layer',args:{target:found[0].item.id,operation}};
+  }
+  function inferDataIntent(utterance){
+    const text=normalize(utterance);if(/不要|不用|取消|例如|教我|如何|為什麼|介紹|歷史|新聞/.test(text))return null;
+    const ids=[];
+    if(/建物|建築|房子|房屋|大樓|樓房/.test(text))ids.push('nlsc-buildings');
+    if(/河川|水系|溪流|河流|水道/.test(text))ids.push('osm-waterways');
+    if(/道路|公路|街道|路網/.test(text) && !/開車|行車|導航|路線規劃/.test(text))ids.push('osm-roads');
+    if(/行政區|縣市邊界|縣市界線/.test(text))ids.push('admin-counties');
+    if(/鐵路|鐵道|火車軌道/.test(text))ids.push('osm-rail');
+    if(/飛機|航班|航機/.test(text))ids.push('flights');
+    if(/船舶|船隻|船的位置/.test(text))ids.push('ais-live-vessels');
+    if(/塞車|壅塞|路況|車流/.test(text))ids.push('tomtom-flow-image');
+    if(/地形|山脈|河谷|地貌/.test(text))ids.push('taiwan-relief','world-terrain');
+    const candidates=[...new Set(ids)].filter(id=>catalog().some(item=>item.id===id));if(!candidates.length)return null;
+    // An indirect purpose needs one short confirmation, instead of silently
+    // equating a real-world question with a specific provider or data role.
+    if(candidates.length===1 && /(?:3d|立體|三維).*(?:房屋|房子|模型)|(?:河川|水系|道路|鐵路|飛機|船舶).*(?:圖資|圖層|中心線|即時動態)/.test(text))return {name:'control_data_layer',args:{target:candidates[0],operation:'load'}};
+    return {name:'confirm_data_intent',args:{candidates,scope:extractVoiceScope(utterance,adapters.getScope())?.label}};
   }
   function requestKey(name,args,context){
     const scope=extractVoiceScope(context.utterance,adapters.getScope()) || parseVoiceScope(args.scope,adapters.getScope());
-    return JSON.stringify([turnKey(context),name,name==='control_data_layer'?resolve(args.target).id:'all-builtin',args.operation || 'load',scope?.label || '']);
+    return JSON.stringify([turnKey(context),name,name==='control_data_layer'?resolve(args.target).id:name==='load_selected_data_layers'?args.targets:'all-builtin',args.operation || 'load',scope?.label || '']);
   }
   async function execute(name,args={},context={}){
-    const changing=['control_data_layer','load_all_data_layers'].includes(name);
+    const changing=['control_data_layer','load_all_data_layers','load_selected_data_layers'].includes(name);
     const key=changing ? requestKey(name,args,context) : null;
     if(key && completedRequests.has(key))return completedRequests.get(key);
-    const result=await dispatch(name,args,context);
+    const result=await dispatch(name,args,context);if(changing)pendingTarget=null;
     if(changing && result.needsScope){
       pendingRequest={name,args:{...args},question:result.question,at:Date.now(),turn:turnKey(context),utterance:context.utterance};
       result.pendingRequest=getPendingRequest();
@@ -176,7 +204,8 @@ export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackC
   function requestFromUtterance(utterance,context={}){
     const text=String(utterance || '').trim(),plain=normalizeVoiceText(text);if(!text)return null;
     const waiting=getPendingRequest();
-    if(waiting && normalizeVoiceText(pendingRequest.utterance)===plain)return null;
+    if(pendingTarget){const chosen=catalog().find(item=>pendingTarget.candidates.includes(item.id) && [item.id,item.name,...item.aliases].some(name=>normalize(text).includes(normalize(name))));const order=plain.match(/(?:第)?([一二三1-3])(?:個|項|種)?/);const ordinal=order?{'一':0,'二':1,'三':2,'1':0,'2':1,'3':2}[order[1]]:null;const target=chosen?.id || (ordinal!==null?pendingTarget.candidates[ordinal]:null) || (acceptsVoiceRecommendation(plain)&&pendingTarget.candidates.length===1?pendingTarget.candidates[0]:null);if(target){const scope=extractVoiceScope(text,adapters.getScope())?.label || pendingTarget.scope;return {name:'control_data_layer',args:{target,operation:'load',...(scope?{scope}:{})},confirmedScope:scope};}if(/不是|不要|取消|不用/.test(plain)){return {cancel:true};}}
+    if(waiting && pendingRequest && normalizeVoiceText(pendingRequest.utterance)===plain)return null;
     if(/^(?:請)?(?:取消|不用了|不要載入|停止載入|別載入)/.test(plain))return waiting ? {cancel:true} : null;
     const command=commandInUtterance(text),scope=extractVoiceScope(text,adapters.getScope());
     let request=command;
@@ -188,8 +217,8 @@ export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackC
   async function resumeFromUtterance(utterance,context={}){
     const request=requestFromUtterance(utterance,context);if(!request)return null;
     if(request.cancel){clearPending();return {ok:true,message:'已取消待載入的圖資請求'};}
-    const callContext={...context,utterance};
-    if(['control_data_layer','load_all_data_layers'].includes(request.name) && completedRequests.has(requestKey(request.name,request.args,callContext)))return null;
+    const callContext={...context,utterance:request.confirmedScope ? `${utterance}；${request.confirmedScope}` : utterance};
+    if(['control_data_layer','load_all_data_layers','load_selected_data_layers'].includes(request.name) && completedRequests.has(requestKey(request.name,request.args,callContext)))return null;
     return execute(request.name,request.args,callContext);
   }
   return { execute, catalog, resumeFromUtterance, requestFromUtterance, getPendingRequest, clearPending };

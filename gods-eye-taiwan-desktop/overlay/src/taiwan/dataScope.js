@@ -1,6 +1,14 @@
 import * as turf from '@turf/turf';
 let selected = {mode:'county',county:'宜蘭縣'};
-try {const saved=JSON.parse(localStorage.getItem('gev.tw.dataScope') || 'null');if(saved && ['county','taiwan'].includes(saved.mode))selected=saved;} catch {}
+let scopeStorage;
+// The application supplies storage; portable data sources need no browser globals.
+export function configureDataScopeStorage(storage) {
+  scopeStorage = storage;
+  try {
+    const saved = JSON.parse(scopeStorage?.getItem('gev.tw.dataScope') || 'null');
+    if (saved && ['county', 'taiwan'].includes(saved.mode)) selected = saved;
+  } catch {}
+}
 let boundaries;let loading;
 export async function ensureCounties() {
   if(boundaries)return boundaries;
@@ -12,7 +20,8 @@ export function scopeLabel(){return selected.mode === 'taiwan' ? '全台灣' : s
 export async function setDataScope(mode,county) {
   await ensureCounties();
   if(!['county','taiwan'].includes(mode) || (mode === 'county' && !boundaries.features.some(f=>f.properties.COUNTYNAME === county)))throw new Error('請選擇有效縣市');
-  selected={mode,county};localStorage.setItem('gev.tw.dataScope',JSON.stringify(selected));
+  selected={mode,county};
+  try { scopeStorage?.setItem('gev.tw.dataScope',JSON.stringify(selected)); } catch {}
 }
 export function scopeGeometry(county=selected.mode === 'county' ? selected.county : null) {
   if(!boundaries)throw new Error('請先載入縣市界');

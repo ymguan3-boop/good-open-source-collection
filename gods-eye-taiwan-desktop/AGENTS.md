@@ -1,23 +1,25 @@
-# 上帝之眼・台灣版 — Agent 安裝與驗收規則
+# 上帝之眼・台灣版 — 瀏覽器版本安裝與驗收規則
 
 本資料夾採「原始碼 + Agent 本機安裝」模式。
 
 ## 安裝目標
 
-1. 檢查 Git、Node.js、npm、Rust/Cargo、Microsoft C++ Build Tools、WebView2。
+本版本只支援瀏覽器程式搭配本機 Node.js provider service。不要安裝、編譯或啟動 Tauri／Rust 原生版本，不要求 Visual Studio 或 WebView2。
+
+1. 檢查 Git、Node.js、npm、Google Chrome 與 WebGL。
 2. 執行 `scripts/prepare-upstream.ps1`，取得 `UPSTREAM.lock` 指定 God's Eye View。
 3. 套用 Taiwan overlay。
 4. `npm install`。
-5. `npm.cmd run build` 與 `cargo build --manifest-path .\src-tauri\Cargo.toml`，產出可啟動的正式介面與桌面程式。
-6. 執行 `scripts/create-desktop-shortcut.ps1` 建立「上帝之眼-台灣版」桌面捷徑。
-7. 捷徑使用版本化圖示 `branding/gods-eye-taiwan-v4.ico`，避免 Windows 沿用舊圖示快取。
-8. 捷徑啟動 `scripts/start-gods-eye-taiwan.ps1`；該腳本啟動或沿用以 `vite preview` 提供正式介面與 `/api` 的隱藏本機服務，只顯示一個 Tauri 桌面視窗。原生程式不存在或立即退出時顯示錯誤，不另開瀏覽器。啟動失敗須記錄於 `logs/desktop-launch.log`。
+5. `npm.cmd --prefix .work/upstream run build` 產出瀏覽器正式介面。
+6. 啟動 `啟動上帝之眼-瀏覽器版.bat`，或 `node scripts/start-gods-eye-browser.mjs`。
+7. 啟動器啟動／沿用只綁定 `127.0.0.1:4175` 的本機 Vite provider service，再開啟 Chrome。網頁 UI 圖示與字型保留於 `branding/`，不需要原生 EXE 圖示。
+8. 啟動失敗查看 `logs/browser-launch.log`；既有瀏覽器捷徑與設定檔保留。首次安裝可直接用 `node scripts/install-browser.mjs` 完成步驟 2～5。
 
-## 為什麼不能只啟動純靜態 EXE
+## 為什麼不能直接開啟 HTML
 
-上游的 CCTV、OSM Overpass、天氣等功能依賴 `/api/...` provider middleware。HTML 介面仍須透過本機 Vite provider service 開啟，不能直接雙擊 `index.html`。瀏覽器模式可透過本機服務讀取 RAM、分頁檔與 Windows GPU 計數器，並以只綁定本機的服務代理 OpenRouter、Gemini Live 和 Whisper.cpp；瀏覽器輸入的服務金鑰以 Windows DPAPI CurrentUser 加密保存至使用者 LocalAppData；長效 AI 金鑰不回傳至前端或寫入 JSON 專案。瀏覽器模式以 DPAPI 儲存金鑰，透過只綁定本機的 TomTom 代理提供搜尋、路線及即時交通；Tauri 的 Credential Manager 能力需另行驗收。
+上游的 CCTV、OSM Overpass、天氣等功能依賴 `/api/...` provider middleware。HTML 介面須透過本機 Vite provider service 開啟，不能直接雙擊 `index.html`。本機服務讀取 RAM、分頁檔與 Windows GPU 計數器，並代理 OpenRouter、Gemini Live、Whisper.cpp 和 TomTom；服務金鑰以 Windows DPAPI CurrentUser 加密保存至使用者 LocalAppData。長效 AI／TomTom 金鑰不回傳至前端或寫入 JSON 專案。
 
-目前另有瀏覽器版試用入口 `啟動上帝之眼-瀏覽器版.bat`，由 Node.js 啟動或沿用只綁定 `127.0.0.1:4175` 的既有 Vite provider service，再直接呼叫 Google Chrome。此入口不執行 Tauri EXE；不要以瀏覽器可載入推論先前 Apex One 對 EXE 的偵測為誤判。桌面上另建「上帝之眼-台灣版(瀏覽器)」捷徑，不取代原桌面版捷徑。
+唯一正式入口為 `啟動上帝之眼-瀏覽器版.bat`，桌面「上帝之眼-台灣版(瀏覽器)」捷徑指向此瀏覽器流程。清理原生檔案或舊捷徑前必須核對所屬專案與目標路徑；不要刪除其他專案、使用者資料、加密金鑰或 Chrome 設定檔。
 
 ## 必須驗收
 
@@ -33,7 +35,7 @@
 - Cesium ion Token：儲存後執行「驗證 Cesium Token」，必須實際通過 ion asset 2275207 endpoint；重啟後 runtimeConfig 必須把 Token 傳入上游 `cesiumToken`。
 - TomTom API Key：儲存後執行「驗證 TomTom Key」；至少完成一次台灣地點搜尋與一次行車路線。
 - 手動導航驗收：指定起訖點 → 顯示路線 → 查看整條路線 → 導航視角；若 Windows Location Services 可用，再測「開始導航／停止導航」。
-- 若使用者已提供 Gemini API Key，Gemini Live 能取得 ephemeral token、開啟麥克風、回傳語音，並抽測「顯示行車路線 / 導航視角 / 開始導航」至少一項。
+- 若使用者已提供 Gemini API Key，Gemini Live 能連接本機代理、開啟麥克風、回傳語音，並抽測「顯示行車路線 / 導航視角 / 開始導航」至少一項。額度超限時如實回報，不以合成逐字稿宣稱實體麥克風驗收。
 - OpenRouter 舊功能不得因 Gemini 加入而失效。
 
 ## 禁止
@@ -63,7 +65,7 @@ Agent 安裝後需另外驗收：
 - 道路與水系在街區尺度顯示全部相交完整線段，移動相機會重建視野，保留全部分析向量。
 - 縣市界22筆、鄉鎮市區界368筆，可選縣市／全台，顏色、隱藏及刪除可操作。
 - TomTom路況線1.3像素，封路2像素，移動點位依即時速度比例示意，明示非逐車定位。
-- 瀏覽器首次安裝可執行node scripts/install-browser.mjs，不需Rust；桌面版仍另行驗收。
+- 瀏覽器首次安裝可執行node scripts/install-browser.mjs，不需Rust。
 
 ## v15 新增驗收
 
@@ -93,3 +95,39 @@ Agent 安裝後需另外驗收：
 - 執行期間模型工具晚到不遺失結果；完成後只回報實際工作，不重新詢問已提供的條件。
 - 地點定位新增可拖曳標籤，標註／專案可管理；取消後不得宣稱完成。
 - 所有驗收掛鉤、合成音檔及記憶體檢查限本機隔離服務，不放入正式建置或GitHub。區分合成語音服務驗收與實體麥克風驗收。
+
+
+## v19 需求與驗收
+
+- 初始 Google 擬真 3D，其他圖資未載入；不得鎖住之後的底圖選擇。
+- NLSC 白模開關可恢復原材質，不移動官方座標。OSM 地名經既有 Overpass 代理查詢，不需 API Key；保留 OSM 來源標示，取得失敗須如實回報。
+- CCTV 結果顯示本次送交模型的同一張截圖與取得時間，後續串流不替換分析截圖。
+- 語音風格另存本機，重開沿用，不覆蓋文字助理風格；畫面分享明確勾選且只傳地圖畫布。
+- 明確圖資＋區域不重問；間接目的提出候選，歧義先確認；確認沿用先前明確範圍，讀取 parser 不消耗待確認請求。多項圖資逐項回報，操作前說明意圖、完成後只回報實際結果。
+- 模糊地點先確認候選；藍色地點標籤不重複，可依設定於下個指令清除。
+- 運鏡採空拍機視角（預設 80 公尺、俯角 25 度），播放時 Ctrl＋左鍵拖曳調整角度且不被下一個播放影格重設；WASD 平移、Q／E 升降，停止／取消／完成後恢復鏡頭控制。驗收掛鉤與模擬輸入不得進入正式建置。
+- Gemini 額度錯誤先比對模型與連線設定，避免將搜尋工具錯誤誤判為 Key 全面無額度；確認基本語音仍因專案額度中斷時，再於本機設定分頁交由使用者手動輸入另一組 Key；不要求在對話貼 Key，也不自動更換長效金鑰。
+
+## v20 設定與運鏡驗收
+
+- 語音風格使用 AI 空間助理相同的深色全寬可伸縮欄位及儲存／重訂按鈕，保存後立即套用；已啟用語音自動重新連線，未啟用不得自動開啟麥克風。金鑰儲存後本機 provider 讀取新版本，不要求原生程式重啟。
+- 本機 provider 在加密金鑰檔案變更後讀取新版本，不沿用其他視窗儲存前的快取；驗收不得讀出或記錄真實金鑰。
+- 運鏡平滑路徑及轉向、連續過渡到起點、緩進緩出；播放及停止後軌跡線隱藏，重新繪製時才顯示。長影格不跳過整段路徑，Ctrl 偏角保留，起步 flyTo 完成後須重新鎖住原生相機輸入避免衝突。
+
+## v21 瀏覽器版本與本機功能
+
+- `npm.cmd run dev/build/preview` 使用既有 `.work/upstream`，不自動重新下載或套用 Overlay。新安裝使用 `install:browser`；已套用工作區不可重跑 `apply-overlay.mjs`。
+- 電影空拍與 CCTV 使用同一 `floatingPanelManager`；縮小／隱藏保留工作，關閉停止並釋放資源。
+- CCTV 本機 YOLOX／ONNX 辨識不依賴 AI API Key；影像只在明確按 AI 深度分析時送至外部 Provider。
+- NLSC 建物與台灣地形可同時開啟；同載採真實地形倍率 1，保留官方建物座標與使用者原倍率設定，關閉建物後恢復。
+- 建物細節策略與 Resource Governor 協調；高壓或圖磚失敗需明示。載入完成僅指當前視野與細節等級，不能視為完整建物清冊。
+- 此次不自動發布 GitHub。清理與驗收狀態見 `docs/browser-only-cleanup-20261004.md`。
+
+
+## v22 驗收與發布
+
+- 最新使用者要求優先：只保留手繪／自由空拍，移除行車 GPS 與 AI 查核行程規劃；保留路線與行車示意。
+- CCTV 一鍵辨識固定同一截圖，結果進既有 AI 空間助理，保留輸入與對話；本機成功不送外部 AI。
+- NLSC／地形同載維持真實 1 倍高程；保留官方原始 modelMatrix，可依街區模型真實底面與地形局部校正展示高程，必須能關閉還原。禁止憑屋頂、相機或包圍球推算整縣偏移；來源缺漏及資源限制如實標示。
+- 碰撞、來源、錄影與語音真實服務需分別記錄。實體麥克風或未選到的真實幾何不以替身測試冒充完成。
+- 本次使用者已授權驗收完成後更新 GitHub。發布用最新 main 的獨立工作區，只更新本專案及倉庫根 README；不得提交金鑰、日誌、測試掛鉤或安裝暫存。

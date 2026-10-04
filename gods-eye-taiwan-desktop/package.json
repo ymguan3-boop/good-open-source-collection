@@ -1,13 +1,19 @@
 {
-  "name": "gods-eye-taiwan-desktop-overlay",
+  "name": "gods-eye-taiwan-browser-overlay",
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=24.14.0 <25 || >=26 <27"
+  },
   "scripts": {
-    "prepare": "node scripts/prepare-upstream.mjs",
+    "install:browser": "node scripts/install-browser.mjs",
+    "prepare:upstream": "node scripts/prepare-upstream.mjs",
     "prepare:win": "powershell -ExecutionPolicy Bypass -File scripts/prepare-upstream.ps1",
-    "dev": "npm run prepare && cd .work/upstream && npm run tauri:dev",
-    "build": "npm run prepare && cd .work/upstream && npm run tauri:build",
-    "icons": "cd .work/upstream && npx tauri icon branding/icon-master.png"
+    "dev": "npm --prefix .work/upstream run dev",
+    "build": "npm --prefix .work/upstream run build",
+    "preview": "npm --prefix .work/upstream run preview",
+    "start": "node scripts/start-gods-eye-browser.mjs",
+    "check:boundaries": "npm --prefix .work/upstream run check:boundaries"
   }
 }

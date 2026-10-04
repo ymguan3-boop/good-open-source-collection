@@ -45,23 +45,20 @@ https://github.com/bilawalsidhu/gods-eye-view
 
 ## 2. 上帝之眼・台灣版
 
-[進入程式資料夾與完整安裝說明](gods-eye-taiwan-desktop/README.md)。以God’s Eye View與Cesium為核心，提供繁體中文瀏覽器／Tauri桌面版。
+[進入程式資料夾與完整安裝說明](gods-eye-taiwan-desktop/README.md)。以 God’s Eye View 與 Cesium 為核心，提供繁體中文瀏覽器介面及本機 Node 服務。
 
-- 內建全台道路、水系、水域、海岸線與官方鐵路，支援22縣市切換。
-- 新增22縣市界與368鄉鎮市區界；道路／水系依視野載入連續線段，街區尺度不再均勻抽樣。
-- TomTom細線與動態點位呈現車流示意，支援地標搜尋、路線與行車視角。
-- CCTV圈選及全台多畫面總覽，每頁12路連續更新；AI影像辨識自動選免費模型，失敗自動替換其他免費模型。
-- 專案／匯入圖資可收合，行政界框線色與粗細可調，新增NLSC正射／電子底圖與台灣3D地形。
-- NLSC建物修正低樓層地形遮蔽，提供圖磚載入進度；保持官方座標。
-- 行車路線可新增／刪除／排序中途點，支援AI查核行程建議；飛機支援第一／第三人稱觀察與飛行資訊。
-- 地圖文字標籤、量測、AI分析、Gemini中文語音圖資控制及本機資源監控。
-- v18語音可接續「全台灣／宜蘭／新北市」區域回答，完整圖資＋區域直接執行，完成後回報結果；「帶我到某地」新增可拖曳地點標籤。
-- AI對話可儲存為Markdown記錄，檢視／匯出單筆或全部，支援自訂回覆風格。
-- 金鑰由Windows DPAPI加密保存，不提交GitHub。
+- 本版本只保留瀏覽器流程；不需 Rust、Tauri 或 WebView2。金鑰由 Windows DPAPI 加密保存。
+- Google 擬真 3D 初始底圖、OSM 名稱標籤、NLSC 建物與台灣地形，保留官方座標；同載建物採真實 1 倍高程。
+- 內建全臺道路、水系、水域、海岸線與官方鐵路，支援 22 縣市及 368 鄉鎮市區界。
+- TomTom 路線與行車示意使用原創彩色汽車／機車 3D 模型，遠距維持可見、摘要視窗可拖曳，虛線顏色、粗細可調；移除 GPS 導航及 AI 查核行程規劃。
+- CCTV 每頁 12 路，一鍵本機 YOLOX／ONNX 辨識，固定截圖與完整結果統一進 AI 空間助理；記錄可匯出 JPEG、Markdown 與 metadata。
+- 電影空拍只保留手繪／自由兩模式，檢查目前場景地形與建物安全體積，支援六種可編輯拍攝範例、OpenRouter選用修正、本機 WebM 自動匯出與記錄，不需要 AI Key。
+- AI 空間助理、空拍與 CCTV 採共用可拖曳、縮放、縮小、隱藏與叫回的浮動視窗；保留專案、GIS、飛機視角、語音及資源控管。
+- Gemini 語音可辨識明確圖資與區域、接續回答及提出候選，風格本機儲存；預設Gemini3.8、可選3.1並顯示雙色字幕；已修正搜尋設定造成的額度中斷，原Key已通過真實語音辨識抽測。最新驗收與限制見 [v23驗收紀錄](gods-eye-taiwan-desktop/docs/browser-v23-followup-20261004.md)、[人工清單](gods-eye-taiwan-desktop/docs/voice-v22-manual-checklist-20261004.md)。
 
-### 安裝瀏覽器版（推薦）
+### 安裝瀏覽器版
 
-先安裝Git、Node.js 24.14以上的24.x或26.x及Google Chrome；瀏覽器版不需要Rust。
+先安裝 Git、Node.js 24.14 以上的 24.x 或 26.x及 Google Chrome：
 
 ```powershell
 git clone https://github.com/ymguan3-boop/good-open-source-collection.git
@@ -69,11 +66,7 @@ cd good-open-source-collection\gods-eye-taiwan-desktop
 node .\scripts\install-browser.mjs
 ```
 
-完成後雙擊「啟動上帝之眼-瀏覽器版.bat」。或下載整個倉庫ZIP、解壓縮進入台灣版資料夾，交由Agent依README與AGENTS.md安裝。
-
-Tauri桌面版另需Rust、C++ Build Tools與WebView2，再執行 `scripts/agent-install-windows.ps1`。本次以瀏覽器驗收，未重新驗收EXE。
-
-2026-10-02 更新為 v17，修正語音指定縣市／全臺範圍回答接續與重複詢問，保留既有功能，新增語音範圍確認、可拖曳飛機觀察卡與地圖標籤、飛機視角切換修正、對話免費模型輪替、記錄緊湊排版，以及重啟後沿用自訂風格的本機備份。使用方式、金鑰、圖資來源與版本、更新與故障排除，均見上述繁體中文README。
+完成後雙擊「啟動上帝之眼-瀏覽器版.bat」。或下載整個倉庫 ZIP、解壓縮進入台灣版資料夾，交由 Agent 依 README 與 AGENTS.md 安裝。公開原始碼不包含本機金鑰、設定、官方 DTM 原始格網、日誌或安裝暫存。
 
 ---
 

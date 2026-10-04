@@ -1,5 +1,4 @@
 
-import { invoke } from '@tauri-apps/api/core';
 
 const PROFILES = {
   eco:         { label:'省電', fps:24, scale:0.72, sse:30, cacheMB:192, overflowMB:48 },
@@ -32,7 +31,7 @@ export class ResourceGovernor {
   }
   async refresh() {
     try {
-      const snapshot = globalThis.__TAURI_INTERNALS__ ? await invoke('resource_snapshot') : await localSnapshot();
+      const snapshot = await localSnapshot();
       const ram = ratio(snapshot.systemMemoryUsed, snapshot.systemMemoryTotal);
       const swap = ratio(snapshot.swapUsed, snapshot.swapTotal);
       const vram = ratio(snapshot.gpuUsed, snapshot.gpuTotal);

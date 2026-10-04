@@ -1,4 +1,27 @@
-# Development status — 2026-09-27
+## v23 最新抽驗（2026-10-04）
+
+同一 Gemini Key 已通過兩款模型各4項真實音訊辨識，3.8另有6項功能／地理歷史／新聞對話。撤回 Key 整體耗盡診斷；移除搜尋初始化設定並修正3.1逐字稿設定。自由／手繪拍攝、影片保存刪除、導航遠距與摘要拖曳、字幕及父子圖磚還原已補驗；NLSC特定長路徑最高細節查詢逾時保持UNKNOWN，不宣稱安全。正式boundaries及build通過。完整範圍、相依、降級及人工清單見 [v23驗收](docs/browser-v23-followup-20261004.md)。
+
+# Development status — 2026-10-04
+
+## v22 瀏覽器版驗收進行中（2026-10-04）
+
+正式語音工具＋真實圖資adapters抽驗PASS：宜蘭NLSC 3D建物、嘉義市道路4932筆，以及未指定範圍的水系接續「全台灣」75103筆；完成後pending=null。此為文字逐字稿直接進入工具，未經ASR。
+
+最新狀態以本節為準；後面的原生桌面內容為歷史紀錄。本次只保留瀏覽器介面及回送位址 Node providers。原生來源、Rust cache 及舊啟動檔已可回復封存，保留使用者設定、金鑰、Chrome profiles、官方資料與模型。
+
+- 真實宜蘭 NLSC＋台灣地形同載：官方 matrix 不變，實際地形倍率 1，原設定 3 保留；資源壓力限制明示。
+- 真實 TomTom 汽車／機車兩段路線、彩色 GLB 行進與停止：PASS。移除行車 GPS／AI 查核行程規劃，保留路線及自訂虛線顏色／粗細。
+- CCTV 12 路一鍵本機 WebGPU、Frame A 回呼、同一助理、攝影機／request 去重、JPEG ZIP 與 metadata：PASS；11.87 秒、96 次繪製，最大主執行緒心跳間隔 237.1 毫秒。停止後 active=0。
+- 同一真實 CCTV 固定截圖的 Nano／Tiny WASM：PASS，545.4／1157.4 毫秒；關閉 worker，沒有外部影像上傳。
+- 手繪／自由空拍 8 項真實場景抽驗 PASS，含 NLSC 屋頂、外牆兩安全端點連續穿越、低FPS放大安全體積阻擋、地形侵入、路徑抬高重檢、播放／暫停／繼續／停止、720p WebM 與實際路徑儲存；轉角、夾縫及真實山坡補驗4項PASS；實際影片記錄播放與ZIP匯出PASS。
+- OpenSky兩架真實航機第一／第三人稱往返PASS，同一選取、追蹤模型及安全標示保留。
+- 共用浮動視窗 handler、尺寸／位置保存及各狀態：PASS；另通過正式版AI／CCTV原生拖曳及CCTV resize；仍區分合成按鍵與實體操作。
+- 語音邏輯 7 類各2項共14 PASS；後續已確認 Google Search 設定導致quota錯誤、3.1特殊ASR設定無回應；相同Key修正後兩款模型各4項真實ASR抽測PASS。未代表實體麥克風驗收。人工清單：docs/voice-v22-manual-checklist-20261004.md。
+- 全新固定上游 checkout＋Overlay 套用、npm安裝、boundary檢查與正式build：PASS；npm安裝用 --ignore-scripts。現用最終正式建置1211modules、49.62秒PASS，正式bundle不含QA掛鉤。GitHub發布待真實語音抽驗完成。
+
+必要項目未全數通過前，本批次不標示完成。詳細紀錄見 docs/browser-v22-acceptance-20261004.md。
+
 
 ## 2026-09-30 瀏覽器版試用入口
 
@@ -108,3 +131,15 @@ DTM 路徑直接取原始 20m 格網，宜蘭測試路徑得到 124 個樣點、
 ## 2026-10-03 v18 語音操作工作週期
 
 放寬口語區域回答與縣市簡稱、接續待執行圖資、修正已載入圖層的範圍比較及執行中回合被晚到工具替換的問題。完成後由程式回報實際工作，不重新啟動詢問；地點定位新增可管理、拖曳的標籤。實際Gemini Live合成語音與正式圖資載入器已抽測全臺道路、宜蘭水系、新北市道路；地點標示與拖曳畫面已檢查。未宣稱實體麥克風及桌面版完成驗收。見 [v18驗收](docs/voice-workflow-fixes-v18-20261003.md)。
+
+## v21：電影空拍與 CCTV 本機辨識（2026-10-03）
+
+Phase 1 前端已實作並完成下列驗收：共用 Floating Panel Manager、6 種 Cesium 電影空拍、Camera Keyframe、有限語音工具、本機 YOLOX Tiny/Nano／ORT Worker、推論排程與 Governor 降載。移除 AI 查核行程；行車虛線顏色／粗細可調並保存。CCTV 結果可再次辨識、清除並保存含截圖 MD 至「記錄」。
+
+Google 3D 六模式／暫停／停止／Keyframe、Cesium Terrain、NLSC 建物、道路／河道／鐵路沿線、TomTom 行車與電影切換、真實航機第一／第三人稱、手動地圖輸入恢復已驗。兩個視窗實際拖曳、resize、縮小、隱藏、喚回、置頂、關閉／重開、viewport clamp 及位置保存已驗。
+
+CCTV 真實 WebGPU 與強制 WASM、六類 COCO 抽測、瀏覽器 12 路與 Google 3D 並行（12/12、0 串台）、停止／清除競態、記錄預覽及 MD 下載已驗。高負載最大畫面間隔 839.7 ms，有短暫卡頓，非全程無延遲。最終 production build 及兩項架構邊界檢查成功，正式檔無 QA hook。
+
+原生 EXE 未重新打包；實體麥克風、選用雲端深度分析及長時間 leak 尚未完整實測。ByteTrack／時間軸屬 Phase 2。詳細檔案／授權／實測數字與 YES／NO 見 [v21 驗收](docs/cinematic-cctv-v21-20261003.md)。
+
+最新補充驗收與剩餘項目：[v23](docs/browser-v23-followup-20261004.md)。

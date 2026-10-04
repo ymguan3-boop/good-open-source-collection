@@ -1,8 +1,19 @@
 import { readFileSync, writeFileSync, copyFileSync, mkdirSync, readdirSync, lstatSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const dest = resolve(process.argv[2] || '.work/upstream');
 const repo = resolve(import.meta.dirname, '..');
+
+// Check before any copy or patch: this installer is intentionally one-shot.
+const sourcePackage = JSON.parse(readFileSync(resolve(dest, 'package.json'), 'utf8'));
+if (sourcePackage.name === 'gods-eye-taiwan-desktop' || sourcePackage.taiwanEdition) {
+  throw new Error('工作區已套用台灣版；請勿重複套用 Overlay。首次安裝請使用全新工作區。');
+}
+const upstreamLock = Object.fromEntries(readFileSync(resolve(repo, 'UPSTREAM.lock'), 'utf8')
+  .split(/\r?\n/).filter(Boolean).map(line => line.split(/=(.*)/s).slice(0, 2)));
+const sourceCommit = execFileSync('git', ['-C', dest, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+if (sourceCommit !== upstreamLock.commit) throw new Error('工作區不是 UPSTREAM.lock 指定版本，停止套用。');
 
 function copyTree(src, out) {
   const stat = lstatSync(src);
@@ -22,24 +33,24 @@ function replaceRequired(text, from, to, label) {
   return text.replace(from, to);
 }
 
+copyTree(resolve(repo, 'overlay', 'public'), resolve(dest, 'public'));
 copyTree(resolve(repo, 'overlay', 'src', 'taiwan'), resolve(dest, 'src', 'taiwan'));
 copyTree(resolve(repo, 'overlay', 'src', 'maps'), resolve(dest, 'src', 'maps'));
-copyTree(resolve(repo, 'overlay', 'src-tauri'), resolve(dest, 'src-tauri'));
 copyTree(resolve(repo, 'overlay', 'server'), resolve(dest, 'server'));
-copyTree(resolve(repo, 'branding'), resolve(dest, 'branding'));
 for (const name of ['title-art-user-v4.png', 'icon-user-v4.png', 'icon-master.png', 'toolbar-bezel-v6.png', 'toolbar-toggle-v4.png', 'toolbar-collapse-user.png', 'toolbar-expand-user.png', 'voice-control-panel-transparent-v4.png', 'quick-menu-logo-user.png', 'sidebar-user.png', 'toolbar-sheet-v9.png', 'toolbar-record-sheet-v10.png']) {
   copyTree(resolve(repo, 'branding', name), resolve(dest, 'public', 'branding', name));
 }
 copyTree(resolve(repo, 'branding', 'ui-icons'), resolve(dest, 'public', 'branding', 'ui-icons'));
+copyTree(resolve(repo, 'branding', 'fonts'), resolve(dest, 'public', 'branding', 'fonts'));
 
-// Vite preview serves the built desktop UI. Provider routes must be available
+// Vite preview serves the built browser UI. Provider routes must be available
 // there as well as in the development server.
 const previewConfigPath = resolve(dest, 'server', 'standalone', 'vite.config.js');
 let previewConfig = readFileSync(previewConfigPath, 'utf8');
 previewConfig = replaceRequired(previewConfig,
   'plugins: [...localProviderPlugins(), apiNotFoundPlugin()],',
   'plugins: [...localProviderPlugins(), apiNotFoundPlugin()].map(plugin => ({ ...plugin, configurePreviewServer: plugin.configureServer })),',
-  'desktop preview provider middleware');
+  'browser preview provider middleware');
 writeFileSync(previewConfigPath, previewConfig);
 
 const cctvCatalogPath = resolve(dest, 'server', 'providers', 'cctv', 'catalog.js');
@@ -132,7 +143,7 @@ cctvControls = replaceRequired(cctvControls,
   'MJPEG frame state method');
 writeFileSync(cctvControlsPath, cctvControls);
 
-// index: language, title, Taiwan CSS, desktop favicon.
+// index: language, title, Taiwan CSS, browser favicon.
 const indexPath = resolve(dest, 'index.html');
 let html = readFileSync(indexPath, 'utf8');
 html = html.replace('<html lang="en">', '<html lang="zh-Hant-TW">')
@@ -253,6 +264,13 @@ const additions = JSON.parse(readFileSync(resolve(repo, 'overlay', 'package.addi
 pkg.dependencies = { ...(pkg.dependencies || {}), ...(additions.dependencies || {}) };
 pkg.devDependencies = { ...(pkg.devDependencies || {}), ...(additions.devDependencies || {}) };
 pkg.scripts = { ...(pkg.scripts || {}), ...(additions.scripts || {}) };
+for (const group of [pkg.dependencies, pkg.devDependencies, pkg.optionalDependencies]) {
+  for (const name of Object.keys(group || {})) if (name.startsWith('@tauri-apps/')) delete group[name];
+}
+for (const [name, command] of Object.entries(pkg.scripts)) {
+  if (name.startsWith('tauri:') || /\b(?:tauri|cargo|rustc)\b/.test(command)) delete pkg.scripts[name];
+}
+pkg.taiwanEdition = { runtime: 'browser', upstreamCommit: sourceCommit };
 pkg.name = 'gods-eye-taiwan-desktop';
 pkg.version = '0.2.0';
 writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
@@ -283,3 +301,20 @@ writeFileSync(cameraScopePath,cameraScope);
 {const target=resolve(dest,"src/layers/vessels/ingestion.js");let code=readFileSync(target,'utf8');code="import { withinMarineScope } from '../../taiwan/dataScope.js';\n"+code;code=replaceRequired(code,"rows: snapshot.records.map(vesselDisplayRow),","rows: snapshot.records.map(vesselDisplayRow).filter(row=>withinMarineScope(row.lon,row.lat)),",'geographic feed scope');writeFileSync(target,code);}
 {const target=resolve(dest,"src/layers/firms/ingestion.js");let code=readFileSync(target,'utf8');code="import { withinScope } from '../../taiwan/dataScope.js';\n"+code;code=replaceRequired(code,"layerState._fires = adaptFirmsRecords(payload?.fires);","layerState._fires = adaptFirmsRecords(payload?.fires).filter(fire=>withinScope(fire.lon,fire.lat)).map((fire,index)=>({...fire,index}));",'geographic feed scope');writeFileSync(target,code);}
 {const target=resolve(dest,"src/layers/earthquakes/source.js");let code=readFileSync(target,'utf8');code="import { withinMarineScope } from '../../taiwan/dataScope.js';\n"+code;code=replaceRequired(code,"      return rows;","      return rows.filter(row=>withinMarineScope(row.lon,row.lat));",'geographic feed scope');writeFileSync(target,code);}
+
+// Declare the Overlay additions owned by existing export groups. Keep the
+// upstream ownership checker strict; only explicit Overlay dependencies are added.
+const boundariesPath = resolve(dest, 'scripts', 'package-boundaries.json');
+const boundaries = JSON.parse(readFileSync(boundariesPath, 'utf8'));
+for (const group of Object.values(boundaries)) {
+  if (group.modules.includes('src/maps/defaultSources.js') && !group.modules.includes('src/maps/nlscImagery.js')) group.modules.push('src/maps/nlscImagery.js');
+  const usesScope = group.modules.some(name => readFileSync(resolve(dest, name), 'utf8').includes("from '../../taiwan/dataScope.js'"));
+  if (usesScope) {
+    if (!group.modules.includes('src/taiwan/dataScope.js')) group.modules.push('src/taiwan/dataScope.js');
+    if (!group.external.includes('@turf/turf')) group.external.push('@turf/turf');
+  }
+}
+if (!boundaries['cctv-provider'].modules.includes('server/providers/cctv/taiwan.js')) {
+  boundaries['cctv-provider'].modules.push('server/providers/cctv/taiwan.js');
+}
+writeFileSync(boundariesPath, JSON.stringify(boundaries, null, 2) + '\n');

@@ -2,7 +2,10 @@
 import { installTraditionalChinese } from './i18n.js';
 import { ResourceGovernor } from './resourceGovernor.js';
 import { mountShell } from './ui.js';
-import { ensureCounties } from './dataScope.js';
+import { ensureCounties, configureDataScopeStorage } from './dataScope.js';
+
+// Restore saved scope before the application starts fetching portable sources.
+try { configureDataScopeStorage(localStorage); } catch { configureDataScopeStorage(null); }
 
 export function installTaiwanEdition({ components }) {
   void ensureCounties().catch(error=>console.warn('縣市界尚未就緒',error.message));
@@ -10,8 +13,9 @@ export function installTaiwanEdition({ components }) {
   document.title = '上帝之眼・台灣版';
   const viewer = components?.scene?.viewer;
   if (!viewer) throw new Error('Taiwan edition requires upstream scene.viewer');
-  // A new desktop session always starts idle, regardless of the previous URL
+  // A new browser session always starts idle, regardless of the previous URL
   // or layer restore state. The globe and resource safety monitor remain ready.
+  components?.controls?.styleManager?.shareLinkManager?.claimRestoreLane?.('map');
   viewer.camera.cancelFlight();
   viewer.trackedEntity = undefined;
   components?.tools?.voiceCommands?.stop?.();

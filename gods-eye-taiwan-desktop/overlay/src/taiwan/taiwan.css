@@ -686,3 +686,35 @@ body *{font-weight:400!important}
 #tw-shell .tw-record-summary button{font-size:11px;padding:4px 6px;margin:0}
 #tw-shell .tw-record-preview .tw-chat-content{padding:8px 12px;line-height:1.45;margin:0}
 #tw-shell .tw-record-preview h4{margin:8px 0 3px;font-size:1.02em}
+
+.tw-voice-help details{margin:6px 0}.tw-voice-help summary{cursor:pointer;font-weight:600;padding:5px 0}.tw-voice-help ul{margin:4px 0 8px;padding-left:21px}.tw-voice-help li{margin:3px 0;line-height:1.5}.tw-voice-help textarea{resize:vertical;min-height:74px;max-height:65vh}.tw-inline-option{display:flex!important;align-items:center;gap:7px;margin:8px 0!important}.tw-inline-option input[type=checkbox]{width:15px!important;min-width:15px;height:15px;margin:0}.tw-cctv-analysis-frame{margin:8px 0}.tw-cctv-analysis-frame img{display:block;max-width:100%;max-height:240px;object-fit:contain}.tw-cctv-analysis-frame figcaption{font-size:11px;color:#a7c7d5;line-height:1.4;margin:3px 0}.tw-voice-sources{display:flex;gap:6px;flex-wrap:wrap;font-size:12px}.tw-voice-sources iframe{width:100%;height:100px;border:0}
+
+/* Voice style uses the same editable panel as the spatial assistant. */
+#tw-shell .tw-voice-style{padding:9px 0;max-height:none;overflow:visible;border-bottom:1px solid #355362}
+#tw-shell .tw-voice-style label{display:block;width:100%;margin:0}
+#tw-shell .tw-voice-style textarea{display:block;width:100%;box-sizing:border-box;font:inherit;line-height:1.5;margin:6px 0;min-height:80px;max-height:65vh;background:#091f2e;color:#edf9ff;border:1px solid #355362;border-radius:7px;padding:8px;resize:vertical}
+#tw-shell .tw-voice-style .tw-actions{margin:6px 0;gap:6px}
+#tw-shell .tw-voice-style small{display:block;line-height:1.5;color:var(--tw-muted)}
+
+/* Embedded wall uses the shared floating window, never a backdrop. */
+#tw-shell .tw-floating-panel .tw-cctv-embedded{position:static;inset:auto;width:100%;height:auto;min-width:0;min-height:0;max-width:none;max-height:none;resize:none;border:0;border-radius:0;overflow:visible;background:transparent}
+#tw-shell .tw-cctv-embedded header{flex-wrap:wrap;padding:7px 0}
+#tw-shell .tw-cctv-embedded .tw-cctv-wall-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));overflow:visible;padding:4px 0}
+#tw-shell .tw-vision-controls{font-size:13px}#tw-shell .tw-vision-controls .tw-note{margin:6px 0;font-size:12px;line-height:1.45}
+#tw-shell .tw-vision-controls input,#tw-shell .tw-vision-controls select{background:#091f2e;color:#edf9ff;border:1px solid #355362;border-radius:5px;padding:5px;max-width:100%}
+#tw-shell .tw-vision-frame{position:relative}#tw-shell .tw-vision-frame img{display:block;width:100%;height:auto;aspect-ratio:auto}#tw-shell .tw-vision-frame canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#tw-shell .tw-floating-panel button{background:#102d40;color:#e5f6ff;border:1px solid #3b809a;border-radius:5px;padding:6px;cursor:pointer}#tw-shell .tw-floating-panel button:disabled{opacity:.45}
+#tw-shell .tw-chat-panel.tw-chat-managed{position:fixed;right:auto;max-height:calc(100dvh - 16px);resize:both;min-height:140px}
+#tw-shell .tw-chat-managed>.tw-floating-body{display:flex;flex-direction:column;min-height:0;flex:1;padding:0;overflow:hidden}
+#tw-shell .tw-chat-managed .tw-chat-thread{min-height:60px;flex:1;overflow:auto}
+#tw-shell .tw-chat-managed .tw-chat-panel-head{justify-content:flex-end;padding:5px 9px}
+#tw-shell .tw-chat-managed .tw-chat-compose{flex:none;padding:8px}
+#tw-shell .tw-chat-managed[data-panel-mode=minimized]>.tw-floating-body{display:none}
+.tw-cctv-fixed-frame{margin:6px 0}.tw-cctv-frame-image{position:relative;line-height:0;overflow:hidden}
+.tw-cctv-frame-image img{display:block;width:100%;height:auto;cursor:zoom-in}
+.tw-cctv-boxes{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:none;fill:none;stroke:#43fc85;stroke-width:2}
+.tw-cctv-boxes text{fill:#43fc85;stroke:none;font-size:13px}.tw-cctv-boxes-visible .tw-cctv-boxes{display:block}
+.tw-cctv-fixed-frame figcaption{font-size:11px;line-height:1.5;color:#9bbbc8;margin:4px 0}
+.tw-cctv-spinner{display:inline-block;width:12px;height:12px;border:2px solid #355362;border-top-color:#5ce4ee;border-radius:50%;animation:tw-cctv-spin 1s linear infinite;vertical-align:middle;margin-right:5px}
+.tw-cctv-job-state{font-size:12px;margin:3px 0}.tw-cctv-recognize{width:100%}
+@keyframes tw-cctv-spin{to{transform:rotate(360deg)}}

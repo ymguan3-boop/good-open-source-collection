@@ -19,7 +19,7 @@ export function createLabelAnnotations({viewer,onResult}){
     pendingRestore=restore;
     if(viewer.scene.postRender)unsubscribe=viewer.scene.postRender.addEventListener(restore);else restore();
     viewer.canvas.style.cursor=handler?'crosshair':'';
-    if(!commit && getLayer(current.layer.id)){current.entity.position=Cesium.Cartesian3.fromDegrees(...current.original);current.entity.label.heightReference=current.heightReference;}
+    if(!commit && getLayer(current.layer.id)){current.entity.position=Cesium.Cartesian3.fromDegrees(...current.original);(current.entity.label || current.entity.billboard).heightReference=current.heightReference;}
     if(commit && getLayer(current.layer.id)){
       current.feature.geometry.coordinates=[...current.coordinates];current.layer.aiReports=[];
       window.dispatchEvent(new CustomEvent('gev-tw:layers-changed',{detail:listLayers()}));
@@ -32,17 +32,17 @@ export function createLabelAnnotations({viewer,onResult}){
     pendingRestore?.();
     const candidates=viewer.scene.drillPick?.(event.position,8) || [viewer.scene.pick(event.position)];
     let entity,layer;
-    for(const picked of candidates){const candidate=picked?.id || picked?.primitive?.id;if(!candidate?.label)continue;
+    for(const picked of candidates){const candidate=picked?.id || picked?.primitive?.id;if(!candidate?.label && !candidate?.billboard)continue;
       layer=listLayers().find(item=>item.visible && item.dataMetadata?.annotationLabel && item.dataSource?.entities.contains(candidate));if(layer){entity=candidate;break;}}
     if(!layer)return;
     const feature=layer?.geojson?.features.find(item=>item.geometry?.type==='Point');if(!feature)return;
-    drag={layer,entity,feature,original:[...feature.geometry.coordinates],heightReference:entity.label.heightReference?.getValue?.(Cesium.JulianDate.now()) ?? Cesium.HeightReference.CLAMP_TO_GROUND,coordinates:[...feature.geometry.coordinates],cameraInputs:viewer.scene.screenSpaceCameraController.enableInputs};
+    drag={layer,entity,feature,original:[...feature.geometry.coordinates],heightReference:(entity.label || entity.billboard).heightReference?.getValue?.(Cesium.JulianDate.now()) ?? Cesium.HeightReference.CLAMP_TO_GROUND,coordinates:[...feature.geometry.coordinates],cameraInputs:viewer.scene.screenSpaceCameraController.enableInputs};
     viewer.scene.screenSpaceCameraController.enableInputs=false;viewer.canvas.style.cursor='grabbing';
   },Cesium.ScreenSpaceEventType.LEFT_DOWN);
   dragHandler.setInputAction(event=>{
     if(!drag)return;const point=surface(event.endPosition);if(!point)return;
     const c=Cesium.Cartographic.fromCartesian(point);drag.coordinates=[Cesium.Math.toDegrees(c.longitude),Cesium.Math.toDegrees(c.latitude),c.height];
-    drag.entity.label.heightReference=Cesium.HeightReference.NONE;
+    (drag.entity.label || drag.entity.billboard).heightReference=Cesium.HeightReference.NONE;
     drag.entity.position=Cesium.Cartesian3.fromDegrees(...drag.coordinates);viewer.scene.requestRender();
   },Cesium.ScreenSpaceEventType.MOUSE_MOVE);
   dragHandler.setInputAction(()=>finishDrag(),Cesium.ScreenSpaceEventType.LEFT_UP);

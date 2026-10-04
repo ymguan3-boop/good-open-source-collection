@@ -8,14 +8,16 @@ import * as turf from '@turf/turf';
 import { createTrafficDots } from './trafficDots.js';
 export async function loadWorldTerrain(viewer,{signal}={}) {
   signal?.throwIfAborted();
-  const existing=listLayers().find(layer=>layer.kind === 'world-terrain');
-  if(existing){viewer.terrainProvider=existing.terrainProvider;existing.visible=true;return existing;}
+  const activeRelief=()=>listLayers().find(layer=>layer.kind==='taiwan-relief' && layer.viewer===viewer && layer.visible);
+  const applyProvider=provider=>{viewer.terrainProvider=activeRelief()?.terrainProvider || provider;viewer.scene.requestRender();};
+  const existing=listLayers().find(layer=>layer.kind === 'world-terrain' && layer.viewer===viewer);
+  if(existing){existing.visible=true;applyProvider(existing.terrainProvider);return existing;}
   const runtime=await browserAi('/runtime');let provider,source;
   if(runtime.cesiumIonToken) {const resource=await Cesium.IonResource.fromAssetId(1,{accessToken:runtime.cesiumIonToken});provider=await Cesium.CesiumTerrainProvider.fromUrl(resource,{requestVertexNormals:true});source='Cesium World Terrain / ion asset 1';}
   else {provider=await Cesium.CesiumTerrainProvider.fromUrl('https://terrain.reearth.land/cesium-mesh/ellipsoid');source='Re:Earth / Mapterhorn CC BY 4.0 全球地形';}
   signal?.throwIfAborted();
-  viewer.terrainProvider=provider;viewer.scene.requestRender();
-  return registerLayer({name:'全球地形',kind:'world-terrain',source,terrainProvider:provider,viewer,sourceKey:'world-terrain',setVisibility:visible=>{viewer.terrainProvider=visible ? provider : new Cesium.EllipsoidTerrainProvider();viewer.scene.requestRender();},dispose:()=>{viewer.terrainProvider=new Cesium.EllipsoidTerrainProvider();}});
+  applyProvider(provider);
+  return registerLayer({name:'全球地形',kind:'world-terrain',source,terrainProvider:provider,viewer,sourceKey:'world-terrain',setVisibility:visible=>applyProvider(visible ? provider : new Cesium.EllipsoidTerrainProvider()),dispose:()=>applyProvider(new Cesium.EllipsoidTerrainProvider())});
 }
 export async function loadTomtomFlow(viewer,{signal:externalSignal}={}) {
   externalSignal?.throwIfAborted();

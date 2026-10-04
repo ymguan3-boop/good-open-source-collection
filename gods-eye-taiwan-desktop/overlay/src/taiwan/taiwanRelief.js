@@ -7,14 +7,14 @@ import { registerLayer, listLayers, setLayerVisible } from './layerRegistry.js';
 /** A reversible presentation of real terrain, not a synthetic elevation model. */
 export async function loadTaiwanRelief(viewer, { signal, mapStackController } = {}) {
   signal?.throwIfAborted();
-  const existing = listLayers().find(layer => layer.kind === 'taiwan-relief');
+  const existing = listLayers().find(layer => layer.kind === 'taiwan-relief' && layer.viewer === viewer);
   if (existing) {
     setLayerVisible(existing.id, true);
     existing.focusTaiwan();
     return existing;
   }
   const counties = await ensureCounties();
-  const world = listLayers().find(layer => layer.kind === 'world-terrain');
+  const world = listLayers().find(layer => layer.kind === 'world-terrain' && layer.viewer === viewer);
   let provider = world?.terrainProvider, terrainSource = world?.source;
   if (!provider) {
     const runtime = await browserAi('/runtime');
@@ -52,6 +52,22 @@ export async function loadTaiwanRelief(viewer, { signal, mapStackController } = 
     throw error;
   }
   let saved = null, scale = 3, disposed = false, layer;
+  function syncBuildingCoexistence() {
+    if (!saved || disposed) return;
+    const buildingsVisible = listLayers().some(item => item.viewer === viewer && item.kind === '3d-tiles' && item.visible && item.tileset && !item.tileset.isDestroyed());
+    // Official building coordinates stay untouched. Exaggerating only the
+    // terrain raises the ground through real-world buildings, so show true
+    // terrain height whenever they coexist and retain the requested multiplier.
+    const effectiveScale = buildingsVisible ? 1 : scale;
+    scene.verticalExaggeration = effectiveScale;
+    scene.verticalExaggerationRelativeHeight = 0;
+    if (layer) layer.dataMetadata = { ...layer.dataMetadata,
+      verticalExaggeration: effectiveScale, requestedVerticalExaggeration: scale,
+      buildingCoexistence: buildingsVisible,
+      presentationNote: buildingsVisible ? '與 NLSC 建物同載：採真實地形高程 1 倍，保留建物官方座標；隱藏建物後恢復設定倍率。' : '高程倍率僅用於地形展示，不更動原始高程。',
+    };
+    scene.requestRender();
+  }
   const lightFrame = Cesium.Transforms.eastNorthUpToFixedFrame(Cesium.Cartesian3.fromDegrees(121, 24));
   const lightDirection = Cesium.Cartesian3.normalize(Cesium.Matrix4.multiplyByPointAsVector(lightFrame, new Cesium.Cartesian3(0.6, -0.6, -0.8), new Cesium.Cartesian3()), new Cesium.Cartesian3());
   function activate() {
@@ -63,12 +79,10 @@ export async function loadTaiwanRelief(viewer, { signal, mapStackController } = 
       lighting: globe.enableLighting, atmosphere: globe.showGroundAtmosphere,
       fadeOut: globe.lightingFadeOutDistance, fadeIn: globe.lightingFadeInDistance,
       globeShow: globe.show, host, hostShow: host?.show,
-      tilesets: listLayers().filter(item => item.kind === '3d-tiles' && item.tileset),
       imagery: Array.from({ length: viewer.imageryLayers.length }, (_, index) => viewer.imageryLayers.get(index))
         .filter(item => item !== imageryLayer).map(item => [item, item.show]),
     };
     for (const [item] of saved.imagery) item.show = false;
-    for (const item of saved.tilesets) item.tileset.show = false;
     if (host && !host.isDestroyed()) host.show = false;
     viewer.terrainProvider = provider;
     globe.show = true;
@@ -78,8 +92,7 @@ export async function loadTaiwanRelief(viewer, { signal, mapStackController } = 
     globe.lightingFadeOutDistance = 0;
     globe.lightingFadeInDistance = 1;
     scene.light = new Cesium.DirectionalLight({ direction: lightDirection, intensity: 1.3 });
-    scene.verticalExaggeration = scale;
-    scene.verticalExaggerationRelativeHeight = 0;
+    syncBuildingCoexistence();
     imageryLayer.show = true;
     borders.show = true;
     scene.requestRender();
@@ -103,10 +116,9 @@ export async function loadTaiwanRelief(viewer, { signal, mapStackController } = 
       const owner = listLayers().find(registered => registered.imageryLayer === item);
       item.show = owner ? owner.visible : show;
     }
-    for (const item of previous.tilesets) if (listLayers().includes(item) && !item.tileset.isDestroyed()) item.tileset.show = item.visible;
     if (restoreMap) {
       // A hidden/removed world-terrain layer must not be revived by restoration.
-      const currentWorld = listLayers().find(item => item.kind === 'world-terrain');
+      const currentWorld = listLayers().find(item => item.kind === 'world-terrain' && item.viewer === viewer);
       viewer.terrainProvider = currentWorld
         ? (currentWorld.visible ? currentWorld.terrainProvider : new Cesium.EllipsoidTerrainProvider())
         : previous.terrain;
@@ -122,6 +134,7 @@ export async function loadTaiwanRelief(viewer, { signal, mapStackController } = 
     layer.visible = false;
     window.dispatchEvent(new CustomEvent('gev-tw:layers-changed'));
   });
+  window.addEventListener('gev-tw:layers-changed', syncBuildingCoexistence);
   function focusTaiwan() {
     viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(121, 22.7, 500000),
@@ -131,22 +144,25 @@ export async function loadTaiwanRelief(viewer, { signal, mapStackController } = 
   layer = registerLayer({
     name: '台灣 3D 地形地貌', kind: 'taiwan-relief', sourceKey: 'taiwan-relief', viewer,
     source: `${terrainSource} + 國土測繪中心 PHOTO2 / 官方縣市界`,
-    description: '真實地形展示；高程視覺放大不改變原始高程，不是官方 20 公尺 DTM。',
+    description: '真實地形展示；與 NLSC 建物同載時使用真實高程 1 倍並保留官方建物座標；不是官方 20 公尺 DTM。',
     dataMetadata: { displayOnly: true, verticalExaggeration: scale },
     terrainProvider: provider,
     setVisibility: visible => visible ? activate() : deactivate(),
     getScale: () => scale,
+    getEffectiveScale: () => saved ? scene.verticalExaggeration : scale,
+    syncBuildingCoexistence,
     setScale: value => {
       const number = Number(value);
       if (!Number.isFinite(number)) return;
       scale = Math.max(1, Math.min(6, number));
-      layer.dataMetadata.verticalExaggeration = scale;
-      if (saved) scene.verticalExaggeration = scale;
+      layer.dataMetadata.requestedVerticalExaggeration = scale;
+      if (saved) syncBuildingCoexistence();
       scene.requestRender();
     },
     focusTaiwan,
     dispose: () => {
       deactivate(); disposed = true; removeMapListener?.();
+      window.removeEventListener('gev-tw:layers-changed', syncBuildingCoexistence);
       viewer.dataSources.remove(borders, true);
       viewer.imageryLayers.remove(imageryLayer, true);
     },

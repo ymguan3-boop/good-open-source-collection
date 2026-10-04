@@ -1,12 +1,12 @@
 // ASR may return simplified Chinese even when the reply language is zh-TW.
-const traditional={臺:'台',县:'縣',湾:'灣',兰:'蘭',线:'線',载:'載',显:'顯',隐:'隱',乡:'鄉',镇:'鎮',边:'邊',区:'區',图:'圖',层:'層',铁:'鐵',轨:'軌',动:'動',飞:'飛',机:'機',标:'標',参:'參',测:'測',绘:'繪',资:'資',请:'請',帮:'幫',开:'開',换:'換',义:'義',云:'雲',东:'東',连:'連',莲:'蓮',门:'門',议:'議',览:'覽',这:'這',变:'變',个:'個',选:'選',择:'擇',围:'圍',语:'語',国:'國',后:'後',对:'對',确:'確',认:'認',当:'當',叠:'疊',园:'園',气:'氣',划:'劃',询:'詢',绍:'紹',么:'麼',为:'為',吗:'嗎'};
-export const normalizeVoiceText=value=>String(value || '').replace(/./gu,char=>traditional[char] || char).replace(/心北市|欣北市/g,'新北市').replace(/宜藍/g,'宜蘭').replace(/(?:再入|在入)/g,'載入');
+const traditional={录:'錄',维:'維',臺:'台',县:'縣',湾:'灣',兰:'蘭',线:'線',载:'載',显:'顯',隐:'隱',乡:'鄉',镇:'鎮',边:'邊',区:'區',图:'圖',层:'層',铁:'鐵',轨:'軌',动:'動',飞:'飛',机:'機',标:'標',参:'參',测:'測',绘:'繪',资:'資',请:'請',帮:'幫',开:'開',换:'換',义:'義',云:'雲',东:'東',连:'連',莲:'蓮',门:'門',议:'議',览:'覽',这:'這',变:'變',个:'個',选:'選',择:'擇',围:'圍',语:'語',国:'國',后:'後',对:'對',确:'確',认:'認',当:'當',叠:'疊',园:'園',气:'氣',划:'劃',询:'詢',绍:'紹',么:'麼',为:'為',吗:'嗎'};
+export const normalizeVoiceText=value=>String(value || '').replace(/./gu,char=>traditional[char] || char).replace(/(?<=\p{Script=Han})\s+(?=\p{Script=Han})/gu,'').replace(/心北市|欣北市/g,'新北市').replace(/宜藍/g,'宜蘭').replace(/(?:再入|在入|在茹|再茹)/g,'載入').replace(/(?:三|3)\s*(?:D|d|Ｄ|ｄ|弟|迪|滴)(?=\s*(?:的)?\s*(?:建物|建築|建筑|模型|圖資|圖層))/g,'3D').replace(/建筑/g,'建築').replace(/(?:在錄|再錄)(?=[^。！？]{0,40}(?:圖資|圖層|中心線|建物))/g,'載入');
 const normalize=value=>normalizeVoiceText(value).replace(/\s/g,'');
 export const VOICE_COUNTY_NAMES=['臺北市','新北市','桃園市','臺中市','臺南市','高雄市','基隆市','新竹市','嘉義市','新竹縣','苗栗縣','彰化縣','南投縣','雲林縣','嘉義縣','屏東縣','宜蘭縣','花蓮縣','臺東縣','澎湖縣','金門縣','連江縣'];
 const names=VOICE_COUNTY_NAMES;
 // Short names are useful in spoken replies; 新竹 / 嘉義 remain ambiguous.
 const countyAliases=county=>[normalize(county),...(!['新竹市','新竹縣','嘉義市','嘉義縣'].includes(county)?[normalize(county).replace(/[縣市]$/,'')]:[])];
-export function acceptsVoiceRecommendation(value){return /^(?:那|那就|就|請|嗯|恩|是的)?(?:好|好的|可以|同意|照建議|依建議|就用建議|採用建議|照你說的|照你建議的|沒問題)(?:吧|啊|呀|喔|哦|的|了|載入|請載入|幫我載入|用建議範圍|[\s。，！!?？])*$/u.test(normalize(value));}
+export function acceptsVoiceRecommendation(value){return /^(?:那|那就|就|請|嗯|恩|是的)?(?:好|好的|對|對的|是|沒錯|正確|可以|同意|照建議|依建議|就用建議|採用建議|照你說的|照你建議的|沒問題)(?:吧|啊|呀|喔|哦|的|了|載入|請載入|幫我載入|用建議範圍|[\s。，！!?？])*$/u.test(normalize(value));}
 export function parseVoiceScope(value,current){
   const text=normalize(value);
   if(/^(全台灣|全台|台灣|全國)$/.test(text))return {mode:'taiwan',label:'全台灣'};
@@ -44,6 +44,7 @@ export function extractVoiceScope(utterance,current){
 export function scopeCapabilities(item){
   if(item.kind==='loaded')return {modes:['original'],coverage:'匯入檔案的原始資料範圍，無法補齊檔案以外的資料'};
   if(item.id==='earthquakes')return {modes:['global'],coverage:'全球 USGS 地震事件，目前不提供獨立縣市資料'};
+  if(item.id==='osm-labels')return {modes:['viewport'],coverage:'依目前視野查詢 OSM 名稱，不需 API Key；放大至城市或街道後顯示，不提供完整全臺名稱清冊'};
   if(item.id==='world-terrain' || item.kind==='basemap' && !/^nlsc/.test(item.id))return {modes:['global'],coverage:'全球串流來源，可移動視野到指定地區；不是獨立縣市圖資'};
   if(item.id==='taiwan-relief' || item.kind==='basemap')return {modes:['taiwan'],coverage:'全臺圖磚／地形來源，可定位縣市觀看；不是獨立縣市向量'};
   if(item.id==='nlsc-buildings')return {modes:['county','taiwan'],coverage:'官方服務有列出的縣市；全臺模式只串流目前視野涵蓋的服務，非全臺完整建物'};

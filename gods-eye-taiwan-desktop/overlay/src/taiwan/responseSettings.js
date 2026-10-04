@@ -1,8 +1,6 @@
 import { db } from './db.js';
 import { browserAi } from './browserAi.js';
-import { invoke } from '@tauri-apps/api/core';
 async function storedStyle(data){
-  if(globalThis.__TAURI_INTERNALS__)return {setting:await invoke(data===undefined?'read_response_style':'write_response_style',data===undefined?{}:{setting:data})};
   return browserAi('/response-style',data===undefined?{signal:AbortSignal.timeout(5000)}:{method:'POST',data,signal:AbortSignal.timeout(5000)});
 }
 const key='gev.tw.responseStyle';

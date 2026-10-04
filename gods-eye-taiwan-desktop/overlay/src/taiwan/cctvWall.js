@@ -1,15 +1,20 @@
 import * as Cesium from 'cesium';
 import * as turf from '@turf/turf';
-import { openCctvWall } from './cctvWallViewer.js';
+import { createCctvVisionPanel } from './cctvVisionPanel.js';
 
-export function createCctvWall({viewer,root,onChange,onAnalyze}) {
+export function createCctvWall({viewer,root,onChange,onAnalyze,onResult=()=>{},onError=()=>{},manager,governor,beforeSelect=()=>{}}) {
   let cameras=[],selected=[],handler=null,points=[],drawing=false,priorInputs=true,overlay=null,markers=null,epoch=0,controller=null;
   const state=()=>({total:cameras.length,count:selected.length,selecting:!!handler});
   function notify(message){onChange(message,state());}
   function cancelSelection(){const active=!!handler;handler?.destroy();handler=null;drawing=false;overlay?.remove();overlay=null;if(active){viewer.canvas.style.cursor='';viewer.scene.screenSpaceCameraController.enableInputs=priorInputs;}viewer.scene.requestRender();}
   function hideMarkers(){if(markers)markers.show=false;cancelSelection();}
-  let closeViewer=null;
-  function closeWall(){closeViewer?.();closeViewer=null;epoch++;controller?.abort();controller=null;}
+  const vision=createCctvVisionPanel({manager,governor,onAnalyze,onResult,onError,onClose:()=>hideMarkers(),onSource:async action=>{
+    if(action==='all')return showAll();
+    if(action==='view')return showView();
+    if(action==='select'){await beforeSelect();if(!cameras.length)await load();return begin();}
+    if(action==='confirm')return show();
+  }});
+  function closeWall(){vision.close();epoch++;controller?.abort();controller=null;}
   function stop(){cancelSelection();closeWall();if(markers){viewer.scene.primitives.remove(markers);markers=null;}selected=[];cameras=[];notify('CCTV 已關閉');}
   async function load() {
     stop();const current=epoch;controller=new AbortController();notify('正在讀取全台灣官方 CCTV 目錄…');
@@ -43,9 +48,10 @@ export function createCctvWall({viewer,root,onChange,onAnalyze}) {
   }
   function show() {
     if(!selected.length)throw new Error('圈選範圍內沒有 CCTV，請重新圈選或使用一鍵觀看所有影像');
-    cancelSelection();closeWall();if(markers)markers.show=false;
-    closeViewer=openCctvWall({root,cameras:selected,onClose:closeWall,onAnalyze});
+    cancelSelection();if(markers)markers.show=false;
+    vision.replaceCameras(selected);
   }
   async function showAll(){if(!cameras.length)await load();selected=[...cameras];show();notify(`已開啟全台 ${selected.length} 支目錄；每頁 12 路連續播放。`);}
-  return {load,begin,show,showAll,stop,hideMarkers,state,destroy:stop};
+  async function showView(){if(!cameras.length)await load();const rect=viewer.camera.computeViewRectangle();if(!rect)throw new Error('目前鏡頭未對準地表');selected=cameras.filter(camera=>Cesium.Rectangle.contains(rect,Cesium.Cartographic.fromDegrees(camera.lon,camera.lat)));if(!selected.length)throw new Error('目前視野沒有官方 CCTV，請縮放至台灣道路');show();notify(`目前視野 ${selected.length} 支 CCTV`);}
+  return {load,begin,show,showAll,showView,openPanel:()=>vision.show(),vision,stop,hideMarkers,state,destroy(){stop();vision.destroy();}};
 }

@@ -1,4 +1,3 @@
-import { invoke } from '@tauri-apps/api/core';
 import { browserAi } from './browserAi.js';
 
 const SECURE_SERVICES = [
@@ -15,43 +14,14 @@ export function integrateProviderSettings() {
   const rows = dialog?.querySelector('[data-key-setup-rows]');
   if (!dialog || !chip || !rows) return { open:async () => false, dispose() {} };
 
-  const desktop = Boolean(globalThis.__TAURI_INTERNALS__);
   const footer = dialog.querySelector('.key-setup-footer');
   const applyButton = dialog.querySelector('[data-key-setup-apply]');
-  const legacyStatus = dialog.querySelector('[data-key-setup-status]');
   const extra = document.createElement('div');
   extra.className = 'tw-provider-secure-actions';
-  extra.innerHTML = `<span data-tw-provider-status role="status" aria-live="polite">${desktop ? '台灣版金鑰只儲存在 Windows Credential Manager' : '瀏覽器版金鑰以 Windows 使用者加密保存，重新開啟後可沿用。'}</span>`;
+  extra.innerHTML = `<span data-tw-provider-status role="status" aria-live="polite">瀏覽器版金鑰以 Windows 使用者加密保存，重新開啟後可沿用。</span>`;
   footer?.before(extra);
   const status = extra.querySelector('[data-tw-provider-status]');
   let modelRefreshPending = false;
-  let forwardLegacySave = false;
-  let legacySavePending = false;
-  let restartScheduled = false;
-
-  function scheduleRestart() {
-    if (restartScheduled) return;
-    restartScheduled = true;
-    status.textContent = '金鑰已儲存，正在重新開啟桌面程式…';
-    window.setTimeout(() => {
-      void invoke('restart_after_key_save').catch(error => {
-        restartScheduled = false;
-        status.textContent = `自動重啟失敗：${error?.message || error}。請關閉後重新開啟程式。`;
-      });
-    }, 900);
-  }
-
-  const onKeyLinkClick = event => {
-    const link = event.target.closest?.('a.key-setup-get');
-    if (!desktop || !link || !dialog.contains(link)) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    void invoke('open_provider_key_url', { url:link.getAttribute('href') }).catch(error => {
-      status.textContent = `無法開啟申請網址：${error?.message || error}`;
-    });
-  };
-  dialog.addEventListener('click', onKeyLinkClick, true);
-
   function makeRow(service) {
     const row = document.createElement('section');
     row.className = 'key-setup-row tw-provider-row';
@@ -83,7 +53,7 @@ export function integrateProviderSettings() {
     input.spellcheck = false;
     input.dataset.twSecureKey = service.key;
     input.setAttribute('aria-label', `${service.title} API Key`);
-    input.placeholder = desktop ? '貼上後安全儲存' : ['openrouter', 'gemini'].includes(service.key) ? '貼上後加密保存' : '此服務請使用原版設定欄位';
+    input.placeholder = '貼上後加密保存；留白沿用已存金鑰';
     input.disabled = false;
     fields.append(input);
     if (service.key === 'openrouter') {
@@ -103,13 +73,11 @@ export function integrateProviderSettings() {
 
   function ensureRows() {
     if (!rows.isConnected) return;
-    if (!desktop) {
-      for (const input of rows.querySelectorAll('input[data-env-var]')) {
-        input.dataset.twSecureKey = input.dataset.envVar;
-        input.removeAttribute('data-env-var');
-        input.disabled = false;
-        input.placeholder = '貼上後加密保存；留白沿用已存金鑰';
-      }
+    for (const input of rows.querySelectorAll('input[data-env-var]')) {
+      input.dataset.twSecureKey = input.dataset.envVar;
+      input.removeAttribute('data-env-var');
+      input.disabled = false;
+      input.placeholder = '貼上後加密保存；留白沿用已存金鑰';
     }
     for (const service of SECURE_SERVICES) {
       const row = rows.querySelector(`[data-key-id="${service.id}"]`);
@@ -118,13 +86,10 @@ export function integrateProviderSettings() {
         continue;
       }
       if (service.url) row.querySelector('.key-setup-get')?.setAttribute('href', service.url);
-      if ((!desktop && !['openrouter','gemini'].includes(service.key)) || row.dataset.twService === service.key) continue;
-      const input = row.querySelector('input[data-env-var]');
+      if (!['openrouter','gemini'].includes(service.key) || row.dataset.twService === service.key) continue;
+      const input = row.querySelector('input[data-tw-secure-key]');
       if (!input) continue;
-      input.removeAttribute('data-env-var');
-      input.disabled = false;
-      input.dataset.twSecureKey = service.key;
-      input.placeholder = desktop ? '貼上後安全儲存' : '貼上後加密保存';
+      input.placeholder = '貼上後加密保存';
       row.dataset.twService = service.key;
       row.querySelector('[data-key-setup-remove]')?.remove();
       if (service.key === 'openrouter' && !row.querySelector('[data-tw-free-model]')) {
@@ -132,7 +97,7 @@ export function integrateProviderSettings() {
         row.querySelector('.key-setup-fields')?.append(...[...controls.children].filter(element => element.tagName !== 'INPUT'));
       }
     }
-    if (!desktop) for (const row of rows.querySelectorAll('.key-setup-row')) {
+    for (const row of rows.querySelectorAll('.key-setup-row')) {
       row.querySelector('[data-key-setup-remove]')?.remove();
       if (!row.querySelector('[data-tw-remove-key]')) {
         const remove = document.createElement('button'); remove.type = 'button'; remove.dataset.twRemoveKey = ''; remove.textContent = '清除已存金鑰';
@@ -168,7 +133,7 @@ export function integrateProviderSettings() {
     modelRefreshPending = true;
     status.textContent = '正在更新 OpenRouter 免費模型…';
     try {
-      const available = desktop ? await invoke('openrouter_free_models') : await browserAi('/models');
+      const available = await browserAi('/models');
       const models = [{id:'openrouter/free',name:'自動選擇免費模型'},...available.filter(model => model.id !== 'openrouter/free')];
       localStorage.setItem('gev.tw.freeModels', JSON.stringify(models));
       if (!models.some(model => model.id === localStorage.getItem('gev.tw.aiModel')) && models[0]) {
@@ -182,7 +147,6 @@ export function integrateProviderSettings() {
   }
 
   async function updateKeyIndicators() {
-    if (!desktop) {
       try {
         const available = await browserAi('/keys');
         if (available.warning) status.textContent = available.warning;
@@ -191,14 +155,6 @@ export function integrateProviderSettings() {
           row.dataset.set = String(inputs.length > 0 && inputs.every(input => available[input.dataset.twSecureKey] || available.env?.[input.dataset.twSecureKey]));
         }
       } catch { /* Service availability is reported on save. */ }
-      return;
-    }
-    for (const service of SECURE_SERVICES) {
-      const row = rows.querySelector(`[data-tw-service="${service.key}"]`);
-      if (!row) continue;
-      try { row.dataset.set = String(await invoke('has_api_key', { name:service.key })); }
-      catch { row.dataset.set = 'false'; }
-    }
   }
 
   async function saveSecureKeys() {
@@ -207,44 +163,27 @@ export function integrateProviderSettings() {
     status.textContent = '正在安全儲存…';
     try {
       for (const input of inputs) {
-        if (desktop) await invoke('save_api_key', { name:input.dataset.twSecureKey, value:input.value.trim() });
-        else await browserAi('/keys', { method:'POST', data:{ name:input.dataset.twSecureKey, value:input.value.trim() } });
+        await browserAi('/keys', { method:'POST', data:{ name:input.dataset.twSecureKey, value:input.value.trim() } });
         input.value = '';
       }
       const model = rows.querySelector('[data-tw-free-model]')?.value;
       if (model) localStorage.setItem('gev.tw.aiModel', model);
       window.dispatchEvent(new Event('gev-tw:model-changed'));
       await updateKeyIndicators();
-      window.dispatchEvent(new Event('gev-tw:keys-changed'));
-      status.textContent = desktop ? '已儲存至 Windows Credential Manager。' : '已加密儲存，下次開啟可沿用；AI 與地圖服務會使用新設定。';
+      window.dispatchEvent(new CustomEvent('gev-tw:keys-changed',{detail:{names:inputs.map(input=>input.dataset.twSecureKey)}}));
+      status.textContent = '已加密儲存，下次開啟可沿用；AI 與地圖服務立即套用；已啟用的語音助理會自動重新連線。';
       return true;
     } catch (error) { status.textContent = `儲存失敗：${error?.message || error}`; return false; }
   }
 
-  applyButton?.addEventListener('click', async event => {
-    if (forwardLegacySave) { forwardLegacySave = false; return; }
-    if (![...rows.querySelectorAll('input[data-tw-secure-key]')].some(input => input.value.trim())) {
-      legacySavePending = [...rows.querySelectorAll('input[data-env-var]')].some(input => input.value.trim());
-      return;
-    }
+  const onApply = async event => {
+    ensureRows();
+    if (![...rows.querySelectorAll('input[data-tw-secure-key]')].some(input => input.value.trim())) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    const legacyHasInput = [...rows.querySelectorAll('input[data-env-var]')].some(input => input.value.trim());
-    if (await saveSecureKeys()) {
-      if (legacyHasInput) {
-        legacySavePending = true;
-        forwardLegacySave = true;
-        applyButton.click();
-      } else if (desktop) scheduleRestart();
-    }
-  }, true);
-  const legacyStatusObserver = new MutationObserver(() => {
-    if (desktop && legacySavePending && /Restarting|重新啟動/.test(legacyStatus?.textContent || '')) {
-      legacySavePending = false;
-      scheduleRestart();
-    }
-  });
-  if (legacyStatus) legacyStatusObserver.observe(legacyStatus, { childList:true, characterData:true, subtree:true });
+    await saveSecureKeys();
+  };
+  applyButton?.addEventListener('click', onApply, true);
   rows.addEventListener('click', event => {
     const remove = event.target.closest('[data-tw-remove-key]');
     if (remove) {
@@ -272,9 +211,7 @@ export function integrateProviderSettings() {
   dialogObserver.observe(dialog, { attributes:true, attributeFilter:['hidden','class'] });
   ensureRows();
   const description = dialog.querySelector('#key-setup-description');
-  if (description) description.textContent = desktop
-    ? '沿用原版服務設定欄位；台灣版服務金鑰儲存在 Windows Credential Manager。'
-    : '所有服務均可在下列欄位輸入；金鑰以 Windows 使用者加密保存。留白保留原金鑰，AI 金鑰不回傳至瀏覽器或 JSON 專案。';
+  if (description) description.textContent = '所有服務均可在下列欄位輸入；金鑰以 Windows 使用者加密保存。留白保留原金鑰，AI 金鑰不回傳至瀏覽器或 JSON 專案。';
   syncVisibility();
 
   return {
@@ -289,8 +226,7 @@ export function integrateProviderSettings() {
     dispose() {
       rowObserver.disconnect();
       dialogObserver.disconnect();
-      legacyStatusObserver.disconnect();
-      dialog.removeEventListener('click', onKeyLinkClick, true);
+      applyButton?.removeEventListener('click', onApply, true);
       document.body.classList.remove('gev-tw-provider-settings-open');
       extra.remove();
     },

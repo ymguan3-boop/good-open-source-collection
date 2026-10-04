@@ -1,0 +1,31 @@
+.tw-floating-panel{position:fixed;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden;resize:both;pointer-events:auto;color:#e6f3fb;background:rgba(7,28,43,.96);border:1px solid #437387;border-radius:10px;box-shadow:0 8px 30px #0007;font:13px/1.45 'IBM Plex Sans TC','Microsoft JhengHei',sans-serif;isolation:isolate}
+.tw-floating-panel[hidden]{display:none!important}
+.tw-floating-panel *, .tw-floating-panel *::before,.tw-floating-panel *::after{box-sizing:border-box}
+.tw-floating-header{display:flex!important;flex:0 0 40px;align-items:center;gap:6px;min-height:40px;padding:5px 8px;border-bottom:1px solid #325767;background:#102e40;cursor:grab;touch-action:none;user-select:none;overflow:hidden}
+.tw-floating-dragging{cursor:grabbing}
+.tw-floating-header strong{font-size:14px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tw-floating-window-actions{display:flex;gap:3px;flex:0 0 auto}
+.tw-floating-panel button{border:1px solid #386879;border-radius:6px;padding:6px 9px;background:#0b293b;color:#e3f3fa;font:inherit;cursor:pointer;min-height:30px;max-width:100%}
+.tw-floating-panel button:hover,.tw-floating-panel button:focus-visible{background:#174354;border-color:#61d1e4}
+.tw-floating-panel button:disabled{opacity:.48;cursor:default}
+.tw-floating-window-actions button{width:27px;min-height:27px;padding:0;line-height:25px;text-align:center}
+.tw-floating-panel input,.tw-floating-panel select,.tw-floating-panel textarea{max-width:100%;border:1px solid #386879;border-radius:6px;padding:6px;background:#061d2b;color:#e3f3fa;font:inherit}
+.tw-floating-panel input[type=checkbox],.tw-floating-panel input[type=radio]{width:16px;height:16px;flex:0 0 16px;padding:0}
+.tw-floating-panel label{font-size:12px}
+.tw-floating-panel a{color:#6de0f4}
+.tw-floating-body{flex:1 1 auto;min-height:0;overflow:auto;padding:10px;overscroll-behavior:contain;scrollbar-width:thin}
+.tw-floating-body p{margin:6px 0}
+.tw-floating-body .tw-actions{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.tw-floating-summary{display:none;font-size:11px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tw-floating-mini-controls{display:none;gap:5px;align-items:center;padding:3px 8px;overflow:auto}
+.tw-floating-panel[data-panel-mode=minimized]{resize:none}
+.tw-floating-panel[data-panel-mode=minimized] .tw-floating-body{display:none}
+.tw-floating-panel[data-panel-mode=minimized] .tw-floating-header strong{flex:0 1 auto;font-size:12px}
+.tw-floating-panel[data-panel-mode=minimized] .tw-floating-summary{display:block;flex:1}
+.tw-floating-panel[data-panel-mode=minimized] .tw-floating-mini-controls:not(:empty){display:flex;flex:1 1 auto}
+.tw-floating-mini-controls button{padding:2px 8px;min-height:27px;white-space:nowrap}
+.tw-floating-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.tw-floating-field{display:grid;grid-template-columns:100px minmax(0,1fr);align-items:center;gap:6px;margin:6px 0}
+.tw-floating-muted{font-size:11px;color:#9cb5c4}
+.tw-floating-status{font-size:12px;color:#a9e5ec;overflow-wrap:anywhere}
+@media(max-width:400px){.tw-floating-header{padding:5px}.tw-floating-window-actions{gap:2px}.tw-floating-window-actions button{width:24px}.tw-floating-field{grid-template-columns:85px minmax(0,1fr)}}

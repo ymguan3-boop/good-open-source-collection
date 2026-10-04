@@ -1,29 +1,44 @@
 import * as Cesium from 'cesium';
 import * as turf from '@turf/turf';
-import { invoke } from '@tauri-apps/api/core';
 import { addGeoJSON } from './dataImport.js';
 import { listLayers, removeLayer } from './layerRegistry.js';
 import { browserAi } from './browserAi.js';
 import { resolvePlace } from './places.js';
+import { attachNavigationCard, vehicleDisplayPolicy } from './navigationDisplay.js';
 
-export function createNavigationController({ viewer, onStatus=()=>{},onRoute=()=>{} }) {
+export function createNavigationController({ viewer, beforeCamera=()=>{}, onStatus=()=>{},onRoute=()=>{} }) {
+  let routeStyle={color:'#369cff',width:2};
+  try{const saved=JSON.parse(localStorage.getItem('gev.tw.routeStyle')||'{}');if(/^#[0-9a-f]{6}$/i.test(saved.color||''))routeStyle.color=saved.color;if(Number.isFinite(Number(saved.width)))routeStyle.width=Math.max(.5,Math.min(16,Number(saved.width)));}catch{}
+  function setRouteStyle(patch={}){
+    if(/^#[0-9a-f]{6}$/i.test(patch.color||''))routeStyle.color=patch.color;
+    if(Number.isFinite(Number(patch.width)))routeStyle.width=Math.max(.5,Math.min(16,Number(patch.width)));
+    localStorage.setItem('gev.tw.routeStyle',JSON.stringify(routeStyle));
+    const layer=listLayers().find(item=>item.id===routeLayerId);
+    if(layer){layer.style={...layer.style,stroke:routeStyle.color,strokeWidth:routeStyle.width};for(const entity of layer.dataSource.entities.values)if(entity.polyline){entity.polyline.width=routeStyle.width;entity.polyline.material=new Cesium.PolylineDashMaterialProperty({color:Cesium.Color.fromCssColorString(routeStyle.color),dashLength:16});}}
+    viewer.scene.requestRender();return {...routeStyle};
+  }
   let currentRoute = null;
   let routeLayerId = null;
-  let watchId = null;
   let positionEntity = null;
   let following = false;
-  let lastPosition = null;
   let planEpoch = 0;
   let previewTimer=null;
   let driveMode=false,driveHeights=[];
+  let releaseCard=null,attachedCard=null;
+  function attachCard(card){
+    if(card===attachedCard)return;
+    releaseCard?.();attachedCard=card;
+    releaseCard=attachNavigationCard(card);
+  }
 
   async function planRoute({origin='',destination='',waypoints=[],travelMode='car'}) {
+    beforeCamera();
     if(!['car','motorcycle'].includes(travelMode))throw new Error('請選擇汽車或機車');
     if(!Array.isArray(waypoints))throw new Error('中途點格式不正確');
     stopMotion();
     const epoch = ++planEpoch;
     const ensureCurrent = () => { if (epoch !== planEpoch) throw new DOMException('路線規劃已停止', 'AbortError'); };
-    const presence=globalThis.__TAURI_INTERNALS__ ? await invoke('has_api_key',{name:'TOMTOM_API_KEY'}) : (await browserAi('/keys')).env?.TOMTOM_API_KEY;
+    const presence=(await browserAi('/keys')).env?.TOMTOM_API_KEY;
     ensureCurrent();if(!presence)throw new Error('未輸入金鑰');
     if (!String(destination).trim()) throw new Error('請輸入目的地');
     onStatus('正在解析起點與目的地…');
@@ -38,11 +53,11 @@ export function createNavigationController({ viewer, onStatus=()=>{},onRoute=()=
     for(let i=0;i<locations.length-1;i++){
       ensureCurrent();onStatus(`正在計算第 ${i+1}／${locations.length-1} 段${travelMode==='motorcycle'?'機車':'汽車'}路線…`);
       const from=locations[i],to=locations[i+1],request={originLat:from.lat,originLon:from.lon,destinationLat:to.lat,destinationLon:to.lon,travelMode};
-      const raw=globalThis.__TAURI_INTERNALS__?await invoke('tomtom_route',request):await browserAi('/route',{method:'POST',data:request});
+      const raw=await browserAi('/route',{method:'POST',data:request});
       ensureCurrent();const payload=typeof raw==='string'?JSON.parse(raw):raw,legRoute=payload?.routes?.[0];
       if(!legRoute)throw new Error(`第 ${i+1} 段沒有可用路線`);routes.push(legRoute);
     }
-    // Two-point requests keep both native and browser paths compatible and allow any number of stops.
+    // Two-point requests use the local browser proxy and allow any number of stops.
     let offset=0;
     const guidance=routes.flatMap(route=>{const items=(route.guidance?.instructions||[]).map(item=>({...item,routeOffsetInMeters:Number(item.routeOffsetInMeters||0)+offset}));offset+=Number(route.summary?.lengthInMeters||0);return items;});
     const route={legs:routes.flatMap(route=>route.legs||[]),summary:{lengthInMeters:routes.reduce((sum,route)=>sum+Number(route.summary?.lengthInMeters||0),0),travelTimeInSeconds:routes.reduce((sum,route)=>sum+Number(route.summary?.travelTimeInSeconds||0),0),trafficDelayInSeconds:routes.reduce((sum,route)=>sum+Number(route.summary?.trafficDelayInSeconds||0),0)},guidance:{instructions:guidance},segments:routes};
@@ -71,8 +86,8 @@ export function createNavigationController({ viewer, onStatus=()=>{},onRoute=()=
 
     if (routeLayerId) removeLayer(routeLayerId);
     const layer = await addGeoJSON(fc, `行車路線｜${end.label}`, viewer, {
-      stroke:'#5ee7f7',
-      strokeWidth:9,
+      stroke:routeStyle.color,
+      strokeWidth:routeStyle.width,
       clampToGround:true,
       flyTo:true,
       kind:'tomtom-route',
@@ -88,6 +103,7 @@ export function createNavigationController({ viewer, onStatus=()=>{},onRoute=()=
     }
     routeLayerId = layer.id;
     for(const entity of layer.dataSource.entities.values){if(entity.polyline){entity.polyline.classificationType=Cesium.ClassificationType.BOTH;entity.polyline.zIndex=100;}}
+    setRouteStyle(routeStyle);
     currentRoute = {
       start,
       end,
@@ -111,6 +127,7 @@ export function createNavigationController({ viewer, onStatus=()=>{},onRoute=()=
   }
 
   async function showRoute() {
+    beforeCamera();
     following=false;driveMode=false;
     const layer = routeLayerId ? listLayers().find(l => l.id === routeLayerId) : null;
     if (!layer?.dataSource) throw new Error('尚未規劃行車路線');
@@ -120,67 +137,29 @@ export function createNavigationController({ viewer, onStatus=()=>{},onRoute=()=
     return routeSummary(currentRoute);
   }
 
-  function navigationView(position = lastPosition) {
-    if (!currentRoute) throw new Error('尚未規劃行車路線');
-    if(watchId===null)return driveRoute();
-    const pos = position || {
-      lat:currentRoute.coordinates[0][1],
-      lon:currentRoute.coordinates[0][0],
-    };
-    const nearestIndex = nearestRouteIndex(pos.lat, pos.lon);
-    const next = currentRoute.coordinates[Math.min(nearestIndex + 4, currentRoute.coordinates.length - 1)];
-    const heading = Cesium.Math.toRadians(bearingDegrees(pos.lat, pos.lon, next[1], next[0]));
-    viewer.camera.flyTo({
-      destination:Cesium.Cartesian3.fromDegrees(pos.lon, pos.lat, 220),
-      orientation:{ heading, pitch:Cesium.Math.toRadians(-35), roll:0 },
-      duration:0.7,
-    });
-    following = true;
-    onStatus('已切換導航視角');
-    return { ok:true, mode:'navigation' };
-  }
-
-  async function startNavigation() {
-    if (!currentRoute) throw new Error('請先規劃路線');
-    if (!navigator.geolocation) throw new Error('此裝置不支援定位');
-    if (watchId !== null) return { ok:true, alreadyRunning:true };
-    stopMotion();
-    const layer=listLayers().find(l=>l.id===routeLayerId);if(layer?.dataSource)layer.dataSource.show=true;
-    if(layer)layer.visible=true;
-    onRoute(routeSummary(currentRoute));
-    onStatus('正在取得目前位置並啟動導航…');
-    watchId = navigator.geolocation.watchPosition(
-      (pos) => updatePosition(pos),
-      (error) => {stopMotion();onStatus(`定位失敗：${error.message}`);},
-      { enableHighAccuracy:true, maximumAge:3000, timeout:15000 }
-    );
-    following = true;
-    return { ok:true };
-  }
+  function navigationView() { return driveRoute(); }
 
   function stopNavigation() {
     planEpoch++;
     stopMotion();
-    onStatus('導航與行進示意已停止；路線仍保留在地圖上');
+    onStatus('行車視角與行進示意已停止；路線仍保留在地圖上');
     return { ok:true };
   }
   function stopMotion(){
-    if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-    watchId = null;
     following = false;
     driveMode=false;viewer.camera.cancelFlight();
-    clearInterval(previewTimer);previewTimer=null;
+    cancelAnimationFrame(previewTimer);previewTimer=null;
     if(positionEntity){listLayers().find(l=>l.id===routeLayerId)?.dataSource?.entities.remove(positionEntity);positionEntity=null;}
   }
   function clearRoute(){
     ++planEpoch;stopMotion();
     if(routeLayerId)removeLayer(routeLayerId);
-    currentRoute=null;routeLayerId=null;lastPosition=null;onRoute(null);onStatus('路線已關閉');
+    currentRoute=null;routeLayerId=null;onRoute(null);onStatus('路線已關閉');
     return { ok:true };
   }
   function startPreview({follow=false,durationSeconds=60}={}){
     if(!currentRoute)throw new Error('請先規劃路線');
-    stopMotion();const layer=listLayers().find(l=>l.id===routeLayerId);if(!layer)throw new Error('路線圖層已移除');
+    stopMotion();lastSurface={at:-Infinity,height:0};driveHeights=follow?driveHeights:[];const layer=listLayers().find(l=>l.id===routeLayerId);if(!layer)throw new Error('路線圖層已移除');
     layer.visible=true;layer.dataSource.show=true;onRoute(routeSummary(currentRoute));
     following=follow;driveMode=follow;viewer.camera.cancelFlight();
     const started=performance.now();
@@ -188,15 +167,16 @@ export function createNavigationController({ viewer, onStatus=()=>{},onRoute=()=
       let low=0,high=distances.length-1;while(low+1<high){const mid=(low+high)>>1;if(distances[mid]<=distance)low=mid;else high=mid;}
       const a=currentRoute.coordinates[low],b=currentRoute.coordinates[high],ratio=distances[high]>distances[low] ? (distance-distances[low])/(distances[high]-distances[low]) : 0;
       const point=[a[0]+(b[0]-a[0])*ratio,a[1]+(b[1]-a[1])*ratio];
-      updatePosition({coords:{latitude:point[1],longitude:point[0],accuracy:0}},true,fraction);
-      if(fraction>=1){clearInterval(previewTimer);previewTimer=null;following=false;driveMode=false;onStatus('行進示意已完成（非 GPS 實際位置）');}
+      updatePosition(point[1],point[0],fraction,bearingDegrees(a[1],a[0],b[1],b[0]));
+      if(fraction>=1){previewTimer=null;following=false;driveMode=false;onStatus('路線行進示意已完成（非裝置實際位置）');}else previewTimer=requestAnimationFrame(tick);
     };
-    previewTimer=setInterval(tick,100);tick();return {ok:true,mode:'route-preview'};
+    tick();return {ok:true,mode:'route-preview'};
   }
   async function driveRoute(){
+    beforeCamera();
     if(!currentRoute)throw new Error('請先規劃行車路線');
     stopMotion();const route=currentRoute,epoch=planEpoch;
-    onStatus('正在準備沿路線行車視角（非 GPS 實際位置）…');
+    onStatus('正在準備沿路線行車視角（非裝置實際位置）…');
     const positions=Array.from({length:65},(_,i)=>{const p=turf.along(route.line,route.lengthKm*i/64).geometry.coordinates;return Cesium.Cartographic.fromDegrees(...p);});
     driveHeights=[];
     if(viewer.terrainProvider?.availability){try{const sampled=await Promise.race([Cesium.sampleTerrainMostDetailed(viewer.terrainProvider,positions),new Promise((_,reject)=>setTimeout(()=>reject(new Error('地形取樣逾時')),8000))]);driveHeights=sampled.map(p=>Number.isFinite(p.height)?p.height:0);}catch{onStatus('地形取樣暫時無法取得，改依已載入地表高度行進');}}
@@ -206,7 +186,6 @@ export function createNavigationController({ viewer, onStatus=()=>{},onRoute=()=
 
   async function routeFromCurrentTo(destination) {
     const result = await planRoute({ origin:'', destination });
-    await startNavigation();
     return result;
   }
 
@@ -215,54 +194,48 @@ export function createNavigationController({ viewer, onStatus=()=>{},onRoute=()=
       return { lat:Number(value.lat), lon:Number(value.lon), label:value.label || '座標' };
     }
     const text = String(value || '').trim();
-    if (allowCurrent && (!text || text === '目前位置' || text === '我的位置' || text.toLowerCase() === 'current location')) {
-      const pos = await getCurrentPosition();
-      return { lat:pos.coords.latitude, lon:pos.coords.longitude, label:'目前位置' };
+    if (allowCurrent && (!text || text === '目前位置' || text === '我的位置' || text === '地圖中心' || text === '目前地圖中心' || text.toLowerCase() === 'current location')) {
+      return mapCenterLocation(viewer);
     }
 
     const hit = await resolvePlace(text);
     return {lat:hit.lat,lon:hit.lon,label:hit.name};
   }
 
-  function updatePosition(pos,preview=false,fraction=0) {
+  let lastSurface = { at: -Infinity, height: 0 }, lastStatusAt = 0;
+  function surfaceHeight(lon, lat, fraction) {
+    const now=performance.now();
+    if(now-lastSurface.at<120)return lastSurface.height;
+    const point=Cesium.Cartographic.fromDegrees(lon,lat);
+    let height=viewer.scene.globe.getHeight(point);
+    if(viewer.scene.sampleHeightSupported){try{const sampled=viewer.scene.sampleHeight(point,positionEntity?[positionEntity]:[]);if(Number.isFinite(sampled))height=sampled;}catch{}}
+    if(!Number.isFinite(height)&&driveHeights.length){const index=Math.min(63,Math.floor(fraction*64)),ratio=fraction*64-index;height=driveHeights[index]*(1-ratio)+driveHeights[index+1]*ratio;}
+    lastSurface={at:now,height:Number.isFinite(height)?height:0};return lastSurface.height;
+  }
+  function updatePosition(lat,lon,fraction=0,headingDegrees=0) {
     if(!currentRoute)return;
-    const lat = pos.coords.latitude;
-    const lon = pos.coords.longitude;
-    lastPosition = { lat, lon, accuracy:pos.coords.accuracy };
-
-    if (!positionEntity) {
-      positionEntity = listLayers().find(l=>l.id===routeLayerId).dataSource.entities.add({
-        position:Cesium.Cartesian3.fromDegrees(lon, lat, 4),
-        point:{
-          pixelSize:13,
-          color:Cesium.Color.fromCssColorString('#5ee7f7'),
-          outlineColor:Cesium.Color.WHITE,
-          outlineWidth:3,
-          disableDepthTestDistance:Number.POSITIVE_INFINITY,
-        },
-        label:{text:preview ? '行進示意（非 GPS）' : '目前位置',font:'13px IBM Plex Sans TC',fillColor:Cesium.Color.WHITE,showBackground:true,pixelOffset:new Cesium.Cartesian2(0,-24),disableDepthTestDistance:Infinity},
+    const height=surfaceHeight(lon,lat,fraction),position=Cesium.Cartesian3.fromDegrees(lon,lat,height+.12);
+    // GLB has +X forward; Cesium heading is clockwise from north.
+    const orientation=Cesium.Transforms.headingPitchRollQuaternion(position,new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(headingDegrees)-Math.PI/2,0,0));
+    if(!positionEntity){
+      const display=vehicleDisplayPolicy(currentRoute.travelMode);
+      positionEntity=listLayers().find(l=>l.id===routeLayerId).dataSource.entities.add({
+        name:currentRoute.travelMode==='motorcycle'?'機車路線示意':'汽車路線示意',position,orientation,
+        model:{uri:display.uri,scale:1,minimumPixelSize:display.minimumPixelSize,heightReference:Cesium.HeightReference.NONE,shadows:Cesium.ShadowMode.DISABLED},
+        billboard:{image:display.markerImage,width:display.markerSize,height:display.markerSize,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(display.markerNear,Infinity),disableDepthTestDistance:Infinity},
+        label:{text:display.label,font:'13px IBM Plex Sans TC',fillColor:Cesium.Color.WHITE,showBackground:true,pixelOffset:new Cesium.Cartesian2(0,-28),disableDepthTestDistance:Infinity},
       });
-    } else {
-      positionEntity.position = Cesium.Cartesian3.fromDegrees(lon, lat, 4);
-    }
-
-    const idx = nearestRouteIndex(lat, lon);
-    const next = currentRoute?.coordinates?.[Math.min(idx + 4, (currentRoute?.coordinates?.length || 1) - 1)];
-    if (following && next) {
-      const routeDistance=preview?currentRoute.lengthKm*fraction:turf.nearestPointOnLine(currentRoute.line,turf.point([lon,lat])).properties.location;
+    }else{positionEntity.position=position;positionEntity.orientation=orientation;}
+    const routeDistance=currentRoute.lengthKm*fraction;
+    if(following){
       const target=turf.along(currentRoute.line,Math.min(currentRoute.lengthKm,routeDistance+.06)).geometry.coordinates;
-      const heading = Cesium.Math.toRadians(bearingDegrees(lat, lon, target[1], target[0]));
-      const groundPoint=Cesium.Cartographic.fromDegrees(lon,lat);
-      let height=viewer.scene.globe.getHeight(groundPoint);
-      if(viewer.scene.sampleHeightSupported){try{const sampled=viewer.scene.sampleHeight(groundPoint,[positionEntity]);if(Number.isFinite(sampled))height=sampled;}catch{}}
-      if(!Number.isFinite(height)&&driveHeights.length){const index=Math.min(63,Math.floor(fraction*64)),ratio=fraction*64-index;height=driveHeights[index]*(1-ratio)+driveHeights[index+1]*ratio;}
-      height=Number.isFinite(height)?height:0;
-      viewer.camera.setView({
-        destination:Cesium.Cartesian3.fromDegrees(lon, lat, height+(driveMode?18:70)),
-        orientation:{ heading, pitch:Cesium.Math.toRadians(driveMode?-12:-24), roll:0 },
-      });
+      const heading=Cesium.Math.toRadians(bearingDegrees(lat,lon,target[1],target[0]));
+      // Follow from behind the colored 3D vehicle so the model remains visible.
+      const behind=routeDistance>=.025?turf.along(currentRoute.line,routeDistance-.025).geometry.coordinates:turf.destination([lon,lat],.025,headingDegrees+180).geometry.coordinates;
+      viewer.camera.setView({destination:Cesium.Cartesian3.fromDegrees(behind[0],behind[1],height+(driveMode?18:70)),orientation:{heading,pitch:Cesium.Math.toRadians(driveMode?-33:-24),roll:0}});
     }
-    onStatus(navigationStatus(lat, lon, idx,preview,fraction));viewer.scene.requestRender();
+    const now=performance.now();if(now-lastStatusAt>450 || fraction>=1){lastStatusAt=now;onStatus(navigationStatus(fraction));}
+    viewer.scene.requestRender();
   }
 
   function nearestRouteIndex(lat, lon) {
@@ -277,41 +250,40 @@ export function createNavigationController({ viewer, onStatus=()=>{},onRoute=()=
     return best;
   }
 
-  function navigationStatus(lat, lon, idx,preview,fraction) {
-    const coords = currentRoute?.coordinates || [];
-    const dest = currentRoute?.end;
-    if (!coords.length || !dest) return '導航中';
-    const total=currentRoute.lengthKm,nearest=preview ? {properties:{location:total*fraction,dist:0}} : turf.nearestPointOnLine(currentRoute.line,turf.point([lon,lat]));
-    const remainingKm=Math.max(0,total-nearest.properties.location),remainingMinutes=total ? Math.ceil(currentRoute.summary.travelTimeInSeconds/60*remainingKm/total) : 0;
-    const mode=preview ? '路線行進示意（非 GPS 實際位置）' : 'GPS 導航中';
-    const instruction=currentRoute.guidance.find(item=>item.routeOffsetInMeters>nearest.properties.location*1000);
-    return `${mode}｜剩餘路程約 ${remainingKm.toFixed(1)} 公里｜依規劃時間估計約 ${remainingMinutes} 分鐘${!preview && nearest.properties.dist>.1 ? '｜已偏離路線，請重新規劃' : ''}${instruction?.message ? `｜${instruction.message}` : ''}`;
+  function navigationStatus(fraction) {
+    if(!currentRoute?.end)return '路線行進示意';
+    const total=currentRoute.lengthKm,remainingKm=Math.max(0,total*(1-fraction));
+    const remainingMinutes=total?Math.ceil(currentRoute.summary.travelTimeInSeconds/60*(1-fraction)):0;
+    const instruction=currentRoute.guidance.find(item=>item.routeOffsetInMeters>total*fraction*1000);
+    return `路線行進示意（非裝置實際位置）｜剩餘路程約 ${remainingKm.toFixed(1)} 公里｜依規劃時間估計約 ${remainingMinutes} 分鐘${instruction?.message?`｜${instruction.message}`:''}`;
   }
 
   return {
+    attachCard,
+    destroy(){stopNavigation();releaseCard?.();releaseCard=null;attachedCard=null;},
+    setRouteStyle,
+    get routeStyle(){return {...routeStyle};},
     planRoute,
     routeFromCurrentTo,
     showRoute,
     navigationView,
-    startNavigation,
     stopNavigation,
     clearRoute,
     startPreview,
     driveRoute,
     get currentRoute(){ return currentRoute; },
-    get active(){ return watchId !== null || previewTimer !== null; },
+    get active(){ return previewTimer !== null; },
   };
 }
 
-function getCurrentPosition() {
-  return new Promise((resolve,reject) => {
-    if (!navigator.geolocation) return reject(new Error('此裝置不支援定位'));
-    navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy:true,
-      maximumAge:5000,
-      timeout:15000,
-    });
-  });
+export function mapCenterLocation(viewer) {
+  const point=new Cesium.Cartesian2(viewer.canvas.clientWidth/2,viewer.canvas.clientHeight/2);
+  const ray=viewer.camera.getPickRay(point);
+  const surface=ray?viewer.scene.globe.pick(ray,viewer.scene):null;
+  const cartesian=surface || viewer.camera.pickEllipsoid(point,viewer.scene.globe.ellipsoid);
+  const c=cartesian?Cesium.Cartographic.fromCartesian(cartesian):viewer.camera.positionCartographic;
+  if(!c)throw new Error('無法取得地圖中心，請輸入起點');
+  return {lat:Cesium.Math.toDegrees(c.latitude),lon:Cesium.Math.toDegrees(c.longitude),label:'地圖中心（非裝置定位）'};
 }
 function routeSummary(route) {
   return {

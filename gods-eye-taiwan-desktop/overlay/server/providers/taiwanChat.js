@@ -37,7 +37,7 @@ export async function streamTaiwanChat(res, key, data) {
       try {
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',signal:requestAbort.signal,
           headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json','X-OpenRouter-Title':'Gods Eye Taiwan'},
-          body:JSON.stringify({model,provider:{max_price:{prompt:0,completion:0,request:0}},messages,stream:true,max_tokens:1800,reasoning:{effort:'low',exclude:true}})});
+          body:JSON.stringify({model,...(data.allowPaid===true&&attempt===0?{}:{provider:{max_price:{prompt:0,completion:0,request:0}}}),messages,stream:true,max_tokens:1800,reasoning:{effort:'low',exclude:true}})});
         if (!response.ok) {
           const error = await response.json().catch(() => ({}));
           const problem = new Error(error.error?.message || `OpenRouter HTTP ${response.status}`);

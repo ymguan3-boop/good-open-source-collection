@@ -1,7 +1,7 @@
 import * as Cesium from 'cesium';
 import { makePanelDraggable } from './draggablePanel.js';
 /** UI entry points for the upstream aircraft tracker and cockpit controller. */
-export function createFlightObservation({ root, viewer, dataManager, styleManager, onStatus = () => {} }) {
+export function createFlightObservation({ root, viewer, dataManager, styleManager, beforeCamera=()=>{}, onStatus = () => {} }) {
   const card = document.createElement('section');
   card.className = 'tw-aircraft-card';
   card.hidden = true;
@@ -46,6 +46,7 @@ export function createFlightObservation({ root, viewer, dataManager, styleManage
   }
   async function setView(mode) {
     if (mode === 'stop') return stop();
+    await beforeCamera();
     if (!['first', 'third'].includes(mode)) throw new Error('不支援的飛機觀察視角');
     const target = module()?.getTrackedSubject?.() || (ownCockpit() ? styleManager.getCockpitState().subject : null);
     if (!target || !dataManager?.isEnabled('flights')) throw new Error('請先點選一架已載入的飛機');

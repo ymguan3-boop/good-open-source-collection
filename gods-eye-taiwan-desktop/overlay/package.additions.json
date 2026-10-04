@@ -1,19 +1,16 @@
 {
   "dependencies": {
     "@google/genai": "2.24.0",
-    "@tauri-apps/api": "^2.8.0",
     "@turf/turf": "^7.2.0",
     "dexie": "^4.2.0",
     "jszip": "^3.10.1",
     "proj4": "^2.19.0",
-    "shpjs": "^6.2.0"
+    "shpjs": "^6.2.0",
+    "onnxruntime-web": "1.30.0"
   },
-  "devDependencies": {
-    "@tauri-apps/cli": "^2.8.0"
-  },
+  "devDependencies": {},
   "scripts": {
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
-    "icons": "tauri icon branding/icon-master.png"
+    "dev": "node --use-system-ca node_modules/vite/bin/vite.js --host 127.0.0.1 --port 4175 --strictPort",
+    "preview": "node --use-system-ca node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4175 --strictPort"
   }
 }

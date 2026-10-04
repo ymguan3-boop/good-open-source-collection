@@ -1,10 +1,15 @@
+import {searchVoiceNews} from './voiceNews.js';
+import {probeGeminiLive} from './geminiLiveProbe.js';
+import {planningModels,selectPlanningModel} from './planningModels.js';
+import {readVoiceSettings,writeVoiceSettings} from './taiwanVoiceSettings.js';
+import {issueGeminiLiveToken,geminiLiveStatus} from './geminiLiveProvider.js';
 import { readResponseStyle,writeResponseStyle } from './taiwanUserSettings.js';
 import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { keySetupStatus } from '../../src/keySetupCore.mjs';
-import { credentialsReady, getCredential, saveCredential, credentialPresence } from './taiwanCredentialStore.js';
+import { refreshCredentials, getCredential, saveCredential, credentialPresence } from './taiwanCredentialStore.js';
 import { streamTaiwanChat } from './taiwanChat.js';
 import { analyzeCctvImage,planInspectionRoute,getFreeVisionModels } from './taiwanVisualAnalysis.js';
 
@@ -74,16 +79,18 @@ export function taiwanAiProxy() {
       // preview. Expose presence only; writes use the Windows encrypted store.
       server.middlewares.use('/api/setup/status', async (req,res) => {
         if (!local(req) || req.method !== 'GET') return json(res,403,{error:'僅允許本機讀取服務狀態'});
-        try { await credentialsReady; return json(res,200,{...keySetupStatus(process.env),store:'windows-dpapi'}); }
+        try { await refreshCredentials(); return json(res,200,{...keySetupStatus(process.env),store:'windows-dpapi'}); }
         catch (error) { return json(res,500,{error:error.message}); }
       });
       server.middlewares.use('/api/taiwan/ai', async (req, res) => {
         if (!local(req) || !['GET', 'POST', 'DELETE'].includes(req.method)) return json(res, 403, { error:'僅允許本機同來源瀏覽器' });
         const route = (req.url || '').split('?')[0];
         try {
+          if(route==='/voice-settings' && req.method==='GET')return json(res,200,{setting:await readVoiceSettings()});
+          if(route==='/voice-settings' && req.method==='POST')return json(res,200,{setting:await writeVoiceSettings(await body(req))});
           if (route==='/response-style' && req.method==='GET')return json(res,200,{setting:await readResponseStyle()});
           if (route==='/response-style' && req.method==='POST')return json(res,200,{setting:await writeResponseStyle(await body(req))});
-          if (!(route === '/keys' && req.method === 'POST')) await credentialsReady;
+          if (!(route === '/keys' && req.method === 'POST')) await refreshCredentials();
           if (route === '/runtime' && req.method === 'GET') return json(res,200,{googleMapsApiKey:getCredential('GOOGLE_MAPS_API_KEY'),cesiumIonToken:getCredential('CESIUM_ION_TOKEN')});
           if (route === '/search' && req.method === 'POST') {
             const data = await body(req);
@@ -176,8 +183,10 @@ export function taiwanAiProxy() {
           }
           if (route === '/chat-stream' && req.method === 'POST') {
             if (!keys.has('openrouter')) throw new Error('請先輸入 OpenRouter 金鑰');
-            return await streamTaiwanChat(res,keys.get('openrouter'),await body(req));
+            const data=await body(req);
+            return await streamTaiwanChat(res,keys.get('openrouter'),data.planning===true?await selectPlanningModel(data):{...data,allowPaid:false});
           }
+          if(route==='/planning-models'&&req.method==='GET')return json(res,200,await planningModels());
           if (route === '/models' && req.method === 'GET') {
             const value = await provider('https://openrouter.ai/api/v1/models');
             const models = value.data.filter(model => Number(model.pricing?.prompt) === 0 && Number(model.pricing?.completion) === 0 && (!model.architecture?.output_modalities || (model.architecture.output_modalities.includes('text') && model.architecture.output_modalities.every(type => type === 'text')))).map(({ id, name }) => ({ id, name }));
@@ -191,19 +200,23 @@ export function taiwanAiProxy() {
                 result.openrouter = value.data || true;
               } catch (error) { result.errors.openrouter = error.message; }
             }
-            if (keys.has('gemini')) {
-              try {
-                await provider('https://generativelanguage.googleapis.com/v1beta/auth_tokens', { method:'POST', headers:{ 'x-goog-api-key':keys.get('gemini'), 'Content-Type':'application/json' }, body:JSON.stringify({ uses:1 }) });
-                result.gemini = true;
-              } catch (error) { result.errors.gemini = error.message; }
-            }
+            result.gemini = keys.has('gemini');
+            result.geminiStatus = geminiLiveStatus(result.gemini);
             return json(res, 200, result);
           }
           if (route === '/gemini-token' && req.method === 'POST') {
-            if (!keys.has('gemini')) throw new Error('請先輸入 Gemini Live 金鑰');
-            const value = await provider('https://generativelanguage.googleapis.com/v1beta/auth_tokens', { method:'POST', headers:{ 'x-goog-api-key':keys.get('gemini'), 'Content-Type':'application/json' }, body:JSON.stringify({ uses:1 }) });
-            return json(res, 200, { token:value.name });
+            const data=req.headers['content-type']?await body(req):{};
+            return json(res, 200, await issueGeminiLiveToken({key:keys.get('gemini'),model:data.model}));
           }
+          if(route==='/gemini-probe'&&req.method==='POST'){const data=await body(req);return json(res,200,await probeGeminiLive(keys.get('gemini'),data.model,data.mode));}
+          if(route==='/voice-news'&&req.method==='POST')return json(res,200,await searchVoiceNews((await body(req)).query));
+          if(route==='/gemini-models'&&req.method==='GET'){
+            if(!keys.has('gemini'))throw new Error('尚未設定 Gemini 金鑰');
+            const value=await provider('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000',{headers:{'x-goog-api-key':keys.get('gemini')}});
+            const models=(value.models||[]).filter(m=>/live|bidi|native.audio/i.test(m.name+' '+(m.supportedGenerationMethods||[]).join(' '))).map(m=>({id:m.name.replace(/^models\//,''),name:m.displayName,methods:m.supportedGenerationMethods}));
+            return json(res,200,{checkedAt:new Date().toISOString(),models});
+          }
+          if (route === '/gemini-status' && req.method === 'GET') return json(res,200,geminiLiveStatus(keys.has('gemini')));
           if (route === '/chat' && req.method === 'POST') {
             if (!keys.has('openrouter')) throw new Error('請先輸入 OpenRouter 金鑰');
             const data = await body(req);

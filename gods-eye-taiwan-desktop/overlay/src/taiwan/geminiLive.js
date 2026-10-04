@@ -1,20 +1,23 @@
-import { GoogleGenAI, Modality } from '@google/genai';
-import { invoke } from '@tauri-apps/api/core';
+import {CINEMATIC_VOICE_TOOL,parseCinematicUtterance,runCinematicVoice} from './cinematicVoiceCommands.js';
+import {GoogleGenAI,Modality} from '@google/genai';
 import * as Cesium from 'cesium';
-import { listLayers, getLayer } from './layerRegistry.js';
+import { listLayers, getLayer,setLayerVisible } from './layerRegistry.js';
 import { runBuffer } from './analysis.js';
 import { browserAi } from './browserAi.js';
-import { resolvePlace as searchPlace } from './places.js';
+import { resolvePlace as searchPlace,findPlaceCandidates } from './places.js';
 import { LAYER_VOICE_TOOLS } from './layerVoiceActions.js';
 import { addGeoJSON } from './dataImport.js';
 import { removeLayer } from './layerRegistry.js';
 import { VOICE_COUNTY_NAMES, normalizeVoiceText } from './voiceScope.js';
+import {normalizeGeminiLiveModel,sanitizeGeminiReason,geminiLiveFailure,createGeminiConnectionGate} from './geminiLivePolicy.js';
 
-const MODEL = 'gemini-3.8-live';
-
-export function createGeminiLiveController({ viewer, navigation, layerActions, onStatus = () => {}, onTranscript = () => {} }) {
+export function createGeminiLiveController({ viewer, navigation, layerActions, cameraCommands, getSettings=()=>({}), onSources=()=>{}, onStatus = () => {}, onTranscript = () => {},onDiagnostic=()=>{} }) {
   let session = null;
   let pendingStart = null;
+  let pendingController=null,connectionGate=null;
+  let liveModel=normalizeGeminiLiveModel(getSettings().model),diagnostic={phase:'idle',model:liveModel,lastFailure:null};
+  function diagnose(event){diagnostic={...diagnostic,...event};onDiagnostic({...diagnostic});}
+  function transcript(role,text,{append=true,finished=false,host=false,...extra}={}){onTranscript({role,text,turnId:`${generation}:${transcriptTurn.id}:${role}${host?':host':''}`,append,finished,...extra});}
   let generation = 0;
   let inputStream = null;
   let inputContext = null;
@@ -27,10 +30,10 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
   const toolControllers = new Map();
   const cancelledToolIds = new Set();
   function cancelTools(){for(const controller of toolControllers.values())controller.abort();toolControllers.clear();}
-  let lastUserTranscript = '';
+  let lastUserTranscript = '';let pendingPlace=null;
   let transcriptSerial=0,transcriptTurn=newTranscriptTurn(),resumeTimer=null;
   function newTranscriptTurn(){return {id:++transcriptSerial,text:'',updatedAt:0,closed:false,responding:false,resumed:false,executing:false,handled:false,result:null,actions:new Map(),reports:new Set(),messages:[]};}
-  function clearVoiceRequests(){clearTimeout(resumeTimer);resumeTimer=null;lastUserTranscript='';transcriptTurn=newTranscriptTurn();globalThis.speechSynthesis?.cancel();layerActions?.clearPending?.();}
+  function clearVoiceRequests(){pendingPlace=null;clearTimeout(resumeTimer);resumeTimer=null;lastUserTranscript='';transcriptTurn=newTranscriptTurn();if(getSettings().clearPlaceOnNext!==false)clearTemporaryPlaces();globalThis.speechSynthesis?.cancel();layerActions?.clearPending?.();}
   async function waitTranscript(turn,signal){
     const until=Date.now()+2000;
     while(Date.now()<until){signal?.throwIfAborted();if(turn.text && Date.now()-turn.updatedAt>=300)break;await new Promise(resolve=>setTimeout(resolve,50));}
@@ -43,7 +46,7 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
     turn.handled=true;turn.result=result;stopPlayback();
     const outcome=result.question || result.message || (result.ok?'工作已完成':'工作未完成');
     turn.messages.push(outcome);const message=turn.messages.join('；');
-    onStatus(message);onTranscript({role:'assistant',text:message});
+    onStatus(message);transcript('assistant',message,{append:false,finished:true,host:true});
     // Record a model-side outcome without creating another user request or
     // starting another generation. The host speaks the exact observed result.
     if(remember)session?.sendClientContent({turns:[{role:'model',parts:[{text:message}]}],turnComplete:false});
@@ -54,7 +57,9 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
     }
   }
   function visualRequest(utterance){
+    const cameraRequest=parseCinematicUtterance(utterance);if(cameraRequest)return cameraRequest;
     const text=normalizeVoiceText(utterance).trim();
+    if(pendingPlace && Date.now()-pendingPlace.at<120000){if(/^(?:請)?取消|不用了|不要/.test(text)){pendingPlace=null;return null;}const choice=text.match(/(?:第)?([一二三四五1-5])(?:個|項|間|處|筆)/),index=choice?{'一':0,'二':1,'三':2,'四':3,'五':4,'1':0,'2':1,'3':2,'4':3,'5':4}[choice[1]]:pendingPlace.candidates.findIndex(item=>text.includes(item.name));const selected=pendingPlace.candidates[index];if(selected){return {name:pendingPlace.tool,args:{place:selected.name}};}}
     if(!isVisualVisit(text) || /不要|不用|別|取消|如何|怎麼|例如/.test(text))return null;
     const place=extractVisualPlace(text);return place ? {name:/繞|環繞|一圈/.test(text)?'fly_to_and_orbit_place':'fly_to_place',args:{place}} : null;
   }
@@ -71,7 +76,8 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
           if(current!==generation || turn!==transcriptTurn)return;
           const request=layerActions?.requestFromUtterance?.(utterance,{turnId:turn.id}) || visualRequest(utterance);
           if(!request)return;turn.resumed=true;turn.responding=true;turn.executing=true;stopPlayback();
-          const result=request.name?.startsWith('fly_') ? await executeTool(request.name,request.args,{signal:controller.signal,utterance,turnId:turn.id}) : await layerActions.resumeFromUtterance(utterance,{signal:controller.signal,turnId:turn.id});
+           onStatus(`已收到指令，正在執行：${utterance}`);
+          const result=(request.name?.startsWith('fly_') || request.name==='cinematic_camera') ? await executeTool(request.name,request.args,{signal:controller.signal,utterance:request.confirmedScope?`${utterance}；${request.confirmedScope}`:utterance,turnId:turn.id}) : await layerActions.resumeFromUtterance(utterance,{signal:controller.signal,turnId:turn.id});
           controller.signal.throwIfAborted();if(result){turn.actions.set(actionKey(request.name,request.args),result);reportAction(turn,result,current);}
         }catch(error){if(!controller.signal.aborted)reportAction(turn,{ok:false,message:`語音操作未完成：${error.message}`},current);}
         finally{turn.executing=false;if(toolControllers.get(id)===controller)toolControllers.delete(id);}
@@ -85,7 +91,11 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
 
   const tools = [{
     functionDeclarations: [
+      {name:'search_public_news',description:'搜尋公開新聞標題、來源與發布時間。近期新聞及輿情問題先用此工具；不可把新聞集合当作民意統計。',parameters:{type:'OBJECT',properties:{query:{type:'STRING',description:'新聞主題與地點，例如宜蘭交通；不包含私人或金鑰資料'}},required:['query']}},
       ...LAYER_VOICE_TOOLS,
+      CINEMATIC_VOICE_TOOL,
+      {name:'get_application_state',description:'取得目前鏡頭位置、已載入圖資、工具列功能與實際時間。',parameters:{type:'OBJECT',properties:{}}},
+      {name:'inspect_current_map',description:'使用者開啟分享地圖時，取得現在地圖畫面協助說明；沒有授权則回傳原因。',parameters:{type:'OBJECT',properties:{}}},
       {
         name:'list_layers',
         description:'列出上帝之眼目前載入的自訂 GIS 圖層。',
@@ -132,12 +142,7 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
       },
       {
         name:'navigation_view',
-        description:'切換到沿目前路線方向的導航視角。',
-        parameters:{ type:'OBJECT', properties:{} }
-      },
-      {
-        name:'start_navigation',
-        description:'使用裝置目前位置開始跟隨導航；必須先規劃路線。',
+        description:'以行車視角沿目前已規劃路線觀看示意，不使用裝置定位。',
         parameters:{ type:'OBJECT', properties:{} }
       },
       {
@@ -147,7 +152,7 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
       },
       {
         name:'stop_navigation',
-        description:'停止目前位置跟隨導航，但保留路線。',
+        description:'停止路線行進示意與行車視角，但保留路線。',
         parameters:{ type:'OBJECT', properties:{} }
       },
       {
@@ -165,69 +170,88 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
     ]
   }];
 
+  function announce(message){onStatus(message);transcript('assistant',message,{append:false,finished:true,host:true});if(globalThis.speechSynthesis && globalThis.SpeechSynthesisUtterance){globalThis.speechSynthesis.cancel();const speech=new SpeechSynthesisUtterance(message);speech.lang='zh-TW';globalThis.speechSynthesis.speak(speech);}}
   async function start() {
     if (session) return;
     if (pendingStart) return pendingStart;
     const current = ++generation;
+    liveModel=normalizeGeminiLiveModel(getSettings().model);
+    const startController=new AbortController(),gate=createGeminiConnectionGate();
+    pendingController=startController;connectionGate=gate;
+    diagnose({phase:'token',model:liveModel,lastFailure:null,at:new Date().toISOString()});
     cancelledToolIds.clear();clearVoiceRequests();
     outputTranscript='';languageCorrectionPending=false;
     outputContext ||= new AudioContext({sampleRate:24000});
     void outputContext.resume().catch(()=>{});
     const task = (async () => {
-    onStatus('正在取得 Gemini Live 短效權杖… 最多等待 30 秒');
-    const token = await deadline(globalThis.__TAURI_INTERNALS__
-      ? invoke('gemini_ephemeral_token')
-      : browserAi('/gemini-token', { method:'POST' }).then(result => result.token),
-      30000, '取得短效權杖逾時，請檢查網路或稍後重試');
-    if (current !== generation) return;
-    onStatus('短效權杖已取得，正在連線 Gemini Live…');
-    const ai = new GoogleGenAI({ apiKey: token, apiVersion:'v1beta' });
-    const connection = ai.live.connect({
-      model: MODEL,
+    onStatus('正在取得 Gemini Live 短效權杖…');
+    const token=await deadline(Promise.race([browserAi('/gemini-token',{method:'POST',data:{model:liveModel},signal:startController.signal}).then(value=>value.token),gate.failure]),30000,'取得短效權杖逾時');
+    if(current!==generation)return;
+    diagnose({phase:'connecting',transport:'ephemeral-token'});
+    onStatus('正在連線 Gemini Live…');
+    const ai=new GoogleGenAI({apiKey:token,httpOptions:{apiVersion:'v1beta'}});
+    const connection=ai.live.connect({
+      model: liveModel,
       callbacks:{
         onopen:() => { if (current === generation) onStatus('Gemini Live 已連線'); },
-        onerror:(e) => { if (current === generation) onStatus(`Gemini Live 錯誤：${e?.message || e}`); },
+        onerror:(e) => { if (current === generation) {
+          const error=geminiLiveFailure({reason:e?.message || 'WebSocket 連線發生錯誤',model:liveModel});
+          diagnose({...error.diagnostic,phase:'error',lastFailure:error.diagnostic});onStatus(error.message);
+          // Browsers can fire a generic error immediately before the detailed
+          // close event. Prefer that close reason while still bounding errors.
+          setTimeout(()=>{if(current===generation && !session)gate.fail(error);},150);
+        } },
         onclose:(e) => {
           if (current !== generation) return;
-          onStatus(`Gemini Live 已中斷${e?.reason ? '：'+e.reason : ''}`);
+          const error=geminiLiveFailure({code:e?.code,reason:e?.reason || '服務已關閉語音連線',model:liveModel});
+          gate.fail(error);startController.abort(error);
+          diagnose({...error.diagnostic,lastFailure:error.diagnostic});onStatus(error.message);
           generation++;cancelTools();cancelOrbit();clearVoiceRequests();session = null;
           void releaseAudio();
         },
-        onmessage:(message) => { if (current === generation) void handleMessage(message,current).catch(error=>{if(current===generation)onStatus(`語音訊息處理失敗：${error.message}`);}); },
+        onmessage:(message) => { if (current === generation) void handleMessage(message,current).catch(error=>{if(current===generation)onStatus(`語音訊息處理失敗：${sanitizeGeminiReason(error)}`);}); },
       },
       config:{
         responseModalities:[Modality.AUDIO],
-        inputAudioTranscription:{languageCodes:['zh-TW'],customVocabulary:['載入','全台灣',...VOICE_COUNTY_NAMES,...(layerActions?.catalog?.() || []).map(item=>item.name)]},
+        inputAudioTranscription:liveModel==='gemini-3.8-live'?{languageCodes:['zh-TW'],customVocabulary:['載入','全台灣',...VOICE_COUNTY_NAMES,...(layerActions?.catalog?.() || []).map(item=>item.name)]}:{},
         outputAudioTranscription:{},
         speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Kore'}}},
-        systemInstruction:languagePolicy+'你是「上帝之眼・台灣版」即時 3D 地圖語音助理。使用繁體中文，先完整理解使用者一句話的所有動作。說「帶我到台北101並繞該建物一圈」代表鏡頭飛往建物並環繞，直接呼叫 fly_to_and_orbit_place(place="台北101")，不要詢問目的地，也不要呼叫行車導航。其他「帶我到」「飛到」「看看」用 fly_to_place。只有明確提到開車、行車路線或道路導航才呼叫 plan_driving_route；想沿路線開過去或看行車視角時呼叫 drive_route，不要求 GPS；只有明確要求依裝置實際定位導航才呼叫 start_navigation。需要操作時必須呼叫工具，不可假裝已完成。工具失敗時說明實際原因。使用者要求載入、顯示、隱藏、更新或切換工具列圖資時，先查 list_available_data_layers，使用清單 id 呼叫 control_data_layer；清單 pendingRequest 是上一回合尚待範圍的原請求，使用者只回答縣市或全台灣時必須沿用其中圖資及操作，不重問圖資；切換到底圖用 show，切換圖層顯示狀態用 toggle。一鍵載入用 load_all_data_layers，一鍵隱藏用 hide_all_data_layers。載入或更新前必須先確認地理範圍：未指定時詢問縣市或全台灣，不得自行沿用目前範圍。一句話已明確指定圖資及縣市（可用宜蘭等簡稱）、全台灣或全球，就帶 scope 直接呼叫工具，不得再次詢問已提供的圖資或範圍；例如「載入宜蘭縣道路中心線」直接使用 osm-roads、load、宜蘭縣。若前一回合問範圍，下一回合「全台灣」或「宜蘭縣」就是範圍回答，接續原本的圖資請求。若清單 coverage 只有全球或全臺來源，解釋來源範圍及建議，等待使用者確認再載入。工具回傳 needsScope 時先解釋 question，等待使用者回答，不得同一回合自行選範圍重呼。全臺建物只串流有官方服務的目前視野，不宣稱完整全臺建物。隱藏已載入圖層不需再詢問範圍。一鍵載入先統一確認一次範圍，再回報個別失敗；不要將一鍵載入解讀為同時啟用所有付費服務與即時串流。使用者已提供圖資及區域就立即執行；禮貌問句「能不能幫我載入」也是操作要求。每個請求只執行一次，工具成功後只簡短回報完成了什麼並結束該次回答，禁止重問同樣問題、推銷下一步或再載入。缺少圖資或範圍才問缺少的一項，不要一次重問所有條件。程式會接續範圍回答並直接播報實際結果；不要重複執行。飛往地點工具會新增可拖曳地點標籤。只有工具結果 ok 才表示完成；partial、空資料或載入失敗應如實以中文說明。',
-        tools,
+        systemInstruction:languagePolicy+`使用者回答風格：${getSettings().style || '簡潔、先說結論，再補充必要細節。'}。你也是本程式功能介紹助理、台灣地理與歷史小博士，以及新聞與輿情分析助理。介紹本程式或操作方式時先呼叫 get_application_state。程式確實有標註與量測：工具列「標註」內可畫路徑、多邊形、圓形，量測距離與面積；不可因語音無直接繪製工具而說程式不提供。面積步驟：按標註→量測面積，在地圖點至少三個點，點回起點、雙擊或按完成繪製，查看面積；需要圖資分析時再加入並確認分析圖資。CCTV 與繪製量測由使用者在工具列操作，助理可說明步驟。新聞、近期事件與輿情先使用 search_public_news 搜尋公開新聞，說明來源與日期，区分報導、推論及未知；搜尋到的新聞不代表全體民意。想看目前畫面前，使用 get_application_state 或 inspect_current_map；使用者未勾選分享地圖時不得聲稱看過畫面。`+'你是「上帝之眼・台灣版」即時 3D 地圖語音助理。使用繁體中文，先完整理解使用者一句話的所有動作。說「帶我到台北101並繞該建物一圈」代表鏡頭飛往建物並環繞，直接呼叫 fly_to_and_orbit_place(place="台北101")，不要詢問目的地，也不要呼叫行車導航。其他「帶我到」「飛到」「看看」用 fly_to_place。只有明確提到開車、行車路線或道路導航才呼叫 plan_driving_route；想沿路線開過去或看行車視角時呼叫 drive_route，不要求 GPS；本程式不提供裝置定位或 GPS；未指定起點時以目前地圖中心作為路線起點，必須說明不是裝置位置。需要操作時必須呼叫工具，不可假裝已完成。工具失敗時說明實際原因。使用者要求載入、顯示、隱藏、更新或切換工具列圖資時，先查 list_available_data_layers，使用清單 id 呼叫 control_data_layer；清單 pendingRequest 是上一回合尚待範圍的原請求，使用者只回答縣市或全台灣時必須沿用其中圖資及操作，不重問圖資；切換到底圖用 show，切換圖層顯示狀態用 toggle。一鍵載入用 load_all_data_layers，一鍵隱藏用 hide_all_data_layers。載入或更新前必須先確認地理範圍：未指定時詢問縣市或全台灣，不得自行沿用目前範圍。一句話已明確指定圖資及縣市（可用宜蘭等簡稱）、全台灣或全球，就帶 scope 直接呼叫工具，不得再次詢問已提供的圖資或範圍；例如「載入宜蘭縣道路中心線」直接使用 osm-roads、load、宜蘭縣。若前一回合問範圍，下一回合「全台灣」或「宜蘭縣」就是範圍回答，接續原本的圖資請求。若清單 coverage 只有全球或全臺來源，解釋來源範圍及建議，等待使用者確認再載入。工具回傳 needsScope 時先解釋 question，等待使用者回答，不得同一回合自行選範圍重呼。全臺建物只串流有官方服務的目前視野，不宣稱完整全臺建物。隱藏已載入圖層不需再詢問範圍。一鍵載入先統一確認一次範圍，再回報個別失敗；不要將一鍵載入解讀為同時啟用所有付費服務與即時串流。使用者已提供圖資及區域就立即執行；禮貌問句「能不能幫我載入」也是操作要求。每個請求只執行一次，工具成功後只簡短回報完成了什麼並結束該次回答，禁止重問同樣問題、推銷下一步或再載入。依使用者描述辨識相關功能與圖資；有多個可能選項或不確定時，提出具體候選，僅詢問缺少的條件。圖資、地點、路線、視角及其他操作均先簡短告知準備執行什麼，成功後回報已完成什麼；不能把推測當作已確認。缺少圖資或範圍才問缺少的一項，不要一次重問所有條件。程式會接續範圍回答並直接播報實際結果；不要重複執行。飛往地點工具會新增可拖曳地點標籤。只有工具結果 ok 才表示完成；partial、空資料或載入失敗應如實以中文說明。',
+        tools:tools.map(tool=>tool.functionDeclarations?{...tool,functionDeclarations:tool.functionDeclarations.map(declaration=>({...declaration,behavior:'BLOCKING'}))}:tool),
       }
     });
     connection.then(late => { if (current !== generation) late.close(); }).catch(() => {});
-    const connected = await deadline(connection, 25000, 'Gemini Live 連線逾時，請檢查網路與金鑰權限');
+    const connected = await deadline(Promise.race([connection,gate.failure]), 25000, 'Gemini Live 連線逾時，請檢查網路與金鑰權限');
     if (current !== generation) { connected.close(); return; }
     session = connected;
+    diagnose({phase:'connected'});
     onStatus('Gemini Live 已連線，正在開啟麥克風…');
     await startMicrophone(current);
     if (current !== generation) return;
     onStatus('Gemini Live 聆聽中；再按一次麥克風即可停止');
+    diagnose({phase:'listening'});
     })().catch(async error => {
       if (current === generation) {
         generation++;
         try { session?.close(); } catch {}
         session = null;
         await releaseAudio();
-        onStatus(`Gemini Live 啟動失敗：${error?.message || String(error)}`);
+        if(error?.name!=='AbortError'){
+          const failure=error.diagnostic?error:geminiLiveFailure({reason:error,model:liveModel,phase:diagnostic.phase});
+          diagnose({...failure.diagnostic,lastFailure:failure.diagnostic});onStatus(failure.message);
+          throw failure;
+        }
       }
       throw error;
-    }).finally(() => { if (pendingStart === task) pendingStart = null; });
+    }).finally(() => { if (pendingStart === task) pendingStart = null;if(pendingController===startController)pendingController=null;if(connectionGate===gate)connectionGate=null; });
     pendingStart = task;
     return task;
   }
 
   async function stop() {
     generation++;
+    const stopped=new DOMException('語音已停止','AbortError');
+    connectionGate?.fail(stopped);pendingController?.abort(stopped);
     cancelTools();
     clearVoiceRequests();
     cancelOrbit();
@@ -237,6 +261,7 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
     session = null;
     pendingStart = null;
     onStatus('Gemini Live 已停止');
+    diagnose({phase:'stopped'});
   }
 
   async function releaseAudio() {
@@ -283,16 +308,19 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
 
   async function handleMessage(message,current) {
     if(current!==generation)return;
+    const grounding=message?.serverContent?.groundingMetadata;if(grounding)onSources(grounding);
     for(const id of message?.toolCallCancellation?.ids || []){cancelledToolIds.add(id);toolControllers.get(id)?.abort();toolControllers.delete(id);}
     const inputText = message?.serverContent?.inputTranscription?.text;
     const outputText = message?.serverContent?.outputTranscription?.text;
     if (inputText) {
       const afterCompletion=transcriptTurn.closed;clearTimeout(resumeTimer);resumeTimer=null;
-      if(transcriptTurn.text && (transcriptTurn.handled || !transcriptTurn.executing && (transcriptTurn.closed || transcriptTurn.responding && Date.now()-transcriptTurn.updatedAt>800))){transcriptTurn=newTranscriptTurn();globalThis.speechSynthesis?.cancel();}
+      if(transcriptTurn.text && (transcriptTurn.handled || !transcriptTurn.executing && (transcriptTurn.closed || transcriptTurn.responding && Date.now()-transcriptTurn.updatedAt>800))){transcriptTurn=newTranscriptTurn();if(getSettings().clearPlaceOnNext!==false)clearTemporaryPlaces();globalThis.speechSynthesis?.cancel();}
+      if(!transcriptTurn.text && getSettings().clearPlaceOnNext!==false)clearTemporaryPlaces();
       transcriptTurn.text=(transcriptTurn.text+inputText).slice(-1000);transcriptTurn.updatedAt=Date.now();lastUserTranscript=transcriptTurn.text;
-      onTranscript({ role:'user', text:inputText });
+      transcript('user',inputText,{finished:message.serverContent.inputTranscription.finished===true});
       if(afterCompletion || transcriptTurn.closed || transcriptTurn.responding || message.serverContent.inputTranscription.finished)scheduleLayerContinuation(transcriptTurn,current);
     }
+    if(!inputText && message?.serverContent?.inputTranscription?.finished)transcript('user','',{finished:true});
     if(outputText || message?.serverContent?.modelTurn){transcriptTurn.responding=true;if(!transcriptTurn.handled)scheduleLayerContinuation(transcriptTurn,current);}
     if (outputText && !transcriptTurn.handled && !hostRequest(transcriptTurn)) {
       outputTranscript+=outputText;
@@ -303,8 +331,9 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
         session?.sendClientContent({turns:[{role:'user',parts:[{text:'請停止剛才的英文回答，立即改用台灣中文（國語）完整回答上一個問題；保持繁體中文逐字稿。'}]}],turnComplete:true});
         return;
       }
-      if(!languageCorrectionPending)onTranscript({ role:'assistant', text:outputText });
+      if(!languageCorrectionPending)transcript('assistant',outputText,{finished:message.serverContent.outputTranscription.finished===true});
     }
+    if(!outputText && message?.serverContent?.outputTranscription?.finished && !transcriptTurn.handled && !languageCorrectionPending)transcript('assistant','',{finished:true});
 
     if (message?.toolCall?.functionCalls?.length) {
       const previous=transcriptTurn.closed && transcriptTurn.handled ? transcriptTurn : null;
@@ -318,7 +347,7 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
         try {
           const utterance=await waitTranscript(turn,controller.signal);
           if(turn!==transcriptTurn)continue;
-          const mutating=!['list_available_data_layers','list_layers'].includes(fc.name);
+          const mutating=!['list_available_data_layers','list_layers','get_application_state','inspect_current_map','search_public_news'].includes(fc.name);
           if(mutating && !utterance){
             const result=previous?.actions.get(actionKey(fc.name,fc.args)) || {ok:false,awaitingUser:true,message:'等待使用者的新指令'};
             responses.push({id:fc.id,name:fc.name,response:{result}});continue;
@@ -327,12 +356,12 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
           // while suppressing repeated load / camera calls from the model.
           const explicit=layerActions?.requestFromUtterance?.(utterance,{turnId:turn.id}) || visualRequest(utterance);
           if(mutating && explicit?.cancel){const result=await layerActions.resumeFromUtterance(utterance,{signal:controller.signal,turnId:turn.id});if(result){reportAction(turn,result,current,false);responses.push({id:fc.id,name:fc.name,response:{result}});continue;}}
-          const redirected=mutating && explicit && !explicit.cancel && (LAYER_VOICE_TOOLS.some(tool=>tool.name===fc.name) || ['fly_to_place','fly_to_and_orbit_place','plan_driving_route'].includes(fc.name));
+          const redirected=mutating && explicit && !explicit.cancel && (LAYER_VOICE_TOOLS.some(tool=>tool.name===fc.name) || ['fly_to_place','fly_to_and_orbit_place','plan_driving_route','cinematic_camera'].includes(fc.name));
           const request=redirected ? explicit : {name:fc.name,args:fc.args || {}};
           const key=actionKey(request.name,request.args);
           let result=mutating ? turn.actions.get(key) : null;
           if(!result){
-            turn.executing=mutating;result=await executeTool(request.name,request.args,{signal:controller.signal,utterance,turnId:turn.id});
+            turn.executing=mutating;result=await executeTool(request.name,request.args,{signal:controller.signal,utterance:request.confirmedScope?`${utterance}；${request.confirmedScope}`:utterance,turnId:turn.id});
             if(mutating){turn.actions.set(key,result);turn.resumed=true;reportAction(turn,result,current,false);}
           }
           controller.signal.throwIfAborted();
@@ -345,8 +374,8 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
       });toolQueue=job;await job;
     }
 
-    if (message?.serverContent?.interrupted) { stopPlayback();outputTranscript='';languageCorrectionPending=false; }
-    if(message?.serverContent?.turnComplete){outputTranscript='';languageCorrectionPending=false;transcriptTurn.closed=true;scheduleLayerContinuation(transcriptTurn,current);}
+    if (message?.serverContent?.interrupted) { transcript('assistant','',{finished:true,interrupted:true});stopPlayback();outputTranscript='';languageCorrectionPending=false; }
+    if(message?.serverContent?.turnComplete){transcript('assistant','',{finished:true});outputTranscript='';languageCorrectionPending=false;transcriptTurn.closed=true;scheduleLayerContinuation(transcriptTurn,current);}
     if(current!==generation || languageCorrectionPending || transcriptTurn.handled || hostRequest(transcriptTurn))return;
     const parts = message?.serverContent?.modelTurn?.parts || [];
     // SDK message.data is a convenience getter for the same inline audio.
@@ -357,10 +386,15 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
 
   async function executeTool(name,args,context={}) {
     context.signal?.throwIfAborted();
-    if(LAYER_VOICE_TOOLS.some(tool=>tool.name===name)){if(!layerActions)throw new Error('圖資語音工具尚未就緒');return layerActions.execute(name,args,context);}
+    if(name==='search_public_news'){const result=await browserAi('/voice-news',{method:'POST',data:{query:String(args.query||'')},signal:context.signal});onSources({groundingChunks:result.items.map(item=>({web:{uri:item.url,title:item.title}}))});return result;}
+    if(name==='cinematic_camera'){announce('我會依指令操作電影空拍工具。');return runCinematicVoice(cameraCommands,args,viewer);}
+    if(['confirm_data_intent','load_selected_data_layers'].includes(name) || LAYER_VOICE_TOOLS.some(tool=>tool.name===name)){if(!layerActions)throw new Error('圖資語音工具尚未就緒');return layerActions.execute(name,args,context);}
+    if(name==='get_application_state')return {ok:true,observedAt:new Date().toISOString(),camera:{lat:Cesium.Math.toDegrees(viewer.camera.positionCartographic.latitude),lon:Cesium.Math.toDegrees(viewer.camera.positionCartographic.longitude),height:viewer.camera.positionCartographic.height},layers:layerActions?.catalog?.(),capabilities:['圖資載入與顯示','地點標示及環繞','行車路線與中途點','影響範圍','標註：路徑、多邊形、圓形；距離及面積量測（使用者從標註工具列操作）','電影空拍：手繪軌跡及自由空拍；開始錄影須人工確認','CCTV一鍵影像辨識（使用者從工具列選擇）'],mapSharing:getSettings().shareMap===true};
+    if(name==='inspect_current_map'){if(!getSettings().shareMap)return {ok:false,message:'尚未開啟分享地圖；請在 AI 語音助理設定勾選分享目前地圖。'};await new Promise(resolve=>{const remove=viewer.scene.postRender.addEventListener(()=>{remove();resolve();});viewer.scene.requestRender();});context.signal?.throwIfAborted();const canvas=document.createElement('canvas');canvas.width=Math.min(1280,viewer.canvas.width);canvas.height=Math.round(viewer.canvas.height*canvas.width/viewer.canvas.width);canvas.getContext('2d').drawImage(viewer.canvas,0,0,canvas.width,canvas.height);session?.sendRealtimeInput({video:{data:canvas.toDataURL('image/jpeg',.75).split(',')[1],mimeType:'image/jpeg'}});return {ok:true,observedAt:new Date().toISOString(),message:'已分享現在的地圖畫面；不包含對話、金鑰設定或其他視窗。'};}
     if (name === 'list_layers') {
       return listLayers().map(l => ({ id:l.id, name:l.name, kind:l.kind, featureCount:l.geojson?.features?.length ?? null }));
     }
+    const intentText={fly_to_taiwan:'切換到台灣視角',fly_global:'切換到全球視角',show_route:'顯示整條行車路線',navigation_view:'切換到導航視角',drive_route:'沿目前路線進行行車視角示意',stop_navigation:'停止導航',create_buffer:'依指定圖層建立影響範圍'}[name];if(intentText)announce(`我會${intentText}。`);
     if (name === 'fly_to_taiwan') {
       await new Promise((resolve,reject)=>viewer.camera.flyTo({destination:Cesium.Rectangle.fromDegrees(119.2,21.6,122.4,25.7),duration:1.2,complete:resolve,cancel:()=>reject(new Error('鏡頭飛行已取消'))}));context.signal?.throwIfAborted();
       return { ok:true, message:'已切換到全台灣視角',view:'taiwan' };
@@ -369,14 +403,14 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
       viewer.camera.flyHome(1.2);context.signal?.throwIfAborted();
       return { ok:true, message:'已啟動全球視角切換',view:'global' };
     }
-    if (name === 'fly_to_place') return flyToPlace(String(args.place || ''),context);
-    if (name === 'fly_to_and_orbit_place') return flyToAndOrbitPlace(String(args.place || ''),context);
+    if (name === 'fly_to_place'){announce(`我會帶你到「${args.place}」並標示地點。`);return flyToPlace(String(args.place || ''),context);}
+    if (name === 'fly_to_and_orbit_place'){announce(`我會帶你到「${args.place}」並環繞觀看。`);return flyToAndOrbitPlace(String(args.place || ''),context);}
     if (name === 'plan_driving_route') {
       if (isVisualVisit(context.utterance || '')) {
         const place = String(args.destination || extractVisualPlace(context.utterance || ''));
         return /繞|環繞|一圈/.test(context.utterance || '') ? flyToAndOrbitPlace(place,context) : flyToPlace(place,context);
       }
-      if (!navigation) throw new Error('導航工具尚未初始化');
+      if (!navigation) throw new Error('導航工具尚未初始化');announce(`我會規劃${args.origin?`從「${args.origin}」`:''}到「${args.destination}」的行車路線。`);
       const result=await navigation.planRoute({
         origin:String(args.origin || ''),
         waypoints:Array.isArray(args.waypoints)?args.waypoints:[],travelMode:args.travelMode || 'car',
@@ -390,15 +424,11 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
     }
     if (name === 'navigation_view') {
       if (!navigation) throw new Error('導航工具尚未初始化');
-      return {...await navigation.navigationView(),ok:true,message:'已切換到導航視角'};
+      return {...await navigation.navigationView(),ok:true,message:'已啟動沿路線行車視角示意，並非裝置實際位置'};
     }
     if(name==='drive_route'){
       if(!navigation)throw new Error('導航工具尚未初始化');
-      return {...await navigation.driveRoute(),ok:true,message:'已啟動行車視角示意；並非 GPS 實際位置'};
-    }
-    if (name === 'start_navigation') {
-      if (!navigation) throw new Error('導航工具尚未初始化');
-      return {...await navigation.startNavigation(),ok:true,message:'已啟動裝置位置跟隨導航'};
+      return {...await navigation.driveRoute(),ok:true,message:'已啟動行車視角示意；並非裝置實際位置'};
     }
     if (name === 'stop_navigation') {
       if (!navigation) throw new Error('導航工具尚未初始化');
@@ -425,11 +455,14 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
   async function resolvePlace(place) {
     return searchPlace(place);
   }
-  async function flyToPlace(place,{signal}={}) {
+  function clearTemporaryPlaces(){for(const layer of listLayers().filter(layer=>layer.dataMetadata?.temporaryVoicePlace))removeLayer(layer.id);}
+  async function flyToPlace(place,{signal,utterance}={}) {
     cancelOrbit();signal?.throwIfAborted();
-    const target=await resolvePlace(place);signal?.throwIfAborted();
+    let target;if(!utterance)target=await resolvePlace(place);else if(pendingPlace?.candidates.some(item=>item.name===place)){target=pendingPlace.candidates.find(item=>item.name===place);pendingPlace=null;}else{const candidates=await findPlaceCandidates(place);signal?.throwIfAborted();if(!candidates.length)throw new Error(`找不到「${place}」，請加上縣市或提供經緯度`);const clean=value=>normalizeVoiceText(value).replace(/\s/g,'');const exact=candidates.filter(item=>clean(item.name)===clean(place));if(exact.length===1)target=exact[0];else if(candidates.length===1)target=candidates[0];else{pendingPlace={at:Date.now(),tool:'fly_to_place',candidates:candidates.slice(0,5)};return {ok:false,needsConfirmation:true,question:`「${place}」有多個可能地點：${pendingPlace.candidates.map((item,i)=>`${i+1}. ${item.name}`).join('、')}。你指的是哪一個？可回答第幾個，或補充完整名稱。`};}}signal?.throwIfAborted();
     onStatus(`正在飛往${target.name}…`);
-    const layer=await addGeoJSON({type:'FeatureCollection',features:[{type:'Feature',geometry:{type:'Point',coordinates:[target.lon,target.lat]},properties:{name:target.name,source:target.source}}]},`地點：${target.name}`,viewer,{kind:'annotation-label',flyTo:false,metadata:{source:target.source || '地點搜尋',dataMetadata:{annotationLabel:{text:target.name,color:'#ffdf66',weight:'bold',size:20},placeQuery:place}}});
+    const sourceKey=`voice-place:${target.lon.toFixed(5)}:${target.lat.toFixed(5)}`;
+    const layer=listLayers().find(layer=>layer.sourceKey===sourceKey) || await addGeoJSON({type:'FeatureCollection',features:[{type:'Feature',geometry:{type:'Point',coordinates:[target.lon,target.lat]},properties:{name:target.name,source:target.source}}]},`地點：${target.name}`,viewer,{kind:'annotation-label',flyTo:false,metadata:{sourceKey,source:target.source || '地點搜尋',dataMetadata:{temporaryVoicePlace:true,annotationLabel:{bubble:true,text:target.name,color:'#081526',weight:'bold',size:20},placeQuery:place}}});
+    setLayerVisible(layer.id,true);
     const abort=()=>viewer.camera.cancelFlight();signal?.addEventListener('abort',abort,{once:true});
     try{
       signal?.throwIfAborted();
@@ -443,7 +476,7 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
     finally{signal?.removeEventListener('abort',abort);}
   }
   async function flyToAndOrbitPlace(place,context={}) {
-    const result = await flyToPlace(place,context);
+    const result = await flyToPlace(place,context);if(!result.ok){if(pendingPlace)pendingPlace.tool='fly_to_and_orbit_place';return result;}
     const abort=()=>cancelOrbit();context.signal?.addEventListener('abort',abort,{once:true});
     const target = { name:result.place, lat:result.coordinates[0], lon:result.coordinates[1], height:result.heightMeters };
     const center = Cesium.Cartesian3.fromDegrees(target.lon,target.lat,target.height/2);
@@ -502,7 +535,7 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, o
     nextPlayAt = 0;
   }
 
-  return { start, stop, toggle, flyToPlace, flyToAndOrbitPlace, get active(){ return !!session; }, get connecting(){ return !!pendingStart; }, model:MODEL };
+  return { announce, start, stop, toggle, flyToPlace, flyToAndOrbitPlace, get active(){ return !!session; }, get connecting(){ return !!pendingStart; },get model(){return session || pendingStart?liveModel:normalizeGeminiLiveModel(getSettings().model);},get status(){return {...diagnostic,lastFailure:diagnostic.lastFailure?{...diagnostic.lastFailure}:null};} };
 }
 
 function deadline(promise, milliseconds, message) {
