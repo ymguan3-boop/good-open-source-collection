@@ -8,7 +8,7 @@ export function recordTimestamp(date=new Date()) {
 }
 export function createChatArchive({root,open,download,onStatus,manager}) {
   let preview=null,lastSavedTime=0,releasePreview=null;
-  async function save(messages,{title="AI 空間助理對話紀錄",frames=[],media=null}={}){
+  async function save(messages,{title="AI 空間助理對話紀錄",frames=[],media=null,attachments=[]}={}){
     if(!messages.length)throw new Error('目前沒有對話可儲存');
     if(media?.id){const existing=await db.chatRecords.filter(record=>record.media?.id===media.id).first();if(existing){await db.chatRecords.update(existing.id,{media:{...existing.media,...media}});onStatus(`已更新 ${existing.filename} 的匯出狀態`);return existing.id;}}
     const latest=await db.chatRecords.orderBy('createdAt').last();
@@ -19,7 +19,15 @@ export function createChatArchive({root,open,download,onStatus,manager}) {
     const savedFrames=[...unique.values()].map((frame,index)=>({...frame,path:`images/cctv-${index+1}.jpg`}));
     const cctvResults=messages.filter(m=>m.cctvResult).map(m=>{const {screenshot,...metadata}=m.cctvResult;return metadata;});
     const markdown=`# ${title}\n\n儲存時間：${date.toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})}（台灣時間）\n\n`+messages.map(message=>`## ${{user:'使用者',assistant:'AI 空間助理',system:'系統'}[message.role] || '訊息'}\n\n${String(message.content || '')}\n`).join('\n')+savedFrames.map(frame=>`\n## CCTV 截圖\n${frame.caption||''}\n![CCTV 截圖](${frame.path})\n`).join('');
-    const id=await db.chatRecords.add({filename,createdAt:date.toISOString(),markdown,messageCount:messages.length,frames:savedFrames,cctvResults,media});
+    const savedAttachments=attachments.map((attachment,index)=>{
+      const attachmentName=String(attachment.filename||`attachment-${index+1}.json`).replace(/[\\/:*?"<>|]/g,'-');
+      if(!attachmentName.endsWith('.json'))throw new Error('記錄附檔只支援 JSON');
+      const content=typeof attachment.content==='string'?attachment.content:JSON.stringify(attachment.content,null,2);
+      if(typeof content!=='string')throw new Error('記錄 JSON 附檔內容不正確');
+      JSON.parse(content);
+      return {filename:attachmentName,content,mimeType:'application/json'};
+    });
+    const id=await db.chatRecords.add({filename,createdAt:date.toISOString(),markdown,messageCount:messages.length,frames:savedFrames,cctvResults,media,attachments:savedAttachments});
     if(!(await db.chatRecords.get(id)))throw new Error('瀏覽器未能保存紀錄，請檢查儲存空間');
     onStatus(`已儲存 ${filename}，可至工具列「記錄」查看`);return id;
   }
@@ -40,13 +48,14 @@ export function createChatArchive({root,open,download,onStatus,manager}) {
     preview.innerHTML=`<header><span>${escape(record.filename)}</span><button data-record-close aria-label="關閉紀錄">×</button></header><div class="tw-chat-content">${renderChatMarkdown(record.frames?.length?record.markdown.split('\n## CCTV 截圖\n')[0]:record.markdown,{compact:true})}</div><footer>可拖曳右下角調整視窗大小。</footer>`;
     for(const frame of record.frames||[]){const figure=document.createElement('figure'),image=document.createElement('img'),caption=document.createElement('figcaption');image.src=frame.image;image.alt='儲存時的 CCTV 截圖';image.style.cssText='max-width:100%;height:auto';caption.textContent=frame.caption;figure.append(image,caption);preview.querySelector('.tw-chat-content').append(figure);}
     let videoUrl=null;if(record.media?.video){const video=document.createElement('video');video.controls=true;video.style.width='100%';videoUrl=URL.createObjectURL(record.media.video);video.src=videoUrl;preview.querySelector('.tw-chat-content').append(video);}
-    preview.querySelector('[data-record-close]').onclick=()=>{releasePreview?.();releasePreview=null;preview.remove();preview=null;};root.append(preview);const releaseStack=manager?.registerExisting(preview);releasePreview=()=>{releaseStack?.();if(videoUrl)URL.revokeObjectURL(videoUrl);};
+    for(const attachment of record.attachments||[]){const note=document.createElement('p');note.textContent=`附加 JSON：${attachment.filename}（匯出紀錄時一併打包）`;preview.querySelector('.tw-chat-content').append(note);}
+    preview.querySelector('[data-record-close]').onclick=()=>{releasePreview?.();releasePreview=null;preview.remove();preview=null;};root.append(preview);const previewWindow=manager?.enhanceExisting(preview,{id:'record-preview',handle:preview.querySelector('header'),closeButton:preview.querySelector('[data-record-close]')});releasePreview=()=>{previewWindow?.destroy();if(videoUrl)URL.revokeObjectURL(videoUrl);};
   }
   async function exportRecords(ids){
     const records=ids ? (await db.chatRecords.bulkGet(ids)).filter(Boolean) : await db.chatRecords.orderBy('createdAt').toArray();
     if(!records.length)throw new Error('請先選擇要匯出的紀錄');
-    if(records.length===1 && !records[0].frames?.length && !records[0].media)download(new Blob([records[0].markdown],{type:'text/markdown;charset=utf-8'}),records[0].filename);
-    else {const zip=new JSZip();for(const record of records){const folder=records.length===1?zip:zip.folder(record.filename.replace(/\.md$/,''));folder.file(record.filename,record.markdown);for(const [index,frame] of (record.frames||[]).entries())folder.file(frame.path||`images/cctv-${index+1}.jpg`,frame.image.split(',')[1],{base64:true});if(record.cctvResults?.length)folder.file('cctv-metadata.json',JSON.stringify(record.cctvResults,null,2));if(record.media){folder.file('flight-metadata.json',JSON.stringify(record.media.metadata,null,2));if(record.media.geojson)folder.file('flight-path.geojson',JSON.stringify(record.media.geojson));if(record.media.video)folder.file(record.media.filename||'aerial.webm',record.media.video);}}download(await zip.generateAsync({type:'blob'}),records.length===1?records[0].filename.replace(/\.md$/,'.zip'):`對話紀錄-${recordTimestamp()}.zip`);}
+    if(records.length===1 && !records[0].frames?.length && !records[0].media && !records[0].attachments?.length)download(new Blob([records[0].markdown],{type:'text/markdown;charset=utf-8'}),records[0].filename);
+    else {const zip=new JSZip();for(const record of records){const folder=records.length===1?zip:zip.folder(record.filename.replace(/\.md$/,''));folder.file(record.filename,record.markdown);for(const attachment of record.attachments||[])folder.file(attachment.filename,attachment.content);for(const [index,frame] of (record.frames||[]).entries())folder.file(frame.path||`images/cctv-${index+1}.jpg`,frame.image.split(',')[1],{base64:true});if(record.cctvResults?.length)folder.file('cctv-metadata.json',JSON.stringify(record.cctvResults,null,2));if(record.media){folder.file('flight-metadata.json',JSON.stringify(record.media.metadata,null,2));if(record.media.geojson)folder.file('flight-path.geojson',JSON.stringify(record.media.geojson));if(record.media.video)folder.file(record.media.filename||'aerial.webm',record.media.video);}}download(await zip.generateAsync({type:'blob'}),records.length===1?records[0].filename.replace(/\.md$/,'.zip'):`對話紀錄-${recordTimestamp()}.zip`);}
     onStatus(`已匯出 ${records.length} 筆對話紀錄`);
   }
   const click=async event=>{

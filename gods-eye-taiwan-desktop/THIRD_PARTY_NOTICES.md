@@ -39,3 +39,11 @@ Source and derived checksums, county coverage and counts are in `osm-national-me
 ## v23 公開新聞與模型清單
 
 語音新聞工具按使用者要求查詢 Google News 公開 RSS（https://news.google.com/rss/search），保留標題、來源、日期及連結；新聞內容仍屬各出版者，不納入程式 MIT 授權，也不是官方輿情統計。不隨發布打包新聞全文、API Key 或使用者逐字稿。OpenRouter 公開模型目錄及 Gemini 模型診斷沿用既有 Provider。没有新增執行套件或必要付費依賴；自行選擇付費 OpenRouter 修正模型時仍適用供應商費率。NLSC 展示高程對齊不修改官方來源資料或授權標示。
+
+## v24 原創霓虹 HUD、車身色彩與聲線角色（2026-10-05）
+
+- 霓虹地點 HUD 參考使用者提供的外觀，由 `labelStyles.js` 使用瀏覽器內建 Canvas 繪製面板、圖示及地標文字；不隨程式散布該原始參考 PNG。新繪圖程式碼採本專案 MIT 授權，沒有新增圖像套件、字型下載或圖像生成服務。
+- 六個 `taiwan-car-{blue,red,white}.glb`／`taiwan-scooter-{blue,red,white}.glb` 沿用本專案原創汽車與機車網格，只替換車身烤漆材質；輪胎、玻璃、燈具、網格與 binary buffer 保留。重製腳本為 `scripts/build-vehicle-colors.py`；模型及腳本採本專案 MIT，無第三方貼圖、品牌標誌或額外模型下載。
+- 男聲／女聲／小女孩／小男孩角色使用既有 Gemini Live 預設 Charon／Aoede／Leda／Puck 聲線與文字風格提示；語音仍受 Google Gemini 服務條款及額度限制。兒童角色為虛構語氣，不是特定真人或供應商保證的專用兒童聲音。
+- 本次沒有新增執行套件、外部服務 API、必要付費依賴、訂閱或 Camera API。空拍核心仍使用現有 Cesium 與瀏覽器 MediaRecorder；手動操作／本機錄影不需 AI Key。使用者明確選用付費 OpenRouter 規劃模型、既有地圖服務或 Gemini 語音時，仍依各供應商方案計費；不能把沒有新增費用依賴解讀為所有既有雲端服務免費。
+- 有限距離 picking 適配器使用既有 Cesium 1.138.0 API／介面，未修改或複製新的第三方套件；保留 Cesium Apache-2.0 與供應商 attribution。私有介面版本限制與重新驗證要求見 `ARCHITECTURE.md`。

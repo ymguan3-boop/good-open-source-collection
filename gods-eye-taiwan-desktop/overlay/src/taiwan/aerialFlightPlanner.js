@@ -46,11 +46,11 @@ function explanation(result,corrections=[]){
 /** Check locally first. A user-requested AI repair is one call followed by a
  * fresh local collision check; no retry loop can start filming.
  */
-export async function prepareAerialFlight({coordinates,description='',settings={},collision,signal,onProgress=()=>{},cloudPlanner,model='auto-free'}){
+export async function prepareAerialFlight({coordinates,description='',settings={},collision,signal,onProgress=()=>{},cloudPlanner,model='auto-free',forceCloud=false}){
   const localPlan=makeLocalFlightPlan(coordinates,description,settings);
-  const baseline=await checkPlan(localPlan,collision,signal,onProgress,0);
-  if(baseline.ok||!cloudPlanner)return {...baseline,corrections:[],canAiRepair:!baseline.ok,explanation:explanation(baseline),usedCloud:false};
-  signal?.throwIfAborted();const response=await cloudPlanner({description,coordinates:coordinates.map(p=>p.slice()),localPlan,validation:baseline.validation,model,signal});signal?.throwIfAborted();
+  const baseline=forceCloud&&cloudPlanner?{plan:localPlan,path:planPath(localPlan),validation:{status:'NOT_CHECKED',safe:false,reason:'請依使用者拍攝說明與已確認手繪軌跡規劃；幾何安全稍後由本機確認'},ok:false}:await checkPlan(localPlan,collision,signal,onProgress,0);
+  if((baseline.ok&&!forceCloud)||!cloudPlanner)return {...baseline,corrections:[],canAiRepair:!baseline.ok,explanation:explanation(baseline),usedCloud:false};
+  signal?.throwIfAborted();let response;try{response=await cloudPlanner({description,coordinates:coordinates.map(p=>p.slice()),localPlan,validation:baseline.validation,model,signal});}catch(error){signal?.throwIfAborted();if(forceCloud&&/請先輸入\s*OpenRouter\s*金鑰/i.test(error?.message||'')){const checked=await checkPlan(localPlan,collision,signal,onProgress,0);return {...checked,corrections:[],usedCloud:false,canAiRepair:!checked.ok,explanation:'未設定 OpenRouter 金鑰，本次未使用 AI，改為本機結構化規劃。'+explanation(checked)};}throw error;}signal?.throwIfAborted();
   const plan=normalizeAiFlightPlan(response?.plan||response,coordinates);
   const corrections=[];for(const key of ['speed','pitch','roll','fov','lookAhead','clearance'])if(plan[key]!==localPlan[key])corrections.push(`${{speed:'速度',pitch:'俯仰角',roll:'傾斜角',fov:'視野角',lookAhead:'前視距離',clearance:'安全距離'}[key]}由 ${localPlan[key]} 改為 ${plan[key]}`);
   const heightChanges=plan.coordinates.filter((p,i)=>Math.abs(p[2]-localPlan.coordinates[i][2])>.01).length;if(heightChanges)corrections.push(`修正 ${heightChanges} 個航點高度`);

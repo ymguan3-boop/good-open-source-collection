@@ -9,6 +9,7 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
   const panels = new Map();
   const order = [];
   const existing = new Map();
+  const enhanced = new Map();
   const base = host === doc.body ? 6600 : 50;
   let disposed = false;
   const read = id => {
@@ -17,7 +18,7 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
   };
   function stack() {
     // Reassign a bounded range rather than incrementing forever.
-    order.forEach((element, index) => { element.style.zIndex = String(base + index); });
+    order.forEach((element, index) => { element.style.setProperty('z-index',String(base + index),'important'); });
   }
   function front(element) {
     const index = order.indexOf(element);
@@ -29,10 +30,19 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
     if (index >= 0) order.splice(index, 1);
     stack();
   }
-  function registerExisting(element) {
+  function registerExisting(element,options={}) {
     if (disposed) throw new Error('浮動視窗管理器已關閉');
+    if(options.controls){
+      const handle=element.querySelector('.key-setup-header,header,.tw-drawer-head');
+      const closeButton=element.querySelector('[data-key-setup-close],[data-record-close],[data-act="close-drawer"]');
+      if(!handle)return registerExisting(element);
+      const oldParent=element.parentNode,oldNext=element.nextSibling;
+      if(!host.contains(element))host.append(element);
+      const panel=enhanceExisting(element,{id:element.id||options.id||'provider-settings',handle,closeButton});
+      return ()=>{panel.destroy();if(oldParent && oldParent!==element.parentNode)oldParent.insertBefore(element,oldNext?.parentNode===oldParent?oldNext:null);};
+    }
     if (existing.has(element)) return existing.get(element);
-    const priorZ = element.style.zIndex;
+    const priorZ = element.style.zIndex,priorPriority=element.style.getPropertyPriority('z-index');
     const focus = () => front(element);
     element.addEventListener('pointerdown', focus, true);
     element.addEventListener('focusin', focus);
@@ -40,11 +50,86 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
     const release = () => {
       element.removeEventListener('pointerdown', focus, true);
       element.removeEventListener('focusin', focus);
-      element.style.zIndex = priorZ;
+      element.style.setProperty('z-index',priorZ,priorPriority);
       existing.delete(element); unregister(element);
     };
     existing.set(element, release);
     return release;
+  }
+
+  /** Preserve existing DOM/action handlers while sharing the same window stack. */
+  function enhanceExisting(element,{id,handle,closeButton,onClose=()=>{element.hidden=true;}}={}) {
+    if(!element || !id || !handle)throw new Error('既有視窗需要 element、id 與標題列');
+    if(enhanced.has(element))return enhanced.get(element);
+    // Aircraft status rewrites its text node on every update. Keep controls in
+    // an outer header so a live textContent refresh cannot remove the buttons.
+    let wrappedHandle=null;
+    if(handle.hasAttribute?.('data-aircraft-label')){
+      wrappedHandle=handle;const wrapper=doc.createElement('header');
+      handle.before(wrapper);wrapper.append(handle);handle=wrapper;
+    }
+    const releaseStack=registerExisting(element),saved=read(id);
+    const originalStyle=element.getAttribute('style'),originalMode=element.dataset.panelMode;
+    const originalHeader=handle.getAttribute('data-floating-existing-header');
+    element.classList.add('tw-managed-existing');handle.dataset.floatingExistingHeader='';
+    let mode=saved?.mode==='minimized'?'minimized':'expanded',drag=null,positioned=!!saved;
+    let bounds={x:finite(saved?.x,102),y:finite(saved?.y,95),width:finite(saved?.width,380),height:finite(saved?.height,480)};
+    const save=()=>{try{win.localStorage.setItem(STORAGE_PREFIX+id,JSON.stringify({...bounds,mode}));}catch{}};
+    const set=(name,value)=>element.style.setProperty(name,value,'important');
+    const clamp=()=>{
+      if(element.hidden)return;
+      const rect=element.getBoundingClientRect();
+      if(!positioned){bounds={x:rect.left,y:rect.top,width:rect.width,height:rect.height};positioned=true;}
+      bounds.width=Math.max(Math.min(240,win.innerWidth-16),Math.min(bounds.width,win.innerWidth-16));
+      bounds.height=Math.max(Math.min(120,win.innerHeight-16),Math.min(bounds.height,win.innerHeight-16));
+      const shownHeight=mode==='minimized'?Math.min(46,win.innerHeight-16):bounds.height;
+      bounds.x=Math.max(8,Math.min(bounds.x,win.innerWidth-bounds.width-8));
+      bounds.y=Math.max(8,Math.min(bounds.y,win.innerHeight-shownHeight-8));
+      set('position','fixed');set('left',`${bounds.x}px`);set('top',`${bounds.y}px`);
+      set('transform','none');
+      set('right','auto');set('bottom','auto');set('width',`${bounds.width}px`);set('height',`${shownHeight}px`);
+      set('max-width',`${Math.max(1,win.innerWidth-16)}px`);set('max-height',`${Math.max(1,win.innerHeight-16)}px`);
+      element.dataset.panelMode=mode;save();
+    };
+    const minimize=doc.createElement('button');minimize.type='button';minimize.dataset.existingPanelAction='minimize';minimize.textContent='−';minimize.title='縮小視窗（工作繼續）';minimize.setAttribute('aria-label',minimize.title);
+    const restore=doc.createElement('button');restore.type='button';restore.dataset.existingPanelAction='restore';restore.textContent='□';restore.title='展開視窗';restore.setAttribute('aria-label',restore.title);
+    let madeClose=false;
+    if(!closeButton){madeClose=true;closeButton=doc.createElement('button');closeButton.type='button';closeButton.textContent='×';closeButton.title='關閉視窗';closeButton.setAttribute('aria-label','關閉視窗');handle.append(closeButton);}
+    closeButton.before(restore,minimize);
+    const render=()=>{minimize.hidden=mode==='minimized';restore.hidden=mode!=='minimized';element.dataset.panelMode=mode;clamp();};
+    const end=()=>{if(!drag)return;const pointer=drag.id;drag=null;if(handle.hasPointerCapture?.(pointer))handle.releasePointerCapture(pointer);save();};
+    const down=event=>{
+      if(event.button!==0 || event.target.closest('button,input,select,textarea,a'))return;
+      clamp();front(element);drag={id:event.pointerId,x:event.clientX,y:event.clientY,left:bounds.x,top:bounds.y};
+      handle.setPointerCapture(event.pointerId);event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();
+    };
+    const move=event=>{if(!drag || event.pointerId!==drag.id)return;bounds.x=drag.left+event.clientX-drag.x;bounds.y=drag.top+event.clientY-drag.y;clamp();};
+    const click=event=>{const button=event.target.closest('[data-existing-panel-action]');if(!button)return;event.stopPropagation();if(button===minimize)api.minimize();else if(button===restore)api.restore();};
+    const closeClick=()=>{end();Promise.resolve(onClose()).catch(()=>{});};
+    const api={element,get mode(){return mode;},get state(){return {...bounds,mode};},
+      show(){element.hidden=false;render();front(element);return api;},hide(){end();element.hidden=true;return api;},
+      minimize(){end();mode='minimized';render();front(element);return api;},restore(){end();mode='expanded';element.hidden=false;render();front(element);return api;},
+      bringToFront(){front(element);return api;},resize(width,height){bounds.width=finite(width,bounds.width);bounds.height=finite(height,bounds.height);clamp();return api;},
+      destroy(){end();save();visibility?.disconnect();resizeObserver?.disconnect();releaseStack();
+        handle.removeEventListener('pointerdown',down,true);handle.removeEventListener('pointermove',move);handle.removeEventListener('click',click);
+        for(const name of ['pointerup','pointercancel','lostpointercapture'])handle.removeEventListener(name,end);
+        win.removeEventListener('resize',clamp);win.removeEventListener('blur',end);if(madeClose){closeButton.removeEventListener('click',closeClick);closeButton.remove();}
+        minimize.remove();restore.remove();element.classList.remove('tw-managed-existing');
+        if(originalStyle===null)element.removeAttribute('style');else element.setAttribute('style',originalStyle);
+        if(originalMode===undefined)delete element.dataset.panelMode;else element.dataset.panelMode=originalMode;
+        if(originalHeader===null)handle.removeAttribute('data-floating-existing-header');else handle.setAttribute('data-floating-existing-header',originalHeader);
+        if(wrappedHandle){handle.before(wrappedHandle);handle.remove();}
+        enhanced.delete(element);
+      },
+    };
+    const visibility=win.MutationObserver?new win.MutationObserver(()=>{if(!element.hidden)render();}):null;
+    visibility?.observe(element,{attributes:true,attributeFilter:['hidden']});
+    const resizeObserver=win.ResizeObserver?new win.ResizeObserver(()=>{if(element.hidden||mode==='minimized')return;const rect=element.getBoundingClientRect();if(Math.abs(rect.width-bounds.width)>.5 || Math.abs(rect.height-bounds.height)>.5){bounds.width=rect.width;bounds.height=rect.height;clamp();}}):null;
+    resizeObserver?.observe(element);
+    handle.addEventListener('pointerdown',down,true);handle.addEventListener('pointermove',move);handle.addEventListener('click',click);
+    for(const name of ['pointerup','pointercancel','lostpointercapture'])handle.addEventListener(name,end);
+    win.addEventListener('resize',clamp);win.addEventListener('blur',end);if(madeClose)closeButton.addEventListener('click',closeClick);
+    enhanced.set(element,api);render();return api;
   }
 
   function create({ id, title, width = 400, height = 500, onClose = () => {}, minimizedContent, onHelp } = {}) {
@@ -67,8 +152,8 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
     const heading = doc.createElement('strong'); heading.textContent = title || id;
     const summary = doc.createElement('span'); summary.className = 'tw-floating-summary';
     const actions = doc.createElement('div'); actions.className = 'tw-floating-window-actions';
-    const buttons = [ ['minimize', '─', '縮小視窗（工作繼續）'], ['restore', '□', '展開視窗'], ['hide', '◉', '隱藏視窗（工作繼續）'], ['close', '×', '關閉視窗並停止工作'] ];
-    if (onHelp) buttons.splice(buttons.length - 1, 0, ['help', '?', '功能說明']);
+    const buttons = [ ['restore', '□', '展開視窗'], ['hide', '◉', '隱藏視窗（工作繼續）'], ['minimize', '−', '縮小視窗（工作繼續）'], ['close', '×', '關閉視窗並停止工作'] ];
+    if (onHelp) buttons.splice(buttons.length - 2, 0, ['help', '?', '功能說明']);
     for (const [action, text, label] of buttons) {
       const button = doc.createElement('button'); button.type = 'button';
       button.dataset.panelAction = action; button.textContent = text; button.title = label;
@@ -203,7 +288,7 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
   const viewport = () => { for (const panel of panels.values()) panel.resize(panel.state.width, panel.state.height); };
   win.addEventListener('resize', viewport);
   return {
-    create, registerExisting,
+    create, registerExisting, enhanceExisting,
     get(id) { return panels.get(id); },
     destroy() {
       if (disposed) return; disposed = true; win.removeEventListener('resize', viewport);
@@ -211,6 +296,7 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
         try { Promise.resolve(panel.destroy()).catch(() => {}); } catch { /* Continue releasing the other panels. */ }
       }
       for (const release of [...existing.values()]) release();
+      for (const panel of [...enhanced.values()]) panel.destroy();
     },
   };
 }

@@ -1,6 +1,7 @@
 import { db } from './db.js';
 import { browserAi } from './browserAi.js';
 import {normalizeGeminiLiveModel} from './geminiLivePolicy.js';
+import {normalizeVoiceRole} from './voiceProfiles.js';
 async function storedStyle(data){
   return browserAi('/voice-settings',data===undefined?{signal:AbortSignal.timeout(5000)}:{method:'POST',data,signal:AbortSignal.timeout(5000)});
 }
@@ -37,6 +38,6 @@ export async function saveStoredVoiceSettings(value){
   await browserCopy(saved);return saved.value;
 }
 
-export function normalizeVoiceSettings(value={}){return {style:String(value.style || '').trim().slice(0,1400),model:normalizeGeminiLiveModel(value.model),clearPlaceOnNext:value.clearPlaceOnNext!==false,shareMap:value.shareMap===true};}
+export function normalizeVoiceSettings(value={}){return {style:String(value.style || '').trim().slice(0,1400),model:normalizeGeminiLiveModel(value.model),role:normalizeVoiceRole(value.role),clearPlaceOnNext:value.clearPlaceOnNext!==false,shareMap:value.shareMap===true};}
 export async function loadVoiceSettings(){const raw=await loadStoredVoiceSettings();try{return normalizeVoiceSettings(JSON.parse(raw || '{}'));}catch{return normalizeVoiceSettings();}}
 export async function saveVoiceSettings(value){return normalizeVoiceSettings(JSON.parse(await saveStoredVoiceSettings(JSON.stringify(normalizeVoiceSettings(value)))));}

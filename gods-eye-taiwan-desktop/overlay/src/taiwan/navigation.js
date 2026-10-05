@@ -4,9 +4,18 @@ import { addGeoJSON } from './dataImport.js';
 import { listLayers, removeLayer } from './layerRegistry.js';
 import { browserAi } from './browserAi.js';
 import { resolvePlace } from './places.js';
-import { attachNavigationCard, vehicleDisplayPolicy } from './navigationDisplay.js';
+import { attachNavigationCard, vehicleDisplayPolicy, VEHICLE_COLORS } from './navigationDisplay.js';
 
 export function createNavigationController({ viewer, beforeCamera=()=>{}, onStatus=()=>{},onRoute=()=>{} }) {
+  let vehicleColors={car:'blue',motorcycle:'red'};
+  try{const saved=JSON.parse(localStorage.getItem('gev.tw.vehicleColors')||'{}');for(const mode of ['car','motorcycle'])if(VEHICLE_COLORS.some(color=>color.id===saved[mode]))vehicleColors[mode]=saved[mode];}catch{}
+  function setVehicleColor(mode,color){
+    if(!['car','motorcycle'].includes(mode)||!VEHICLE_COLORS.some(item=>item.id===color))throw new Error('請選擇有效的交通方式及車身顏色');
+    vehicleColors[mode]=color;
+    try{localStorage.setItem('gev.tw.vehicleColors',JSON.stringify(vehicleColors));}catch{}
+    if(positionEntity?.model && currentRoute?.travelMode===mode)positionEntity.model.uri=vehicleDisplayPolicy(mode,color).uri;
+    viewer.scene.requestRender();return {...vehicleColors};
+  }
   let routeStyle={color:'#369cff',width:2};
   try{const saved=JSON.parse(localStorage.getItem('gev.tw.routeStyle')||'{}');if(/^#[0-9a-f]{6}$/i.test(saved.color||''))routeStyle.color=saved.color;if(Number.isFinite(Number(saved.width)))routeStyle.width=Math.max(.5,Math.min(16,Number(saved.width)));}catch{}
   function setRouteStyle(patch={}){
@@ -214,18 +223,31 @@ export function createNavigationController({ viewer, beforeCamera=()=>{}, onStat
   }
   function updatePosition(lat,lon,fraction=0,headingDegrees=0) {
     if(!currentRoute)return;
-    const height=surfaceHeight(lon,lat,fraction),position=Cesium.Cartesian3.fromDegrees(lon,lat,height+.12);
+    const height=surfaceHeight(lon,lat,fraction);
+    const display=vehicleDisplayPolicy(currentRoute.travelMode,vehicleColors[currentRoute.travelMode]);
+    const surfacePosition=Cesium.Cartesian3.fromDegrees(lon,lat,height+.12);
+    // A minimum-pixel GLB becomes much larger than a real vehicle when zoomed
+    // out. Raise only its display origin so enlarged wheels do not enter the
+    // terrain or photorealistic mesh. Route coordinates and elevations remain
+    // unchanged; the entity is an illustrative vehicle, not an actual location.
+    let displayLift=0,displayScale=1;
+    try {
+      const distance=Cesium.Cartesian3.distance(viewer.camera.positionWC,surfacePosition);
+      const pixels=viewer.camera.frustum.getPixelDimensions(viewer.canvas.clientWidth,viewer.canvas.clientHeight,distance,1,new Cesium.Cartesian2());
+      const visualDiameter=Math.max(pixels.x,pixels.y)*display.minimumPixelSize;
+      displayScale=Math.max(1,visualDiameter/(currentRoute.travelMode==='motorcycle'?2.5:5.1));
+      displayLift=Math.max(0,visualDiameter*.6-1);
+    } catch { /* Retain natural ground placement if projection is unavailable. */ }
+    const position=Cesium.Cartesian3.fromDegrees(lon,lat,height+.12+displayLift);
     // GLB has +X forward; Cesium heading is clockwise from north.
     const orientation=Cesium.Transforms.headingPitchRollQuaternion(position,new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(headingDegrees)-Math.PI/2,0,0));
     if(!positionEntity){
-      const display=vehicleDisplayPolicy(currentRoute.travelMode);
+      const display=vehicleDisplayPolicy(currentRoute.travelMode,vehicleColors[currentRoute.travelMode]);
       positionEntity=listLayers().find(l=>l.id===routeLayerId).dataSource.entities.add({
-        name:currentRoute.travelMode==='motorcycle'?'機車路線示意':'汽車路線示意',position,orientation,
-        model:{uri:display.uri,scale:1,minimumPixelSize:display.minimumPixelSize,heightReference:Cesium.HeightReference.NONE,shadows:Cesium.ShadowMode.DISABLED},
-        billboard:{image:display.markerImage,width:display.markerSize,height:display.markerSize,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(display.markerNear,Infinity),disableDepthTestDistance:Infinity},
-        label:{text:display.label,font:'13px IBM Plex Sans TC',fillColor:Cesium.Color.WHITE,showBackground:true,pixelOffset:new Cesium.Cartesian2(0,-28),disableDepthTestDistance:Infinity},
+        name:currentRoute.travelMode==='motorcycle'?'機車路線示意':'汽車路線示意',position,orientation,properties:{illustrativeVehicle:true,routeSurfaceHeight:height,displayLift},
+        model:{uri:display.uri,scale:displayScale,minimumPixelSize:display.minimumPixelSize,heightReference:Cesium.HeightReference.NONE,shadows:Cesium.ShadowMode.DISABLED},
       });
-    }else{positionEntity.position=position;positionEntity.orientation=orientation;}
+    }else{positionEntity.position=position;positionEntity.orientation=orientation;positionEntity.model.scale=displayScale;positionEntity.properties.routeSurfaceHeight=height;positionEntity.properties.displayLift=displayLift;}
     const routeDistance=currentRoute.lengthKm*fraction;
     if(following){
       const target=turf.along(currentRoute.line,Math.min(currentRoute.lengthKm,routeDistance+.06)).geometry.coordinates;
@@ -262,6 +284,8 @@ export function createNavigationController({ viewer, beforeCamera=()=>{}, onStat
     attachCard,
     destroy(){stopNavigation();releaseCard?.();releaseCard=null;attachedCard=null;},
     setRouteStyle,
+    setVehicleColor,
+    get vehicleColors(){return {...vehicleColors};},
     get routeStyle(){return {...routeStyle};},
     planRoute,
     routeFromCurrentTo,

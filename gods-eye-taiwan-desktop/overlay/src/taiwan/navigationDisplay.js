@@ -1,21 +1,18 @@
 import { makePanelDraggable } from './draggablePanel.js';
 
-// Models are display illustrations. Pixel sizing retains the GLB in city views;
-// a tiny depth-independent symbol locates the same vehicle in distant views.
-export function vehicleDisplayPolicy(mode) {
+// Pixel sizing retains the complete GLB in city views. Body-only material variants
+// preserve the original wheels, glass, lighting and metallic parts.
+export const VEHICLE_COLORS = Object.freeze([
+  {id:'blue',name:'海洋藍',color:'#2e9de7'},
+  {id:'red',name:'珊瑚紅',color:'#ef4e45'},
+  {id:'white',name:'珍珠白',color:'#f6f8fa'},
+]);
+export function vehicleDisplayPolicy(mode, bodyColor = 'blue') {
   const motorcycle = mode === 'motorcycle';
-  const shape = motorcycle
-    ? '<circle cx="8" cy="25" r="5"/><circle cx="26" cy="25" r="5"/><path d="M8 25L14 15L23 15L26 25M12 13H19M22 10L26 25"/>'
-    : '<path d="M7 13L10 7H24L27 13V27H7Z"/><path d="M11 14V10H23V14M11 23H23"/>';
-  const color = motorcycle ? '#ffcd55' : '#42ceff';
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 34"><rect x="1" y="1" width="32" height="32" rx="8" fill="#071a2b" stroke="${color}" stroke-width="2"/><g fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${shape}</g></svg>`;
+  const color = VEHICLE_COLORS.some(item=>item.id===bodyColor) ? bodyColor : 'blue';
   return {
-    uri: motorcycle ? '/models/taiwan-scooter.glb' : '/models/taiwan-car.glb',
+    uri: `/models/taiwan-${motorcycle ? 'scooter' : 'car'}-${color}.glb`,
     minimumPixelSize: motorcycle ? 56 : 64,
-    markerImage: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg),
-    markerSize: 18,
-    markerNear: 350,
-    label: motorcycle ? '機車行進示意' : '汽車行進示意',
   };
 }
 

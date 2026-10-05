@@ -1,18 +1,60 @@
 import * as Cesium from 'cesium';
+import { removeLayer, getLayer } from './layerRegistry.js';
 export const LABEL_FONTS=['標楷體','新細明體','微軟正黑體','IBM Plex Sans TC'];
 const family={'標楷體':'DFKai-SB','新細明體':'PMingLiU','微軟正黑體':'Microsoft JhengHei','IBM Plex Sans TC':'IBM Plex Sans TC'};
 export function normalizeLabelStyle(style={}){
-  return {bubble:style.bubble===true,text:String(style.text || '').trim().slice(0,500),font:LABEL_FONTS.includes(style.font)?style.font:'微軟正黑體',color:/^#[0-9a-f]{6}$/i.test(style.color)?style.color:'#ffffff',weight:style.weight==='bold'?'bold':'normal',size:Math.min(64,Math.max(10,Number(style.size)||18))};
+  return {hud:style.hud===true,bubble:style.bubble===true,text:String(style.text || '').trim().slice(0,500),font:LABEL_FONTS.includes(style.font)?style.font:'微軟正黑體',color:/^#[0-9a-f]{6}$/i.test(style.color)?style.color:'#ffffff',weight:style.weight==='bold'?'bold':'normal',size:Math.min(64,Math.max(10,Number(style.size)||18))};
 }
 export function applyAnnotationLabel(layer){
   if(!layer.dataMetadata?.annotationLabel)return;
   const style=normalizeLabelStyle(layer.dataMetadata.annotationLabel);
   for(const entity of layer.dataSource.entities.values){
     entity.billboard=undefined;entity.point=undefined;
+    if(style.hud){entity.label=undefined;const image=neonHudImage(style);entity.billboard={image,width:image.width/2,height:image.height/2,heightReference:layer.geojson?.features?.[0]?.geometry?.coordinates?.length>=3 ? Cesium.HeightReference.NONE : Cesium.HeightReference.CLAMP_TO_GROUND,verticalOrigin:Cesium.VerticalOrigin.BOTTOM,disableDepthTestDistance:Infinity};continue;}
     if(style.bubble){entity.label=undefined;entity.billboard={image:bubbleImage(style),heightReference:layer.geojson?.features?.[0]?.geometry?.coordinates?.length>=3 ? Cesium.HeightReference.NONE : Cesium.HeightReference.CLAMP_TO_GROUND,verticalOrigin:Cesium.VerticalOrigin.BOTTOM,disableDepthTestDistance:Infinity};continue;}
     entity.label={text:style.text,font:`${style.weight} ${style.size}px "${family[style.font]}", sans-serif`,fillColor:Cesium.Color.fromCssColorString(style.color),style:Cesium.LabelStyle.FILL_AND_OUTLINE,outlineColor:Cesium.Color.BLACK,outlineWidth:1,heightReference:layer.geojson?.features?.[0]?.geometry?.coordinates?.length>=3 ? Cesium.HeightReference.NONE : Cesium.HeightReference.CLAMP_TO_GROUND,pixelOffset:new Cesium.Cartesian2(0,-12),disableDepthTestDistance:Infinity};
   }
   layer.viewer.scene.requestRender();
+}
+
+// A voice landmark is temporary. One lifecycle per layer, including repeated
+// requests for the same place and removal before its expiry.
+const activeHuds=new WeakMap();
+export function cancelVoicePlaceHud(layer){activeHuds.get(layer)?.();}
+export function activateVoicePlaceHud(layer,{durationMs=3000}={}){
+  cancelVoicePlaceHud(layer);
+  if(!layer?.dataMetadata?.temporaryVoicePlace || !layer.dataMetadata.annotationLabel?.hud)return;
+  const started=performance.now(),duration=Math.min(3000,Math.max(1,durationMs));
+  const pulse=new Cesium.CallbackProperty(()=>Cesium.Color.WHITE.withAlpha(.72+.28*(.5+.5*Math.cos((performance.now()-started)*Math.PI/750))),false);
+  for(const entity of layer.dataSource.entities.values)if(entity.billboard)entity.billboard.color=pulse;
+  const render=()=>layer.viewer?.scene.requestRender();
+  const unlisten=layer.viewer?.scene.preUpdate?.addEventListener(render);
+  let timer=setTimeout(()=>{cleanup();if(getLayer(layer.id)===layer)removeLayer(layer.id);},duration);
+  const previousDispose=layer.dispose;
+  const cleanup=()=>{if(timer!==null)clearTimeout(timer);timer=null;unlisten?.();activeHuds.delete(layer);if(layer.dispose===dispose)layer.dispose=previousDispose;};
+  const dispose=()=>{cleanup();previousDispose?.();};layer.dispose=dispose;activeHuds.set(layer,cleanup);
+  render();
+}
+
+export function neonHudImage(style){
+  const canvas=document.createElement('canvas'),c=canvas.getContext('2d'),size=Math.min(30,Math.max(18,style.size)),font=`bold ${size}px "Microsoft JhengHei", sans-serif`;
+  c.font=font;
+  const lines=[];let line='';
+  for(const char of style.text){if(c.measureText(line+char).width>440 && line){lines.push(line);line='';}line+=char;}
+  if(line)lines.push(line);
+  const textWidth=Math.max(40,...lines.map(value=>c.measureText(value).width));
+  const width=Math.ceil(textWidth)+110,height=lines.length*(size+8)+62;
+  canvas.width=width*2;canvas.height=height*2;c.scale(2,2);
+  const path=()=>{c.beginPath();c.moveTo(25,8);c.lineTo(width-30,8);c.lineTo(width-8,26);c.lineTo(width-8,height-37);c.lineTo(width-30,height-22);c.lineTo(width/2+16,height-22);c.lineTo(width/2,height-3);c.lineTo(width/2-16,height-22);c.lineTo(25,height-22);c.lineTo(8,height-38);c.lineTo(8,26);c.closePath();};
+  path();c.fillStyle='rgba(3,17,36,.96)';c.fill();c.shadowColor='#00deff';c.shadowBlur=8;c.strokeStyle='#1aeaff';c.lineWidth=2;c.stroke();
+  c.shadowBlur=0;c.strokeStyle='#056698';c.lineWidth=4;c.stroke();c.strokeStyle='#50efff';c.lineWidth=1.3;c.stroke();
+  c.strokeStyle='#ffdb55';c.lineWidth=4;
+  for(const x of [18,width-43]){c.beginPath();c.moveTo(x,25);c.lineTo(x+14,13);c.lineTo(x+25,13);c.stroke();c.beginPath();c.moveTo(x,height-43);c.lineTo(x+13,height-29);c.lineTo(x+25,height-29);c.stroke();}
+  const cy=(height-22)/2;c.shadowColor='#12dfff';c.shadowBlur=9;c.strokeStyle='#17eaff';c.lineWidth=2;c.beginPath();c.arc(49,cy,21,0,Math.PI*2);c.stroke();
+  c.beginPath();c.arc(49,cy-4,8,0,Math.PI*2);c.lineTo(49,cy+16);c.closePath();c.fillStyle='#53f1ff';c.fill();
+  c.font=font;c.textBaseline='middle';c.textAlign='center';c.fillStyle='#f2fbff';c.shadowBlur=5;
+  lines.forEach((value,index)=>c.fillText(value,82+textWidth/2,29+index*(size+8)));
+  return canvas;
 }
 
 function bubbleImage(style){

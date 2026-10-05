@@ -256,8 +256,6 @@ body.gev-tw-minimal:not(.gev-tw-legacy-open) .tw-voice-panel{opacity:1}
 .tw-voice-mic::after{content:"";position:absolute;inset:-2px;border:3px solid rgba(255,81,94,.95);border-radius:50%;box-shadow:0 0 11px rgba(255,58,80,.9),inset 0 0 9px rgba(255,58,80,.45);pointer-events:none}
 .tw-voice-mic.on::after{border-color:#50ed93;box-shadow:0 0 14px rgba(39,236,122,.95),inset 0 0 12px rgba(39,236,122,.5)}
 .tw-voice-mic:focus-visible{outline:3px solid #fff3b0;outline-offset:3px}
-body.gev-tw-provider-settings-open #tw-shell{display:none!important}
-body.gev-tw-provider-settings-open #key-setup{z-index:7100!important}
 .tw-provider-secure-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 0}
 .tw-provider-secure-actions button{border:1px solid rgba(54,220,255,.42);border-radius:7px;background:#0d2a3b;color:#ecfaff;padding:8px 12px;font:600 12px "IBM Plex Sans TC",sans-serif;cursor:pointer}
 .tw-provider-secure-actions button:disabled{opacity:.48;cursor:not-allowed}
@@ -718,3 +716,21 @@ body *{font-weight:400!important}
 .tw-cctv-spinner{display:inline-block;width:12px;height:12px;border:2px solid #355362;border-top-color:#5ce4ee;border-radius:50%;animation:tw-cctv-spin 1s linear infinite;vertical-align:middle;margin-right:5px}
 .tw-cctv-job-state{font-size:12px;margin:3px 0}.tw-cctv-recognize{width:100%}
 @keyframes tw-cctv-spin{to{transform:rotate(360deg)}}
+
+/* Recording view keeps only the brand and the escape hint. Visibility is
+   restored by the camera lifecycle; no panels or work are destroyed. */
+body.gev-tw-aerial-capture #tw-shell > :not(.tw-topbar){visibility:hidden!important;pointer-events:none!important}
+body.gev-tw-aerial-capture .tw-quick-menu,
+body.gev-tw-aerial-capture #title-bar,
+body.gev-tw-aerial-capture #top-center-actions,
+body.gev-tw-aerial-capture #left-panel-stack,
+body.gev-tw-aerial-capture #right-context-rail,
+body.gev-tw-aerial-capture #command-dock,
+body.gev-tw-aerial-capture #intel-hud,
+body.gev-tw-aerial-capture #cockpit-hud,
+body.gev-tw-aerial-capture #key-setup-chip,
+body.gev-tw-aerial-capture #key-setup,
+body.gev-tw-aerial-capture #world-overlay-actions,
+body.gev-tw-aerial-capture .tw-voice-subtitles,
+body.gev-tw-aerial-capture .tw-toast{visibility:hidden!important;pointer-events:none!important}
+body.gev-tw-aerial-capture .tw-aerial-hud{visibility:visible!important}

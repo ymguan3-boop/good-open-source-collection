@@ -8,11 +8,12 @@ const SECURE_SERVICES = [
   { id:'gemini-live', key:'gemini', title:'GEMINI LIVE', url:'https://aistudio.google.com/apikey', description:'即時語音助理；使用 Google AI Studio API Key。' },
 ];
 
-export function integrateProviderSettings() {
+export function integrateProviderSettings({manager,onRestartRequired}={}) {
   const dialog = document.getElementById('key-setup');
   const chip = document.getElementById('key-setup-chip');
   const rows = dialog?.querySelector('[data-key-setup-rows]');
   if (!dialog || !chip || !rows) return { open:async () => false, dispose() {} };
+  const releasePanel=manager?.registerExisting(dialog,{controls:true});
 
   const footer = dialog.querySelector('.key-setup-footer');
   const applyButton = dialog.querySelector('[data-key-setup-apply]');
@@ -161,19 +162,23 @@ export function integrateProviderSettings() {
     const inputs = [...rows.querySelectorAll('input[data-tw-secure-key]')].filter(input => input.value.trim());
     if (!inputs.length) return false;
     status.textContent = '正在安全儲存…';
+    let keysSaved=false;
     try {
       for (const input of inputs) {
         await browserAi('/keys', { method:'POST', data:{ name:input.dataset.twSecureKey, value:input.value.trim() } });
         input.value = '';
       }
+      keysSaved=true;
       const model = rows.querySelector('[data-tw-free-model]')?.value;
       if (model) localStorage.setItem('gev.tw.aiModel', model);
       window.dispatchEvent(new Event('gev-tw:model-changed'));
       await updateKeyIndicators();
-      window.dispatchEvent(new CustomEvent('gev-tw:keys-changed',{detail:{names:inputs.map(input=>input.dataset.twSecureKey)}}));
+      const names=inputs.map(input=>input.dataset.twSecureKey);
+      window.dispatchEvent(new CustomEvent('gev-tw:keys-changed',{detail:{names}}));
       status.textContent = '已加密儲存，下次開啟可沿用；AI 與地圖服務立即套用；已啟用的語音助理會自動重新連線。';
+      await onRestartRequired?.(names);
       return true;
-    } catch (error) { status.textContent = `儲存失敗：${error?.message || error}`; return false; }
+    } catch (error) { status.textContent = `${keysSaved?'金鑰已儲存，但套用或重新啟動失敗':'儲存失敗'}：${error?.message || error}`; return false; }
   }
 
   const onApply = async event => {
@@ -188,8 +193,10 @@ export function integrateProviderSettings() {
     const remove = event.target.closest('[data-tw-remove-key]');
     if (remove) {
       void (async () => { try {
-        for (const input of remove.closest('.key-setup-row').querySelectorAll('[data-tw-secure-key]')) await browserAi('/keys',{method:'DELETE',data:{name:input.dataset.twSecureKey}});
-        await updateKeyIndicators(); window.dispatchEvent(new Event('gev-tw:keys-changed')); status.textContent = '已清除該服務金鑰；地圖服務重新整理後套用。';
+        const names=[...remove.closest('.key-setup-row').querySelectorAll('[data-tw-secure-key]')].map(input=>input.dataset.twSecureKey);
+        for (const name of names) await browserAi('/keys',{method:'DELETE',data:{name}});
+        await updateKeyIndicators(); window.dispatchEvent(new CustomEvent('gev-tw:keys-changed',{detail:{names}})); status.textContent = '已清除該服務金鑰，正在套用設定。';
+        await onRestartRequired?.(names);
       } catch (error) { status.textContent = `清除失敗：${error.message}`; } })();
     }
     if (event.target.closest('[data-tw-refresh-models]')) void refreshModels();
@@ -225,6 +232,7 @@ export function integrateProviderSettings() {
     },
     dispose() {
       rowObserver.disconnect();
+      releasePanel?.();
       dialogObserver.disconnect();
       applyButton?.removeEventListener('click', onApply, true);
       document.body.classList.remove('gev-tw-provider-settings-open');

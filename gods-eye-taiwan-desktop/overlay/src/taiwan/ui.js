@@ -26,6 +26,7 @@ import { createFlightObservation } from './flightObservation.js';
 import { createLayerVoiceActions } from './layerVoiceActions.js';
 import { BUILTIN_LAYER_CATALOG, OFFICIAL_TAIWAN_VECTOR_REFERENCES, loadBuiltinLayer, loadScopedBuiltinLayer, loadAllBuiltinLayers, currentBuiltinStatus, assertBuiltinLoadExtent } from './builtinLayers.js';
 import { createNavigationController } from './navigation.js';
+import { VEHICLE_COLORS } from './navigationDisplay.js';
 import { integrateProviderSettings } from './providerSettings.js';
 import { browserAi, streamBrowserChat } from './browserAi.js';
 import { db } from './db.js';
@@ -40,6 +41,8 @@ import { loadWorldTerrain,loadTomtomFlow } from './serviceLayers.js';
 import { loadTaiwanRelief } from './taiwanRelief.js';
 import { liveDescription } from './liveDescription.js';
 import { readRuntimeConfig } from './runtimeConfig.js';
+import { VOICE_ROLES } from './voiceProfiles.js';
+import { createApplicationRestart,requiresApplicationRestart } from './applicationRestart.js';
 import { createDefaultMapSources } from '../maps/defaultSources.js';
 
 const TAIWAN_COUNTIES = [
@@ -127,6 +130,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   const drawer = root.querySelector('.tw-drawer');
   const body = root.querySelector('.tw-drawer-body');
   const floatingPanels=createFloatingPanelManager({host:root});
+  const drawerWindow=floatingPanels.enhanceExisting(drawer,{id:'toolbar-options',handle:drawer.querySelector('.tw-drawer-head'),closeButton:drawer.querySelector('[data-act="close-drawer"]')});
   const originalChatPanel=root.querySelector('.tw-chat-panel');
   const assistantWindow=floatingPanels.create({id:'ai-assistant',title:'AI 空間助理',width:570,height:570,onClose:()=>{chatController?.abort();}});
   const chatPanel=assistantWindow.element;chatPanel.classList.add('tw-chat-panel','tw-chat-managed');
@@ -135,7 +139,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   assistantWindow.body.append(...originalChatPanel.childNodes);originalChatPanel.remove();
   chatPanel.querySelector('#tw-chat-status').textContent='可拖曳標題列、縮小或隱藏；右下角調整大小。';
   let cctvPreview=null;
-  const providerSettings = integrateProviderSettings();
+  const providerSettings = integrateProviderSettings({manager:floatingPanels,onRestartRequired:names=>requiresApplicationRestart(names)?applicationRestart.request('map-key-change'):Promise.resolve()});
   let batchProgress = '';
   let activeProject = null;
   let expandedDrawingId = null;
@@ -191,7 +195,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     viewer.resize();
     viewer.scene.requestRender();
   });
-  const open = (name, html) => { if(name!=='分析')cctvWall.hideMarkers();title.textContent = name; body.innerHTML = html; drawer.hidden = false; drawer.classList.toggle('tw-drawer-compact', name === '快捷鍵'); root.classList.toggle('tw-cctv-open', name === '台灣國道 CCTV'); resizeMapAfterDrawer(); };
+  const open = (name, html) => { if(name!=='分析')cctvWall.hideMarkers();const newWindow=drawer.hidden || title.textContent!==name;title.textContent = name; body.innerHTML = html; if(newWindow)drawerWindow.restore();else drawerWindow.show();drawer.classList.toggle('tw-drawer-compact', name === '快捷鍵'); root.classList.toggle('tw-cctv-open', name === '台灣國道 CCTV'); resizeMapAfterDrawer(); };
   const close = () => { cctvWall.hideMarkers();const stream = body.querySelector('#tw-cctv-live-image'); if (stream) stream.removeAttribute('src'); drawer.hidden = true; root.classList.remove('tw-cctv-open'); resizeMapAfterDrawer(); };
   let toastTimer=null;
   const toast = (msg) => {
@@ -224,6 +228,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   const chatArchive=createChatArchive({root,open,download,manager:floatingPanels,onStatus:message=>{toast(message);chatStatus(message);}});
 
   async function stopAllWork({keepVoice=false}={}) {
+    if(!keepVoice)voiceControlEpoch++;
     await flightObservation.stop();
     cctvWall.stop();
     const wasRunning = !!activeLoad || batchRunning || !!geminiLive.active || !!navigation.active || aiPending;
@@ -251,13 +256,30 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     await mapStackController.updateSources(createDefaultMapSources({googleTileset:mapStackController.getImageryHostTileset(),cesiumToken:runtime.cesiumIonToken,googleApiKey:runtime.googleMapsApiKey}));
     mapKeySignature=signature;
   }
-  const onKeysChanged=event=>{void (async()=>{
+  const onKeysChanged=event=>{if(requiresApplicationRestart(event.detail?.names || []))return;void (async()=>{
     await syncMapKeys();
     if(!drawer.hidden && title.textContent==='圖資')renderLayers();
     const names=event.detail?.names || [];
     if(!names.length || names.some(name=>['gemini','GEMINI_API_KEY'].includes(name)))await applyVoiceSettings();
   })().catch(error=>toast(`設定已保存，套用失敗：${error.message}`));};
   window.addEventListener('gev-tw:keys-changed',onKeysChanged);
+  const applicationRestart=createApplicationRestart({
+    onStatus:toast,
+    checkpoint:async()=>{
+      const layers=listLayers();
+      if(layers.length){
+        const snapshot=await exportProject({name:activeProject?.name || '重新啟動前工作區',viewer,layers,metadata:activeProject?.metadata || {}});
+        const manifest=JSON.parse(await snapshot.text());
+        await db.settings.put({key:'restartProjectSnapshot',value:manifest,updatedAt:new Date().toISOString()});
+        await chatArchive.save([{role:'system',content:'地圖服務金鑰已變更，已自動保存重新啟動前的工作區。原圖資來源與相機保留於附加 JSON；於記錄匯出後可用專案開啟。'}],{title:'重新啟動前工作區',attachments:[{filename:'restart-project.json',content:manifest}]});
+      }
+      if(chatMessages.length)await chatArchive.save(chatMessages);
+    },
+    stop:()=>stopAllWork()
+  });
+  const onCaptureUi=event=>document.body.classList.toggle('gev-tw-aerial-capture',event.detail?.active===true);
+  window.addEventListener('gev-tw:aerial-capture-ui',onCaptureUi);
+
   async function resetAllFunctions(){
     if(resetting)return;resetting=true;
     try{
@@ -295,7 +317,10 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     lineCatalog: for(const layer of listLayers()){if(layer.visible===false)continue;for(const [index,feature] of (layer.geojson?.features||[]).entries()){if(lines.length>500)break lineCatalog;const g=feature.geometry;if(g?.type==='LineString')lines.push({id:`${layer.id}:${index}`,name:`${layer.name}｜${feature.properties?.name||index+1}`,coordinates:g.coordinates});if(g?.type==='MultiLineString')for(const [part,coords] of g.coordinates.entries())lines.push({id:`${layer.id}:${index}:${part}`,name:`${layer.name}｜${feature.properties?.name||index+1} (${part+1})`,coordinates:coords});}}
     return lines;
   },listPlanningModels:({signal}={})=>browserAi('/planning-models',{signal}),onDeleteRecord:({mediaId})=>chatArchive.removeVideo(mediaId),cloudPlanner:planAerialWithAi,onAssistant:message=>{chatMessages.push({role:"assistant",content:message.content});showAssistant();},onRecord:saveAerialRecord,onStatus:toast});
-  for(const element of [drawer,root.querySelector('.tw-aircraft-card'),root.querySelector('.tw-navigation-card')])if(element)floatingPanels.registerExisting(element);
+  const aircraftCard=root.querySelector('.tw-aircraft-card');
+  if(aircraftCard)floatingPanels.enhanceExisting(aircraftCard,{id:'aircraft-observation',handle:aircraftCard.querySelector('[data-aircraft-label]'),onClose:()=>flightObservation.stop()});
+  const routeCard=root.querySelector('.tw-navigation-card');
+  if(routeCard)floatingPanels.enhanceExisting(routeCard,{id:'navigation-summary',handle:routeCard.querySelector('[data-navigation-drag-handle]'),onClose:()=>navigation.clearRoute()});
   // Explicit host methods are shared by voice commands and the toolbar loaders.
   const layerActions = createLayerVoiceActions({builtinCatalog:BUILTIN_LAYER_CATALOG,dataManager,mapStackController,viewer,adapters:{
     getScope:dataScope,
@@ -408,12 +433,13 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
       el.scrollTop = el.scrollHeight;
     },
   });
-  let settingsApplyQueue=Promise.resolve();
+  let settingsApplyQueue=Promise.resolve(),voiceControlEpoch=0;
   function applyVoiceSettings(){
-    const reconnect=geminiLive.active || geminiLive.connecting;
+    const reconnect=geminiLive.active || geminiLive.connecting,epoch=voiceControlEpoch;
     const task=settingsApplyQueue.then(async()=>{
-      if(!reconnect)return;
+      if(!reconnect || epoch!==voiceControlEpoch || (!geminiLive.active && !geminiLive.connecting))return;
       await geminiLive.stop();
+      if(epoch!==voiceControlEpoch)return;
       await geminiLive.start();
     });
     settingsApplyQueue=task.catch(()=>{});return task;
@@ -438,6 +464,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     if (!btn) return;
     const a = btn.dataset.act;
     try {
+      if(['project','layers','analysis','ai-status','notes','results','shortcuts','resources'].includes(a))drawerWindow.restore();
       if (a === 'group-collapse') {
         const key=btn.dataset.group,section=btn.closest('[data-layer-group]'),content=section?.querySelector(':scope > .tw-group-content');
         if(!content)return;
@@ -524,7 +551,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
       if (a === 'open-original-keys') return await openOriginalKeys();
       if (a === 'reload') return location.reload();
       if(a==='voice-model-save'){voiceSettings=await saveVoiceSettings({...voiceSettings,model:body.querySelector('#tw-voice-model').value});toast('已儲存語音模型，立即套用');await applyVoiceSettings();return renderAI();}
-      if(a==='voice-style-save' || a==='voice-style-reset'){const settings=a==='voice-style-reset'?normalizeVoiceSettings():normalizeVoiceSettings({...voiceSettings,style:body.querySelector('#tw-voice-style').value,clearPlaceOnNext:body.querySelector('#tw-voice-clear-place').checked,shareMap:body.querySelector('#tw-voice-share-map').checked});voiceSettings=await saveVoiceSettings(settings);const opened=[...body.querySelectorAll('.tw-voice-help details')].map(el=>el.open);const scroll=body.scrollTop;toast('已儲存語音風格與設定，立即套用；重開程式會沿用');renderAI();body.querySelector('.tw-voice-help').open=true;[...body.querySelectorAll('.tw-voice-help details')].forEach((el,index)=>el.open=opened[index]);body.scrollTop=scroll;try{await applyVoiceSettings();}catch(error){toast(`風格已儲存，語音重新連線失敗：${error.message}`);}return;}
+      if(a==='voice-style-save' || a==='voice-style-reset'){const settings=a==='voice-style-reset'?normalizeVoiceSettings():normalizeVoiceSettings({...voiceSettings,style:body.querySelector('#tw-voice-style').value,role:body.querySelector('#tw-voice-role').value,clearPlaceOnNext:body.querySelector('#tw-voice-clear-place').checked,shareMap:body.querySelector('#tw-voice-share-map').checked});voiceSettings=await saveVoiceSettings(settings);const opened=[...body.querySelectorAll('.tw-voice-help details')].map(el=>el.open);const scroll=body.scrollTop;toast('已儲存語音風格與設定，立即套用；重開程式會沿用');renderAI();body.querySelector('.tw-voice-help').open=true;[...body.querySelectorAll('.tw-voice-help details')].forEach((el,index)=>el.open=opened[index]);body.scrollTop=scroll;try{await applyVoiceSettings();}catch(error){toast(`風格已儲存，語音重新連線失敗：${error.message}`);}return;}
       if (a === 'gemini-live-toggle') return await toggleGeminiLive();
       if (a === 'cctv-check') return await doCctvCheck();
       if (a === 'osm-check') return await doOsmCheck();
@@ -729,6 +756,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   root.addEventListener('change', event => {
     const target=event.target;
     if(target.matches('[data-route-style]')){navigation.setRouteStyle({[target.dataset.routeStyle]:target.value});return;}
+    if(target.matches('[data-vehicle-color]')){navigation.setVehicleColor(target.dataset.vehicleColor,target.value);toast('車身顏色已儲存，下次開啟沿用');return;}
     if(target.matches('[data-label-style]')){const layer=getLayer(target.dataset.layer);if(layer){layer.dataMetadata.annotationLabel=normalizeLabelStyle({...layer.dataMetadata.annotationLabel,[target.dataset.labelStyle]:target.value});layer.name=`標籤：${layer.dataMetadata.annotationLabel.text.slice(0,40)}`;layer.geojson.features[0].properties.name=layer.dataMetadata.annotationLabel.text;applyAnnotationLabel(layer);}return;}
     if(target.matches('[data-building-white]')){setBuildingWhiteMode(viewer,target.checked);return;}
     if(target.matches('[data-building-align]')){getLayer(target.dataset.layer)?.alignment?.setEnabled(target.checked);return;}
@@ -863,6 +891,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   }
 
   async function toggleGeminiLive() {
+    voiceControlEpoch++;
     if (!geminiLive.active && !await hasApiKey('gemini')) {
       lastGeminiStatus = '尚未設定 Gemini Live API Key；請先開啟「服務與 API 金鑰設定」。';
       toast('請先設定 Gemini Live API Key');
@@ -1157,7 +1186,8 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     open('分析', `<article class="tw-card"><h3>行車路線與導航</h3><label>起點<input id="tw-route-origin" value="${esc(routeInputs.origin)}" placeholder="例如 宜蘭縣審計室（留空使用裝置定位）"></label><label>交通方式<select id="tw-route-mode"><option value="car" ${routeInputs.travelMode==='car'?'selected':''}>汽車</option><option value="motorcycle" ${routeInputs.travelMode==='motorcycle'?'selected':''}>機車（避開高速公路）</option></select></label>
       <div class="tw-route-stops">${routeInputs.waypoints.map((value,index)=>`<label>中途點 ${index+1}<div class="tw-actions"><input data-route-waypoint value="${esc(value)}" placeholder="學校、地址或地標"><button data-act="route-stop-remove" data-index="${index}" aria-label="刪除中途點 ${index+1}">×</button><button data-act="route-stop-move" data-index="${index}" data-direction="up" aria-label="上移中途點">↑</button><button data-act="route-stop-move" data-index="${index}" data-direction="down" aria-label="下移中途點">↓</button></div></label>`).join('')}</div><button data-act="route-stop-add">新增中途點</button><label>終點<input id="tw-route-destination" value="${esc(routeInputs.destination)}" placeholder="例如 宜蘭縣政府"></label>
       <div class="tw-actions"><button data-act="route-plan">規劃行車路線</button><button data-act="route-show">查看路線</button><button data-act="nav-drive">沿路線行車視角</button><button data-act="nav-stop">停止</button><button data-act="route-ai-analyze">AI 分析目前路線</button></div><p class="tw-note" id="tw-navigation-status">TomTom 依序計算每段行車距離與即時路況時間；機車模式仍需依現場標誌確認。行進示意不是 GPS 實際位置。</p>
-      <div class="tw-label-controls"><label>路線顏色<input type="color" data-route-style="color" value="${navigation.routeStyle.color}"></label><label>虛線粗細（像素）<input type="number" data-route-style="width" min="0.5" max="16" step="0.5" value="${navigation.routeStyle.width}"></label></div></article>
+      <div class="tw-label-controls"><label>路線顏色<input type="color" data-route-style="color" value="${navigation.routeStyle.color}"></label><label>虛線粗細（像素）<input type="number" data-route-style="width" min="0.5" max="16" step="0.5" value="${navigation.routeStyle.width}"></label></div>
+      <div class="tw-label-controls">${['car','motorcycle'].map(mode=>`<label>${mode==='car'?'汽車':'機車'}車身顏色<select data-vehicle-color="${mode}">${VEHICLE_COLORS.map(color=>`<option value="${color.id}" ${navigation.vehicleColors[mode]===color.id?'selected':''}>${color.name}</option>`).join('')}</select></label>`).join('')}</div><small>顏色保存在本機；只更換車身烤漆，保留輪胎、玻璃及燈具。</small></article>
       <article class="tw-card"><h3>CCTV 監看與 AI 辨識</h3><p class="tw-note">開啟專屬浮動視窗選擇目前視野、圈選或全臺目錄。本機 YOLOX 辨識不需要 AI 金鑰；深度分析為選用的外部服務。</p><button data-act="cctv-panel">開啟 CCTV 監看與 AI 辨識</button></article>`);
   }
   async function analyzeCurrentRoute(){
@@ -1178,7 +1208,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   async function planAerialWithAi({description,coordinates,localPlan,validation,model='auto-free',signal}){
     if(!await hasApiKey('openrouter'))throw new Error('AI 修正需要已設定的 OpenRouter 金鑰；確認規劃與安全檢查仍可在本機使用。');
     const parameters=['speed','pitch','roll','fov','lookAhead','acceleration','clearance','heightIntent'];
-    const answer=await streamBrowserChat({model:model==='auto-free'?'openrouter/free':model,planning:true,messages:[{role:'user',content:`請修正未通過安全檢查的拍攝計畫，只輸出 JSON：{description,explanation,speed,pitch,roll,fov,lookAhead,acceleration,clearance,heightIntent}。description 是改寫後拍攝說明；explanation 說明修正。speed 1到50、pitch -85到45、roll -20到20、fov 25到100、lookAhead 5到500、acceleration 0.5到15、clearance 3到30、heightIntent 8到3000（離起點表面公尺）。不能執行程式、不能更改平面位置、不能聲稱未知障礙已安全；本機仍會重新檢查。原需求：${description}`}],context:{type:'aerial-parameter-planning',pointCount:coordinates.length,defaultParameters:Object.fromEntries(parameters.map(key=>[key,localPlan[key]])),collision:validation},responseStyle:'僅輸出合法JSON，不輸出思考過程。'},{signal});
+    const answer=await streamBrowserChat({model:model==='auto-free'?'openrouter/free':model,planning:true,messages:[{role:'user',content:`請依拍攝描述及已確認的手繪軌跡規劃拍攝計畫，只輸出 JSON：{description,explanation,speed,pitch,roll,fov,lookAhead,acceleration,clearance,heightIntent}。description 是改寫後拍攝說明；explanation 說明修正。speed 1到50、pitch -85到45、roll -20到20、fov 25到100、lookAhead 5到500、acceleration 0.5到15、clearance 3到30、heightIntent 8到3000（離起點表面公尺）。不能執行程式、不能更改平面位置、不能聲稱未知障礙已安全；本機仍會重新檢查。原需求：${description}`}],context:{type:'aerial-parameter-planning',pointCount:coordinates.length,defaultParameters:Object.fromEntries(parameters.map(key=>[key,localPlan[key]])),collision:validation},responseStyle:'僅輸出合法JSON，不輸出思考過程。'},{signal});
     let parsed;try{parsed=JSON.parse(answer.content.replace(/^\s*```(?:json)?\s*/,'').replace(/\s*```\s*$/,''));}catch{throw new Error('AI 修正格式不正確，請重新規劃或重試。');}
     const patch={};for(const key of parameters)if(parsed[key]!==undefined){if(!Number.isFinite(parsed[key]))throw new Error('AI 拍攝參數須為有限數字。');patch[key]=parsed[key];}
     if(patch.heightIntent!==undefined&&(patch.heightIntent<8||patch.heightIntent>3000))throw new Error('AI 規劃高度超出允許範圍');
@@ -1397,7 +1427,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     });
   }
 
-  function voiceHelp(){return `<details class="tw-card tw-voice-help"><summary>AI語音助理功能說明與風格</summary><details open><summary>功能與回答範圍</summary><ul><li>協助載入、顯示、隱藏、切換圖資；明確說出圖資與區域就直接執行，未指定才詢問。</li><li>飛往地點、顯示可拖曳地點標籤、環繞建物；規劃汽車／機車路線與中途點，建立圖層影響範圍。</li><li>介紹本程式功能，回答台灣地理與歷史問題；新聞與輿情透過公開新聞搜尋查詢，區分報導與推論，不代表全體民意。</li><li>可讀取目前圖資及鏡頭狀態。勾選分享地圖後，可要求觀看當下地圖；不包含其他應用程式、金鑰或對話畫面。</li><li>CCTV 影像辨識、標註及量測請使用工具列。圖資依來源涵蓋範圍載入；建物只串流官方服務圖磚，不代表每一棟建物。</li></ul></details><details><summary>提問範例</summary><ul><li>這個程式可以做哪些事？道路中心線可以如何分析？</li><li>介紹宜蘭平原的地形與發展歷史。</li><li>查詢宜蘭最近的交通新聞，列出來源與日期，再分析報導重點。</li><li>看目前地圖，說明我載入的圖資與可以進行的分析。</li></ul></details><details><summary>畫面操作範例</summary><ul><li>載入宜蘭縣的 3D 建物圖資。</li><li>載入全台灣道路中心線；隱藏飛機即時動態。</li><li>帶我到宜蘭縣審計室並顯示地點標籤。</li><li>從宜蘭縣審計室，經宜蘭國小，規劃到羅東國小的汽車路線。</li></ul></details><section class="tw-chat-style tw-voice-style"><label>自訂 AI 語音回答風格<textarea id="tw-voice-style" rows="3" maxlength="1400" placeholder="例如：用繁體中文、先說結論，補充三項具體建議。">${esc(voiceSettings.style)}</textarea></label><div class="tw-actions"><button data-act="voice-style-save">儲存風格</button><button data-act="voice-style-reset">重訂風格</button></div><small>保存於瀏覽器及本機使用者設定；儲存後立即套用，重啟後沿用此風格，資料正確性規則仍適用。</small></section><label class="tw-inline-option"><input id="tw-voice-clear-place" type="checkbox" ${voiceSettings.clearPlaceOnNext?'checked':''}>下一個語音指令開始時清除暫時地點標籤</label><label class="tw-inline-option"><input id="tw-voice-share-map" type="checkbox" ${voiceSettings.shareMap?'checked':''}>允許語音助理在要求時取得目前地圖畫面</label><p class="tw-note">勾選設定會隨「儲存風格」一併保存；語音連線自動重新啟動以套用新設定。地點以藍色對話框標示，同一地點不重複新增。</p></details>`;}
+  function voiceHelp(){return `<details class="tw-card tw-voice-help"><summary>AI語音助理功能說明與風格</summary><details open><summary>功能與回答範圍</summary><ul><li>協助載入、顯示、隱藏、切換圖資；明確說出圖資與區域就直接執行，未指定才詢問。</li><li>飛往地點、顯示三秒霓虹地點標籤、環繞建物；規劃汽車／機車路線與中途點，建立圖層影響範圍。</li><li>介紹本程式功能，回答台灣地理與歷史問題；新聞與輿情透過公開新聞搜尋查詢，區分報導與推論，不代表全體民意。</li><li>可讀取目前圖資及鏡頭狀態。勾選分享地圖後，可要求觀看當下地圖；不包含其他應用程式、金鑰或對話畫面。</li><li>CCTV 影像辨識、標註及量測請使用工具列。圖資依來源涵蓋範圍載入；建物只串流官方服務圖磚，不代表每一棟建物。</li></ul></details><details><summary>提問範例</summary><ul><li>這個程式可以做哪些事？道路中心線可以如何分析？</li><li>介紹宜蘭平原的地形與發展歷史。</li><li>查詢宜蘭最近的交通新聞，列出來源與日期，再分析報導重點。</li><li>看目前地圖，說明我載入的圖資與可以進行的分析。</li></ul></details><details><summary>畫面操作範例</summary><ul><li>載入宜蘭縣的 3D 建物圖資。</li><li>載入全台灣道路中心線；隱藏飛機即時動態。</li><li>帶我到宜蘭縣審計室並顯示地點標籤。</li><li>從宜蘭縣審計室，經宜蘭國小，規劃到羅東國小的汽車路線。</li></ul></details><section class="tw-chat-style tw-voice-style"><label>回覆角色<select id="tw-voice-role">${VOICE_ROLES.map(role=>`<option value="${role.id}" ${voiceSettings.role===role.id?'selected':''}>${esc(role.name)}</option>`).join('')}</select></label><small>兒童角色使用較輕快的聲線與語氣模擬；非特定真人或原生專用兒童聲音。</small><label>自訂 AI 語音回答風格<textarea id="tw-voice-style" rows="3" maxlength="1400" placeholder="例如：用繁體中文、先說結論，補充三項具體建議。">${esc(voiceSettings.style)}</textarea></label><div class="tw-actions"><button data-act="voice-style-save">儲存風格</button><button data-act="voice-style-reset">重訂風格</button></div><small>保存於瀏覽器及本機使用者設定；儲存後立即套用，重啟後沿用此風格，資料正確性規則仍適用。</small></section><label class="tw-inline-option"><input id="tw-voice-clear-place" type="checkbox" ${voiceSettings.clearPlaceOnNext?'checked':''}>下一個語音指令開始時清除暫時地點標籤</label><label class="tw-inline-option"><input id="tw-voice-share-map" type="checkbox" ${voiceSettings.shareMap?'checked':''}>允許語音助理在要求時取得目前地圖畫面</label><p class="tw-note">勾選設定會隨「儲存風格」一併保存；語音連線自動重新啟動以套用新設定。地點名稱以霓虹 HUD 標示，緩慢閃爍，三秒後消失；同一地點不重複新增。</p></details>`;}
   function renderAI() {
     open('AI 服務狀態與額度', `${voiceHelp()}<article class="tw-card"><b>Gemini Live（僅供語音助理）</b><label>語音模型<select id="tw-voice-model"><option value="gemini-3.8-live" ${voiceSettings.model==='gemini-3.8-live'?'selected':''}>gemini-3.8-live（預設）</option><option value="gemini-3.1-flash-live-preview" ${voiceSettings.model==='gemini-3.1-flash-live-preview'?'selected':''}>gemini-3.1-flash-live-preview</option></select></label><div class="tw-actions"><button data-act="voice-model-save">儲存語音模型</button></div><p id="tw-gemini-quota" class="tw-note">剩餘額度：查詢中</p><a href="https://aistudio.google.com/usage" target="_blank" rel="noopener noreferrer">查看 Google AI Studio 專案額度</a><div id="tw-voice-sources" class="tw-voice-sources"></div><p id="tw-live-status-banner" class="tw-note">${esc(lastGeminiStatus)}</p><p id="tw-gemini-connection" class="tw-note">尚未檢查</p><p class="tw-note">實際免費用量依 Google AI Studio 顯示。</p><p class="tw-note">可說：「載入飛機即時動態」、「隱藏道路中心線」、「切換到 NLSC 臺灣通用正射影像」、「一鍵載入所有內建圖資」、「一鍵隱藏所有圖資」。</p></article>
       <article class="tw-card"><b>OpenRouter</b><p id="tw-openrouter-connection" class="tw-note">尚未檢查</p><p id="tw-openrouter-usage" class="tw-note"></p></article>
@@ -1711,6 +1741,8 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     window.removeEventListener('resize', refreshGlobeViewport);
     governor.stop();
     window.removeEventListener('gev-tw:keys-changed',onKeysChanged);
+    window.removeEventListener('gev-tw:aerial-capture-ui',onCaptureUi);
+    document.body.classList.remove('gev-tw-aerial-capture');
     providerSettings.dispose();
     root.remove();
   };

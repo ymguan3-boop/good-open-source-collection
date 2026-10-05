@@ -103,3 +103,26 @@ JSON 專案保存圖層、樣式、來源、分析與標註；匯入先解析，
 Gemini Live 以本機 DPAPI Key 取得單次短效 token，前端使用 v1beta SDK。geminiLivePolicy.js 白名單只允許兩款使用者指定模型。3.8 可帶語言與詞彙提示；3.1 使用基本 inputAudioTranscription。Google Search 不隨 Live 初始化，近期新聞透過有限 search_public_news → 本機 /voice-news → 公開新聞 RSS；外部內容只作資料，不可成為工具指令。/gemini-status 不消耗生成額度，不虛構限額；/gemini-models、/gemini-probe 為本機受限診斷，不回傳長效 Key。
 
 OpenRouter /planning-models 取得所有文字模型，/chat-stream 的 planning 選项明確選定模型才可使用該付費模型。一般對話及所有自動備援仍維持 max_price=0。AI 僅回傳固定版本與有限欄位，不可改手繪 XY，不執行模型生成程式；本機碰撞再次驗證通過才啟用開拍。
+
+## v24 視窗、聲線與重新啟動
+
+- `voiceProfiles.js` 以白名單把四種回覆角色映射至既有 Gemini 預設聲線；`voiceSettings.js` 保存角色／模型／風格。`geminiLive.js` 仍只呼叫註冊工具，不執行模型產生的 JavaScript。自然語氣提示與聲線角色不能代替使用者的聆聽驗收。
+- `labelStyles.js` 以 Canvas 生成自適應文字寬度的霓虹 HUD；每個臨時圖層只有一份閃爍與三秒生命週期。重複地點飛行前取消舊計時器，到達後重啟；移除圖層釋放回呼與計時器。純標籤不屬於 `collisionEnabled` 幾何來源，不使空拍碰撞認證失效。
+- `floatingPanelManager.enhanceExisting()` 保留既有對話框及 action handler，加入共同拖曳、縮小與展開。`registerExisting(element,{controls:true})` 將金鑰視窗納入同一 host／有界置頂排序，保留上游 `hidden`／`visible` 與 X 的關閉流程；釋放時還原原父節點。航機標題外包一層 header，避免定時更新文字刪掉控制按鈕。
+- `navigationDisplay.js` 選擇車身材質變體；`navigation.js` 分別持久化汽車／機車色彩。原創 GLB 網格與 binary buffer 完全保留，只有烤漆材質改色，沒有整車 tint、額外位置圖示或模型上方文字。
+- `applicationRestart.js` 將 Google／Cesium 憑證的必要 Viewer 重建序列化：工作區與對話保存 → 停止工作 → `location.reload()`。重複請求共用 pending promise；保存失敗不停止或重新載入。`chatArchive.js` 以專用 JSON attachments 保存與匯出 `restart-project.json`，不混入空拍影片 metadata。OpenRouter／TomTom 新請求讀取新 Key；Gemini 風格、角色或 Key 只重啟已啟用 session，不自行開啟麥克風。
+
+## v24 空拍範圍準備與 Cesium 查詢相容性
+
+`aerialSceneReadiness.js` 在開拍前沿路徑至多五處視角預載，暫時協調 cache、foveated delay 與移動請求政策，完成後還原鏡頭及相機輸入。快取租約在工作結束釋放；如果 Governor 已改變設定，不覆蓋 Governor 的新值。預載成功僅代表當次視野圖磚準備，不代表官方建物資料完整。
+
+`aerialBoundedPicking.js` 是集中隔離的 Cesium **1.138.0** 適配器。最高細節 picking 的離屏相機若使用過大 far，可沿射線掃描過多圖磚並等待很久；適配器把該次查詢限制為需要的有限距離，涵蓋 preload 與最終 pick。它讀取 `_picking`、`_pickOffscreenView`、`_mostDetailedRayPicks` 等私有介面，因此有以下保護：
+
+- 先核對確切 `Cesium.VERSION` 與介面形狀；不支援時回報未知，不繞過碰撞檢查。
+- 非同步查詢使用每個 scene 的單一租約，其他查詢仍執行時拒絕開始；失敗僅清理本次建立的查詢，保留其他呼叫者工作。
+- `finally` 還原原 far；未修改上游 Cesium 原始碼或供應商圖磚。
+- 更新 Cesium／上游前需重新驗證 preload、pick、取消、逾時與還原；`UPSTREAM.lock` 仍固定 `b210ab0fe4d71c7faa0268134e0aa5f3c53fc7fe`。
+
+`aerialCollisionSystem.js` 建立當次路徑範圍的幾何認證，檢查地形、可查詢建物與連續路段；`cinematicCamera.js` 沿已驗證路段移動，減少每幀重複最高細節網路查詢。來源或幾何變更使認證失效，未知時停止／懸停。自由空拍離開準備範圍仍需檢查。這不是完全下載或凍結線上圖資，也不保證硬體與串流全程零延遲。
+
+錄影期間 `gev-tw:aerial-capture-ui` 僅隱藏操作介面，保留程式標題及 Esc 提示；結束後恢復。Esc 不觸發下載，影片完成仍保存本機記錄。只有手動匯出按鈕下載 WebM。
