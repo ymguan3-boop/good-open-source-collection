@@ -12,7 +12,7 @@
 - 最終手繪 71 m／48 位置幾何檢查與開拍 PASS；自由模型可見／拖曳、49 秒懸停錄影、1280×720 預覽、Esc 停止與記錄 PASS。拍攝時只留品牌與 Esc 提示，保留來源 attribution。
 - TomTom 六種交通方式／色彩設定 PASS；白色機車 200 m／5000 m 完整顯示 PASS。遠距使用純顯示縮放與抬高，地理路線不變。
 - 真實重啟協調器重載頁面並保存工作區記錄及 JSON 附檔 PASS；未代填真實 Key。
-- 正式 build 1222 modules／45.37 秒 PASS，boundary 905 modules／60 portable entries PASS。
+- 正式 build 1222 modules／46.25 秒 PASS，boundary 905 modules／60 portable entries PASS。
 - 實體麥克風／主觀聲音、其他模型色彩視覺及長時間回歸仍列人工驗收，不標示所有必要驗收完成。
 
 詳細內容與待補清單見 [v24 驗收](docs/browser-v24-acceptance-20261005.md)。以下各日期與版本保留為歷史紀錄，當前狀態以本節為準。

@@ -732,5 +732,6 @@ body.gev-tw-aerial-capture #key-setup-chip,
 body.gev-tw-aerial-capture #key-setup,
 body.gev-tw-aerial-capture #world-overlay-actions,
 body.gev-tw-aerial-capture .tw-voice-subtitles,
+body.gev-tw-aerial-capture #toast,
 body.gev-tw-aerial-capture .tw-toast{visibility:hidden!important;pointer-events:none!important}
 body.gev-tw-aerial-capture .tw-aerial-hud{visibility:visible!important}
