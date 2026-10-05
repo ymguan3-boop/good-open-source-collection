@@ -40,3 +40,32 @@
 
 .tw-managed-existing [data-existing-panel-action]{background:#0b293b;color:#e3f3fa;border:1px solid #386879;border-radius:6px;cursor:pointer;line-height:26px}
 .tw-managed-existing [data-existing-panel-action]:hover{background:#174354;border-color:#61d1e4}
+
+/* Aerial action colors follow the current mode; window controls stay consistent.
+ * The #tw-shell scope deliberately outranks taiwan.css generic floating-button
+ * rules, independent of stylesheet import order. Nested mode sections inherit
+ * these tokens from their outer data-aerial-theme container. */
+[data-aerial-theme="handdraw"]{--aerial-action-bg:#39264e;--aerial-action-border:#bf96ff;--aerial-action-hover:#624086;--aerial-primary-bg:#644078;--aerial-primary-hover:#805193;--aerial-primary-border:#e2b1ff}
+[data-aerial-theme="free"]{--aerial-action-bg:#163e34;--aerial-action-border:#6be5b0;--aerial-action-hover:#23664f;--aerial-primary-bg:#1d6447;--aerial-primary-hover:#278b61;--aerial-primary-border:#91ffd0}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action]{background:var(--aerial-action-bg);border-color:var(--aerial-action-border);color:#f3f8ff;transition:background-color .15s,border-color .15s,box-shadow .15s}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action]:not(:disabled):hover{background:var(--aerial-action-hover)}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action]:focus-visible{outline:2px solid #fff;outline-offset:2px}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="confirmRoute"],#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="cloudPlan"],#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="film"]{background:var(--aerial-primary-bg);border-color:var(--aerial-primary-border);font-weight:600}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="confirmRoute"]:not(:disabled):hover,#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="cloudPlan"]:not(:disabled):hover,#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="film"]:not(:disabled):hover{background:var(--aerial-primary-hover)}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="pause"]{background:#5b491f;border-color:#e9c875}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="pause"]:not(:disabled):hover{background:#79642e}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="stop"],#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="deleteVideo"]{background:#642d3a;border-color:#ef98a7}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="stop"]:not(:disabled):hover,#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="deleteVideo"]:not(:disabled):hover{background:#873f50}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="export"]{background:#244d77;border-color:#91bdf2}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="export"]:not(:disabled):hover{background:#326697}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="save"]{background:#235b59;border-color:#84d8d1}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="save"]:not(:disabled):hover{background:#327775}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action]:disabled{opacity:.5;cursor:not-allowed;filter:saturate(.35);box-shadow:none}
+
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-action="pause"][aria-pressed="true"]{background:#79642e;border-color:#fff1b5;box-shadow:inset 0 0 0 1px #fff1b5}
+
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-mode="handdraw"]{background:#39264e;border-color:#bf96ff;color:#f3eaff}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-mode="handdraw"][aria-pressed="true"],#tw-shell .tw-floating-panel [data-aerial-theme] button[data-mode="handdraw"]:hover{background:#624086;border-color:#e2b1ff}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-mode="free"]{background:#163e34;border-color:#6be5b0;color:#e7fff2}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-mode="free"][aria-pressed="true"],#tw-shell .tw-floating-panel [data-aerial-theme] button[data-mode="free"]:hover{background:#23664f;border-color:#91ffd0}
+#tw-shell .tw-floating-panel [data-aerial-theme] button[data-mode]:focus-visible{outline:2px solid #fff;outline-offset:2px}

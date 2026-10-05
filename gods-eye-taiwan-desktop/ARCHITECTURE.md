@@ -107,7 +107,7 @@ OpenRouter /planning-models 取得所有文字模型，/chat-stream 的 planning
 ## v24 視窗、聲線與重新啟動
 
 - `voiceProfiles.js` 以白名單把四種回覆角色映射至既有 Gemini 預設聲線；`voiceSettings.js` 保存角色／模型／風格。`geminiLive.js` 仍只呼叫註冊工具，不執行模型產生的 JavaScript。自然語氣提示與聲線角色不能代替使用者的聆聽驗收。
-- `labelStyles.js` 以 Canvas 生成自適應文字寬度的霓虹 HUD；每個臨時圖層只有一份閃爍與三秒生命週期。重複地點飛行前取消舊計時器，到達後重啟；移除圖層釋放回呼與計時器。純標籤不屬於 `collisionEnabled` 幾何來源，不使空拍碰撞認證失效。
+- `labelStyles.js` 以 Canvas 生成自適應文字寬度的深色矩形白字標籤；每個臨時圖層只有一份閃爍與五秒生命週期。重複地點飛行前取消舊計時器，到達後重啟；移除圖層釋放回呼與計時器。純標籤不屬於 `collisionEnabled` 幾何來源，不使空拍碰撞認證失效。
 - `floatingPanelManager.enhanceExisting()` 保留既有對話框及 action handler，加入共同拖曳、縮小與展開。`registerExisting(element,{controls:true})` 將金鑰視窗納入同一 host／有界置頂排序，保留上游 `hidden`／`visible` 與 X 的關閉流程；釋放時還原原父節點。航機標題外包一層 header，避免定時更新文字刪掉控制按鈕。
 - `navigationDisplay.js` 選擇車身材質變體；`navigation.js` 分別持久化汽車／機車色彩。原創 GLB 網格與 binary buffer 完全保留，只有烤漆材質改色，沒有整車 tint、額外位置圖示或模型上方文字。
 - `applicationRestart.js` 將 Google／Cesium 憑證的必要 Viewer 重建序列化：工作區與對話保存 → 停止工作 → `location.reload()`。重複請求共用 pending promise；保存失敗不停止或重新載入。`chatArchive.js` 以專用 JSON attachments 保存與匯出 `restart-project.json`，不混入空拍影片 metadata。OpenRouter／TomTom 新請求讀取新 Key；Gemini 風格、角色或 Key 只重啟已啟用 session，不自行開啟麥克風。
@@ -126,3 +126,13 @@ OpenRouter /planning-models 取得所有文字模型，/chat-stream 的 planning
 `aerialCollisionSystem.js` 建立當次路徑範圍的幾何認證，檢查地形、可查詢建物與連續路段；`cinematicCamera.js` 沿已驗證路段移動，減少每幀重複最高細節網路查詢。來源或幾何變更使認證失效，未知時停止／懸停。自由空拍離開準備範圍仍需檢查。這不是完全下載或凍結線上圖資，也不保證硬體與串流全程零延遲。
 
 錄影期間 `gev-tw:aerial-capture-ui` 僅隱藏操作介面，保留程式標題及 Esc 提示；結束後恢復。Esc 不觸發下載，影片完成仍保存本機記錄。只有手動匯出按鈕下載 WebM。
+
+## v25 規劃參數與已驗空間
+
+`aerialPlanningOutput.js` 定義有限的 `aerial-parameters-v1` JSON schema／parser，按模型支援能力選 structured output 或 JSON object，不支援時使用嚴格本機 parser。格式不合法、越界或空值不當成功；後端最多六候選／120秒，自動備援僅免費。斷線前後都檢查 response 狀態，避免已取消仍推論。一般 AI 空間對話維持既有文字格式。
+
+`aerialAiPlanner.js` 只送拍攝意圖、八個標量與安全回饋；平面位置保留使用者確認的軌跡，本機編譯高度。`aerialFlightPlanner.js` 最多三輪合法參數修正，幾何未知只補資料兩次；測得障礙高程後可本機抬高再驗證，不把模型回答當安全依據。取消訊號涵蓋串流與起飛預檢。
+
+`aerialFreeSpace.js` 保存最多20筆實際驗證的 swept corridor。逐一公尺子段要求兩端在同一已驗膠囊內，利用凸集合確認整段機身體積；沒有把六方向走廊稱為完整安全立方體。來源簽章更新即失效；新方向提前四秒距離查詢，接近已驗邊界平滑減速，尚未完成則留在已驗範圍。停止、暫停、關閉取消查詢並防止晚到結果復活資源。
+
+啟動時讀取金鑰完成後，若使用者已切換底圖，略過較晚抵達的預設底圖切換，避免覆寫正在準備的 NLSC 拍攝場景。

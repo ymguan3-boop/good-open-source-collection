@@ -47,3 +47,7 @@ Source and derived checksums, county coverage and counts are in `osm-national-me
 - 男聲／女聲／小女孩／小男孩角色使用既有 Gemini Live 預設 Charon／Aoede／Leda／Puck 聲線與文字風格提示；語音仍受 Google Gemini 服務條款及額度限制。兒童角色為虛構語氣，不是特定真人或供應商保證的專用兒童聲音。
 - 本次沒有新增執行套件、外部服務 API、必要付費依賴、訂閱或 Camera API。空拍核心仍使用現有 Cesium 與瀏覽器 MediaRecorder；手動操作／本機錄影不需 AI Key。使用者明確選用付費 OpenRouter 規劃模型、既有地圖服務或 Gemini 語音時，仍依各供應商方案計費；不能把沒有新增費用依賴解讀為所有既有雲端服務免費。
 - 有限距離 picking 適配器使用既有 Cesium 1.138.0 API／介面，未修改或複製新的第三方套件；保留 Cesium Apache-2.0 與供應商 attribution。私有介面版本限制與重新驗證要求見 `ARCHITECTURE.md`。
+
+## v25 原創矩形標籤與空拍規劃（2026-10-05）
+
+矩形地點標籤以既有瀏覽器 Canvas 繪製，未加入或散布參考 PNG。新增 aerialFreeSpace、aerialAiPlanner、aerialPlanningOutput 均為本專案原創程式碼，採現有 MIT 授權。沿用 CesiumJS Apache-2.0、MediaRecorder 及既有 OpenRouter provider，沒有新增套件、外部 API、必要付費相依或訂閱。選用 AI 規劃仍依使用者指定模型及 OpenRouter 服務額度；自動備援只用確認免費文字模型，排除 Lyria 音樂生成模型。官方影像／地形與模型既有授權及 attribution 保留。

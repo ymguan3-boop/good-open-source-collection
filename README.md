@@ -52,9 +52,9 @@ https://github.com/bilawalsidhu/gods-eye-view
 - 內建全臺道路、水系、水域、海岸線與官方鐵路，支援 22 縣市及 368 鄉鎮市區界。
 - TomTom 路線與行車示意使用原創彩色汽車／機車 3D 模型，三種車身顏色分別保存，只顯示完整模型，遠距維持可見、摘要視窗可拖曳／縮小，虛線顏色、粗細可調；移除 GPS 導航及 AI 查核行程規劃。
 - CCTV 每頁 12 路，一鍵本機 YOLOX／ONNX 辨識，固定截圖與完整結果統一進 AI 空間助理；記錄可匯出 JPEG、Markdown 與 metadata。
-- 電影空拍只保留手繪／自由兩模式，檢查目前場景地形與建物安全體積，支援六種可編輯拍攝範例、OpenRouter選用修正、本機 WebM 預覽、手動匯出與記錄，Esc 停止不自動下載，不需要 AI Key。
+- 電影空拍只保留手繪／自由兩模式，檢查目前場景地形與建物安全體積，支援六種可編輯拍攝範例、已驗走廊重用及提前檢查、OpenRouter參數格式驗證與自動免費備援修正、本機 WebM 預覽、手動匯出與記錄，Esc 停止不自動下載，不需要 AI Key。
 - AI 空間助理、空拍與 CCTV 採共用可拖曳、縮放、縮小、隱藏與叫回的浮動視窗；保留專案、GIS、飛機視角、語音及資源控管。
-- Gemini 語音可辨識明確圖資與區域、接續回答及提出候選，四種回覆角色及風格本機儲存、原生音訊平滑播放；地點使用霓虹標籤並於三秒後消失；預設Gemini3.8、可選3.1並顯示雙色字幕；已修正搜尋設定造成的額度中斷，原Key已通過真實語音辨識抽測。最新驗收與限制見 [v24驗收與待人工項目](gods-eye-taiwan-desktop/docs/browser-v24-acceptance-20261005.md)、[人工清單](gods-eye-taiwan-desktop/docs/voice-v22-manual-checklist-20261004.md)。
+- Gemini 語音可辨識明確圖資與區域、接續回答及提出候選，四種回覆角色及風格本機儲存、原生音訊平滑播放；地點使用深色矩形白字標籤，依名稱調整並緩慢閃爍五秒後消失；預設Gemini3.8、可選3.1並顯示雙色字幕；已修正搜尋設定造成的額度中斷，原Key已通過真實語音辨識抽測。最新驗收與限制見 [v25空拍補驗](gods-eye-taiwan-desktop/docs/browser-v25-aerial-20261005.md)、[v24歷史驗收](gods-eye-taiwan-desktop/docs/browser-v24-acceptance-20261005.md)、[人工清單](gods-eye-taiwan-desktop/docs/voice-v22-manual-checklist-20261004.md)。
 
 ### 安裝瀏覽器版
 

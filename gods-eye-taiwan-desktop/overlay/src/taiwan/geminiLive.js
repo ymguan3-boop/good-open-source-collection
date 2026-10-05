@@ -479,7 +479,7 @@ export function createGeminiLiveController({ viewer, navigation, layerActions, c
         new Cesium.BoundingSphere(Cesium.Cartesian3.fromDegrees(target.lon,target.lat,target.height/2),Math.max(160,target.height/2)),
         {duration:2,offset:new Cesium.HeadingPitchRange(0,Cesium.Math.toRadians(-24),Math.max(900,target.height*2)),complete:resolve,cancel:()=>reject(new Error('鏡頭飛行已取消'))}
       ));signal?.throwIfAborted();setLayerVisible(layer.id,true);activateVoicePlaceHud(layer);viewer.scene.requestRender();
-      const message=`已到達「${target.name}」，地標霓虹標籤顯示 3 秒。`;
+      const message=`已到達「${target.name}」，地點標籤閃爍 5 秒。`;
       onStatus(message);return {ok:true,message,place:target.name,mode:'3D 視角',markerLayerId:layer.id,coordinates:[target.lat,target.lon],heightMeters:target.height};
     }catch(error){removeLayer(layer.id);throw error;}
     finally{signal?.removeEventListener('abort',abort);}

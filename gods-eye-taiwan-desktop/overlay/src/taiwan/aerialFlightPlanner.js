@@ -26,7 +26,7 @@ export function planPath(plan){validateFlightPlan(plan);return smoothPath(plan.c
 /** Only known scalar fields and the user's confirmed horizontal route survive. */
 export function normalizeAiFlightPlan(candidate,coordinates){
   if(!candidate||typeof candidate!=='object')throw new Error('AI 沒有回傳有效的結構化飛行計畫');
-  const plan={version:candidate.version,coordinates:candidate.coordinates?.map(p=>Array.isArray(p)?p.slice():p),description:candidate.description,speed:candidate.speed,pitch:candidate.pitch,roll:candidate.roll,fov:candidate.fov,lookAhead:candidate.lookAhead,acceleration:candidate.acceleration,clearance:candidate.clearance,source:'AI 修正規劃'};
+  const plan={version:candidate.version,coordinates:candidate.coordinates?.map(p=>Array.isArray(p)?p.slice():p),description:candidate.description,speed:candidate.speed,pitch:candidate.pitch,roll:candidate.roll,fov:candidate.fov,lookAhead:candidate.lookAhead,acceleration:candidate.acceleration,clearance:candidate.clearance,source:'AI 修正規劃',heightIntent:candidate.heightIntent,model:candidate.model};
   validateFlightPlan(plan);
   if(plan.coordinates.length!==coordinates.length||plan.coordinates.some((p,i)=>Math.abs(p[0]-coordinates[i][0])>.00001||Math.abs(p[1]-coordinates[i][1])>.00001))throw new Error('AI 更動了已確認的手繪位置；請重畫並重新確認路徑');
   return plan;
@@ -43,20 +43,47 @@ function explanation(result,corrections=[]){
   return `飛行計畫：距離 ${Math.round(path.total)} 公尺，約 ${Math.ceil(path.total/plan.speed)} 秒。已完成 ${validation.checkedSamples||0} 個位置及連續路段的地形${validation.checked3D?'與 3D 建物':''}體積預檢。${corrections.length?`改寫說明：${corrections.join('；')}。`:''}請檢視安全預覽後按「開拍」。${validation.limitations||'檢查僅依目前場景可用的幾何，不代表未提供的障礙'}。`;
 }
 
-/** Check locally first. A user-requested AI repair is one call followed by a
- * fresh local collision check; no retry loop can start filming.
- */
-export async function prepareAerialFlight({coordinates,description='',settings={},collision,signal,onProgress=()=>{},cloudPlanner,model='auto-free',forceCloud=false}){
-  const localPlan=makeLocalFlightPlan(coordinates,description,settings);
-  const baseline=forceCloud&&cloudPlanner?{plan:localPlan,path:planPath(localPlan),validation:{status:'NOT_CHECKED',safe:false,reason:'請依使用者拍攝說明與已確認手繪軌跡規劃；幾何安全稍後由本機確認'},ok:false}:await checkPlan(localPlan,collision,signal,onProgress,0);
-  if((baseline.ok&&!forceCloud)||!cloudPlanner)return {...baseline,corrections:[],canAiRepair:!baseline.ok,explanation:explanation(baseline),usedCloud:false};
-  signal?.throwIfAborted();let response;try{response=await cloudPlanner({description,coordinates:coordinates.map(p=>p.slice()),localPlan,validation:baseline.validation,model,signal});}catch(error){signal?.throwIfAborted();if(forceCloud&&/請先輸入\s*OpenRouter\s*金鑰/i.test(error?.message||'')){const checked=await checkPlan(localPlan,collision,signal,onProgress,0);return {...checked,corrections:[],usedCloud:false,canAiRepair:!checked.ok,explanation:'未設定 OpenRouter 金鑰，本次未使用 AI，改為本機結構化規劃。'+explanation(checked)};}throw error;}signal?.throwIfAborted();
-  const plan=normalizeAiFlightPlan(response?.plan||response,coordinates);
-  const corrections=[];for(const key of ['speed','pitch','roll','fov','lookAhead','clearance'])if(plan[key]!==localPlan[key])corrections.push(`${{speed:'速度',pitch:'俯仰角',roll:'傾斜角',fov:'視野角',lookAhead:'前視距離',clearance:'安全距離'}[key]}由 ${localPlan[key]} 改為 ${plan[key]}`);
-  const heightChanges=plan.coordinates.filter((p,i)=>Math.abs(p[2]-localPlan.coordinates[i][2])>.01).length;if(heightChanges)corrections.push(`修正 ${heightChanges} 個航點高度`);
-  if(plan.description!==description)corrections.push(`拍攝描述改為「${plan.description}」`);
-  const aiExplanation=typeof response?.explanation==='string'?response.explanation.trim().slice(0,2000):'';if(aiExplanation)corrections.push(aiExplanation);
-  if(!corrections.length)corrections.push('AI 保留原計畫；已重新檢查碰撞條件');
-  const checked=await checkPlan(plan,collision,signal,onProgress,1);
-  return {...checked,corrections,canAiRepair:!checked.ok,usedCloud:true,model,explanation:explanation(checked,corrections)};
+/** User requests one automatic workflow: format repair, bounded camera intent
+ * repair, then actual geometry validation. Unknown data never becomes PASS. */
+export async function prepareAerialFlight({coordinates,description='',settings={},collision,signal,onProgress=()=>{},cloudPlanner,model='auto-free',forceCloud=false,onGeometryRetry=async()=>{}}){
+  const original=makeLocalFlightPlan(coordinates,description,settings);
+  let current=original,checked=forceCloud&&cloudPlanner?{plan:original,path:planPath(original),validation:{status:'NOT_CHECKED',safe:false,reason:'先規劃拍攝參數，再檢查實際地形與建物'},ok:false}:await checkPlan(original,collision,signal,onProgress,0);
+  if((checked.ok&&!forceCloud)||!cloudPlanner)return {...checked,corrections:[],canAiRepair:!checked.ok,explanation:explanation(checked),usedCloud:false};
+  const corrections=[],attempts=[];let usedCloud=false,feedback='',lastError;
+  for(let attempt=1;attempt<=3;attempt++){
+    signal?.throwIfAborted();onProgress({attempt,progress:0,phase:'ai',message:`AI 自動修正規劃 ${attempt}/3；格式不符會重試，完成後仍需安全檢查`});
+    let response;
+    try{
+      response=await cloudPlanner({description,coordinates:coordinates.map(p=>p.slice()),localPlan:current,validation:checked.validation,model,signal,feedback,attempt,onStatus:message=>onProgress({attempt,phase:'ai',progress:0,message})});signal?.throwIfAborted();
+      current=normalizeAiFlightPlan(response?.plan||response,coordinates);usedCloud=true;lastError=null;
+    }catch(error){
+      signal?.throwIfAborted();
+      if(/請先輸入\s*OpenRouter\s*金鑰/i.test(error?.message||'')){checked=await checkPlan(original,collision,signal,onProgress,0);return {...checked,corrections:[],usedCloud:false,canAiRepair:!checked.ok,explanation:'未設定 OpenRouter 金鑰，本次未使用 AI，改為本機結構化規劃。'+explanation(checked)};}
+      if(!/格式|參數|飛行計畫|更動了|座標|高度|超出/.test(error?.message||''))throw error;
+      lastError=error;feedback=`上一回格式不符：${error.message}。請依合法範圍修正，平面路徑保持原樣。`;attempts.push({attempt,status:'INVALID',reason:error.message});continue;
+    }
+    if(typeof response?.explanation==='string'&&response.explanation.trim())corrections.push(response.explanation.trim().slice(0,1000));
+    checked=await checkPlan(current,collision,signal,onProgress,attempt);
+    // Reload geometry only, instead of repeatedly paying AI for missing tiles.
+    for(let retry=0;checked.validation.status==='UNKNOWN'&&retry<2;retry++){
+      signal?.throwIfAborted();onProgress({attempt,phase:'geometry-retry',progress:0,message:`正在補齊拍攝範圍的障礙資料 ${retry+1}/2；尚未開拍`});
+      await onGeometryRetry({plan:current,path:checked.path,signal,retry});signal?.throwIfAborted();checked=await checkPlan(current,collision,signal,onProgress,attempt);
+    }
+    attempts.push({attempt,status:checked.validation.status,reason:checked.validation.reason});
+    if(checked.ok)break;
+    if(checked.validation.status==='UNKNOWN')break;
+    // A measured surface conflict provides an exact minimum raise. Wall-only
+    // conflicts use a stated local altitude adjustment and must pass fresh rays.
+    const unsafe=checked.validation.unsafe||[],needed=unsafe.reduce((delta,item)=>{const raw=item.point||checked.validation.points?.[item.index];if(!Number.isFinite(item.requiredHeight)||!raw)return delta;const point=Array.isArray(raw)?new Cesium.Cartesian3(...raw):raw;return Math.max(delta,item.requiredHeight-Cesium.Cartographic.fromCartesian(point).height+3);},0);
+    const raise=Math.max(needed,20*attempt),heightIntent=(current.heightIntent??original.heightIntent)+raise;
+    if(heightIntent>3000)break;
+    current=validateFlightPlan({...current,heightIntent,coordinates:current.coordinates.map(p=>[p[0],p[1],p[2]+raise]),speed:Math.max(1,Math.min(current.speed,original.speed)),description:`${current.description}；依幾何檢查提高 ${Math.ceil(raise)} 公尺後重新驗證`});
+    corrections.push(`本機根據障礙檢查將計畫提高 ${Math.ceil(raise)} 公尺，沒有改動手繪平面位置`);
+    checked=await checkPlan(current,collision,signal,onProgress,attempt);if(checked.ok)break;
+    if(checked.validation.status==='UNKNOWN')break;
+    feedback=`上次未通過：${checked.validation.reason||checked.validation.unsafe?.[0]?.reason||'與建物衝突'}。目前起點相對高度 ${heightIntent} 公尺，請調整高度與速度。`;
+  }
+  if(lastError&&!usedCloud)throw new Error(`AI 已自動修正三次仍未取得合法參數：${lastError.message}。未允許開拍，請更換模型或調整描述。`);
+  if(usedCloud){for(const key of ['speed','pitch','roll','fov','lookAhead','clearance'])if(current[key]!==original[key])corrections.push(`${key} ${original[key]} → ${current[key]}`);const count=current.coordinates.filter((p,i)=>Math.abs(p[2]-original.coordinates[i][2])>.01).length;if(count)corrections.push(`修正 ${count} 個航點高度`);}
+  return {...checked,corrections,attempts,canAiRepair:!checked.ok,usedCloud,model,explanation:explanation(checked,corrections)};
 }
