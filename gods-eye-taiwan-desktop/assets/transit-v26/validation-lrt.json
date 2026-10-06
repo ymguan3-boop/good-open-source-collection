@@ -1,0 +1,84 @@
+{
+  "id": "lrt",
+  "file": "overlay/public/models/taiwan-lrt.glb",
+  "source": "assets/transit-v26/taiwan-lrt.blend",
+  "sourceMetrics": {
+    "triangles": 5596,
+    "vertices": 3016,
+    "meshCount": 109,
+    "boundsSourceAxesMetres": [
+      [
+        -9.300000190734863,
+        9.300000190734863
+      ],
+      [
+        -1.3765000104904175,
+        1.3765000104904175
+      ],
+      [
+        0.029999997466802597,
+        4.21999979019165
+      ]
+    ],
+    "dimensionsMetres": [
+      18.6,
+      2.753,
+      4.19
+    ],
+    "materialCount": 7,
+    "materials": [
+      "Brushed metal.008",
+      "Dark blue glazed windows.008",
+      "Headlamp lens.008",
+      "Pearl white panels.010",
+      "Rear red lamps.006",
+      "Tyre and dark trim.010",
+      "lrt distinctive accent paint"
+    ]
+  },
+  "reimportMetrics": {
+    "triangles": 5596,
+    "vertices": 10896,
+    "meshCount": 109,
+    "boundsSourceAxesMetres": [
+      [
+        -9.300000190734863,
+        9.300000190734863
+      ],
+      [
+        -1.3765007257461548,
+        1.3765007257461548
+      ],
+      [
+        0.029999958351254463,
+        4.21999979019165
+      ]
+    ],
+    "dimensionsMetres": [
+      18.6,
+      2.753,
+      4.19
+    ],
+    "materialCount": 7,
+    "materials": [
+      "Brushed metal.009",
+      "Dark blue glazed windows.009",
+      "Headlamp lens.009",
+      "Pearl white panels.011",
+      "Rear red lamps.007",
+      "Tyre and dark trim.011",
+      "lrt distinctive accent paint.001"
+    ]
+  },
+  "bytes": 439316,
+  "sha256": "a99e375f8ded366ed28209aab59c0fb7a1cc69963b24d0a9bc0bc94b9ffea9d2",
+  "sourceSha256": "519d3aa1a3cd08342163287212292544f19498ad14a3422a4e03dddb2d32a4b3",
+  "clips": [],
+  "technicalStatus": "TECHNICAL_PASS",
+  "artStatus": "ART_REVIEW_PENDING",
+  "userApproval": "USER_APPROVAL_PENDING",
+  "sourceForward": "+X",
+  "sourceUp": "+Z",
+  "glTFForward": "+Z",
+  "runtimePixelSizeRecommendation": 64
+}

@@ -1,0 +1,107 @@
+[
+  {
+    "asset": "bus",
+    "matchedCameraMeanRgbDifference": [
+      0.0004140625,
+      0.00029296875,
+      0.00033203125
+    ],
+    "matchedCameraRmsRgbDifference": [
+      0.04743416490252569,
+      0.031187437374686624,
+      0.030809393859665593
+    ],
+    "technicalAppearanceStatus": "MATCHED_RENDER_EVIDENCE",
+    "userApproval": "USER_APPROVAL_PENDING"
+  },
+  {
+    "asset": "person",
+    "matchedCameraMeanRgbDifference": [
+      0.00042578125,
+      0.0004296875,
+      0.00046875
+    ],
+    "matchedCameraRmsRgbDifference": [
+      0.0378628280771524,
+      0.04021426985536353,
+      0.04498263553861646
+    ],
+    "technicalAppearanceStatus": "MATCHED_RENDER_EVIDENCE",
+    "userApproval": "USER_APPROVAL_PENDING"
+  },
+  {
+    "asset": "tra",
+    "matchedCameraMeanRgbDifference": [
+      0.0001015625,
+      0.00010546875,
+      0.0001171875
+    ],
+    "matchedCameraRmsRgbDifference": [
+      0.016056540723331413,
+      0.015687375497513915,
+      0.017001838135919305
+    ],
+    "technicalAppearanceStatus": "MATCHED_RENDER_EVIDENCE",
+    "userApproval": "USER_APPROVAL_PENDING"
+  },
+  {
+    "asset": "hsr",
+    "matchedCameraMeanRgbDifference": [
+      0.000203125,
+      0.00020703125,
+      0.00021484375
+    ],
+    "matchedCameraRmsRgbDifference": [
+      0.01976423537605237,
+      0.01843485150469078,
+      0.019465514377996797
+    ],
+    "technicalAppearanceStatus": "MATCHED_RENDER_EVIDENCE",
+    "userApproval": "USER_APPROVAL_PENDING"
+  },
+  {
+    "asset": "metro",
+    "matchedCameraMeanRgbDifference": [
+      0.0001328125,
+      0.00012890625,
+      0.00012890625
+    ],
+    "matchedCameraRmsRgbDifference": [
+      0.017001838135919305,
+      0.01617772388193098,
+      0.017566836653193994
+    ],
+    "technicalAppearanceStatus": "MATCHED_RENDER_EVIDENCE",
+    "userApproval": "USER_APPROVAL_PENDING"
+  },
+  {
+    "asset": "lrt",
+    "matchedCameraMeanRgbDifference": [
+      0.00015234375,
+      0.00016015625,
+      0.00016015625
+    ],
+    "matchedCameraRmsRgbDifference": [
+      0.03359920013928903,
+      0.03451675317871019,
+      0.03451675317871019
+    ],
+    "technicalAppearanceStatus": "MATCHED_RENDER_EVIDENCE",
+    "userApproval": "USER_APPROVAL_PENDING"
+  },
+  {
+    "asset": "bicycle",
+    "matchedCameraMeanRgbDifference": [
+      0.00159375,
+      0.0014453125,
+      0.00137890625
+    ],
+    "matchedCameraRmsRgbDifference": [
+      0.13755680644737286,
+      0.13704470073665745,
+      0.13588540668519192
+    ],
+    "technicalAppearanceStatus": "MATCHED_RENDER_EVIDENCE",
+    "userApproval": "USER_APPROVAL_PENDING"
+  }
+]

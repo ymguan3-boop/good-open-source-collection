@@ -5,8 +5,12 @@ import { createCctvInferenceScheduler } from './cctvInferenceScheduler.js';
 export function createCctvVisionPanel({manager,governor,onAnalyze,onResult=()=>{},onError=()=>{},onSource=()=>{},onClose=()=>{}}){
   let wall=null,closed=true,destroyed=false;
   const work=new Map();
-  const panel=manager.create({id:'cctv-vision',title:'📹 CCTV 監看',width:450,height:640,onClose:()=>{close();onClose();}});
+  const panel=manager.create({id:'cctv-vision',title:'📹 CCTV監看與AI辨識',width:450,height:640,onClose:()=>{close();onClose();}});
   panel.body.innerHTML=`<div class="tw-vision-controls"><div class="tw-actions"><button data-vision-source="view">目前視野</button><button data-vision-source="select">圈選</button><button data-vision-source="all">全臺目錄</button><button data-vision-source="confirm">確定觀看</button></div><p class="tw-note">點選畫面的「一鍵辨識」，完整結果會顯示於 AI 空間助理。</p><p data-vision-status role="status" class="tw-note">請選擇 CCTV 範圍。</p></div><div data-vision-wall></div>`;
+  const tabs=document.createElement('div');tabs.className='tw-actions';tabs.innerHTML='<button data-vision-tab="watch" aria-pressed="true">即時監看</button><button data-vision-tab="results" aria-pressed="false">AI辨識</button>';
+  panel.body.prepend(tabs);
+  const results=document.createElement('section');results.dataset.visionResults='';results.hidden=true;results.textContent='尚無辨識結果。於監看畫面按「一鍵辨識」；完整對話、後續提問與儲存仍使用 AI 空間助理。';panel.body.append(results);
+  const summaries=[];
   const scheduler=createCctvInferenceScheduler({onStatus:()=>refresh(),onResult:()=>refresh(),onError:()=>refresh()});
   // Internal policy remains automatic; users never need runtime/model settings.
   scheduler.setProfile(governor?.profile==='eco'?'eco':'balanced'); scheduler.setModel('auto'); scheduler.setPressure(Boolean(governor?.pressured));
@@ -35,6 +39,8 @@ export function createCctvVisionPanel({manager,governor,onAnalyze,onResult=()=>{
         }else throw lastError||new Error('目前沒有可用的免費辨識方式');
         abort(signal);
         const event={...result,cameraId:frame.cameraId,cameraName:frame.cameraName,camera:frame.camera,requestId:frame.requestId,screenshot:frame.screenshot,capturedAt:frame.capturedAt,receivedAt:frame.receivedAt,sourceObservedAt:frame.sourceObservedAt,observedAt:frame.observedAt,source:frame.source,imageWidth:frame.imageData.width,imageHeight:frame.imageData.height,completedAt:new Date().toISOString()};
+        summaries.unshift(event);summaries.splice(12);results.replaceChildren();
+        for(const item of summaries){const card=document.createElement('article');card.className='tw-card';const title=document.createElement('strong');title.textContent=item.cameraName;const info=document.createElement('p');info.textContent=`拍攝：${item.capturedAt}；分析：${item.completedAt}；${item.method}。${item.backend||''}`;const detail=document.createElement('p');detail.textContent=item.counts?`辨識數量 ${JSON.stringify(item.counts)}；壅塞 ${item.congestion?.label||'無法判定'}。事故／積水等不確定狀況：無法判定；完整結果與信心值（模型有提供時）見 AI 空間助理。`:String(item.content||'無可靠辨識結果');card.append(title,info,detail);results.append(card);}
         await onResult(event); return event;
       }catch(error){
         if(error.name!=='AbortError'&&!signal?.aborted&&!closed)await onError({cameraId:frame.cameraId,cameraName:frame.cameraName,camera:frame.camera,requestId:frame.requestId,capturedAt:frame.capturedAt,sourceObservedAt:frame.sourceObservedAt,source:frame.source,screenshot:frame.screenshot,error});
@@ -43,7 +49,7 @@ export function createCctvVisionPanel({manager,governor,onAnalyze,onResult=()=>{
     });
     work.set(id,task);refresh();return task;
   }
-  const click=async event=>{const button=event.target.closest('button');if(!button?.dataset.visionSource)return;try{await onSource(button.dataset.visionSource);}catch(error){panel.body.querySelector('[data-vision-status]').textContent=error.message;}};
+  const click=async event=>{const button=event.target.closest('button');if(button?.dataset.visionTab){const watch=button.dataset.visionTab==='watch';panel.body.querySelector('[data-vision-wall]').hidden=!watch;panel.body.querySelector('.tw-vision-controls').hidden=!watch;results.hidden=watch;for(const tab of tabs.children)tab.setAttribute('aria-pressed',String(tab===button));return;}if(!button?.dataset.visionSource)return;try{await onSource(button.dataset.visionSource);}catch(error){panel.body.querySelector('[data-vision-status]').textContent=error.message;}};
   panel.element.addEventListener('click',click);
   function replaceCameras(cameras){
     scheduler.stop();wall?.dispose();work.clear();closed=false;

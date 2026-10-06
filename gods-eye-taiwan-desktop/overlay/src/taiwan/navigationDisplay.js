@@ -1,4 +1,18 @@
 import { makePanelDraggable } from './draggablePanel.js';
+import * as Cesium from 'cesium';
+
+/** Display-only sizing keeps the complete model above terrain at distant zooms. */
+export function illustrativeModelPlacement(viewer,lon,lat,height,pixels,diameter){
+  let lift=0,scale=1;
+  try {
+    const surface=Cesium.Cartesian3.fromDegrees(lon,lat,height+.12);
+    const distance=Cesium.Cartesian3.distance(viewer.camera.positionWC,surface);
+    const size=viewer.camera.frustum.getPixelDimensions(viewer.canvas.clientWidth,viewer.canvas.clientHeight,distance,1,new Cesium.Cartesian2());
+    const visualDiameter=Math.max(size.x,size.y)*pixels;
+    scale=Math.max(1,visualDiameter/diameter);lift=Math.max(0,visualDiameter*.6-1);
+  }catch{/* Use natural ground placement if projection is unavailable. */}
+  return {scale,lift,position:Cesium.Cartesian3.fromDegrees(lon,lat,height+.12+lift)};
+}
 
 // Pixel sizing retains the complete GLB in city views. Body-only material variants
 // preserve the original wheels, glass, lighting and metallic parts.

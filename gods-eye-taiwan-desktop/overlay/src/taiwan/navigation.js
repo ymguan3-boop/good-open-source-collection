@@ -4,7 +4,7 @@ import { addGeoJSON } from './dataImport.js';
 import { listLayers, removeLayer } from './layerRegistry.js';
 import { browserAi } from './browserAi.js';
 import { resolvePlace } from './places.js';
-import { attachNavigationCard, vehicleDisplayPolicy, VEHICLE_COLORS } from './navigationDisplay.js';
+import { attachNavigationCard, vehicleDisplayPolicy, VEHICLE_COLORS, illustrativeModelPlacement } from './navigationDisplay.js';
 
 export function createNavigationController({ viewer, beforeCamera=()=>{}, onStatus=()=>{},onRoute=()=>{} }) {
   let vehicleColors={car:'blue',motorcycle:'red'};
@@ -230,15 +230,8 @@ export function createNavigationController({ viewer, beforeCamera=()=>{}, onStat
     // out. Raise only its display origin so enlarged wheels do not enter the
     // terrain or photorealistic mesh. Route coordinates and elevations remain
     // unchanged; the entity is an illustrative vehicle, not an actual location.
-    let displayLift=0,displayScale=1;
-    try {
-      const distance=Cesium.Cartesian3.distance(viewer.camera.positionWC,surfacePosition);
-      const pixels=viewer.camera.frustum.getPixelDimensions(viewer.canvas.clientWidth,viewer.canvas.clientHeight,distance,1,new Cesium.Cartesian2());
-      const visualDiameter=Math.max(pixels.x,pixels.y)*display.minimumPixelSize;
-      displayScale=Math.max(1,visualDiameter/(currentRoute.travelMode==='motorcycle'?2.5:5.1));
-      displayLift=Math.max(0,visualDiameter*.6-1);
-    } catch { /* Retain natural ground placement if projection is unavailable. */ }
-    const position=Cesium.Cartesian3.fromDegrees(lon,lat,height+.12+displayLift);
+    const placement=illustrativeModelPlacement(viewer,lon,lat,height,display.minimumPixelSize,currentRoute.travelMode==='motorcycle'?2.5:5.1);
+    const displayLift=placement.lift,displayScale=placement.scale,position=placement.position;
     // GLB has +X forward; Cesium heading is clockwise from north.
     const orientation=Cesium.Transforms.headingPitchRollQuaternion(position,new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(headingDegrees)-Math.PI/2,0,0));
     if(!positionEntity){

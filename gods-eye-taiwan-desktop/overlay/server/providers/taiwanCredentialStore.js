@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile, rename, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { KEY_SETUP_KEYS } from '../../src/keySetupCore.mjs';
 
-const aliases = { openrouter:'OPENROUTER_API_KEY', gemini:'GEMINI_API_KEY' };
+const aliases = { openrouter:'OPENROUTER_API_KEY', gemini:'GEMINI_API_KEY', tdxClientId:'TDX_CLIENT_ID', tdxClientSecret:'TDX_CLIENT_SECRET' };
 export const credentialNames = [...KEY_SETUP_KEYS.flatMap(item => item.envVars), ...Object.values(aliases)];
 const folder = join(process.env.LOCALAPPDATA || '', 'GodsEyeTaiwan');
 const filename = join(folder, 'credentials.dpapi');

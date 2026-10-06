@@ -1,0 +1,100 @@
+{
+  "glbHeaderVersionBufferCheck": "PASS",
+  "manifestHashCheck": "PASS",
+  "triangleMaterialReimportCheck": "PASS",
+  "originalPbrNoTextureCheck": "PASS",
+  "pythonSyntaxCheck": "PASS",
+  "expectedModels": 7,
+  "expectedSourceBlends": 7,
+  "expectedSinglePreviews": 49,
+  "contactSheets": 2,
+  "totalGlbBytes": 2173144,
+  "assets": [
+    {
+      "id": "bus",
+      "triangles": 3572,
+      "bytes": 301508,
+      "materials": 9,
+      "dimensions": [
+        10.6275,
+        3.35,
+        3.36
+      ],
+      "status": "TECHNICAL_PASS"
+    },
+    {
+      "id": "person",
+      "triangles": 4036,
+      "bytes": 156716,
+      "materials": 7,
+      "dimensions": [
+        0.69,
+        0.7536,
+        1.7875
+      ],
+      "status": "TECHNICAL_PASS"
+    },
+    {
+      "id": "tra",
+      "triangles": 5060,
+      "bytes": 409684,
+      "materials": 7,
+      "dimensions": [
+        20.6,
+        3.194,
+        4.7
+      ],
+      "status": "TECHNICAL_PASS"
+    },
+    {
+      "id": "hsr",
+      "triangles": 3546,
+      "bytes": 265468,
+      "materials": 6,
+      "dimensions": [
+        25.035,
+        3.439,
+        3.71
+      ],
+      "status": "TECHNICAL_PASS"
+    },
+    {
+      "id": "metro",
+      "triangles": 4312,
+      "bytes": 344924,
+      "materials": 7,
+      "dimensions": [
+        18.6,
+        3.004,
+        3.66
+      ],
+      "status": "TECHNICAL_PASS"
+    },
+    {
+      "id": "lrt",
+      "triangles": 5596,
+      "bytes": 439316,
+      "materials": 7,
+      "dimensions": [
+        18.6,
+        2.753,
+        4.19
+      ],
+      "status": "TECHNICAL_PASS"
+    },
+    {
+      "id": "bicycle",
+      "triangles": 4892,
+      "bytes": 255528,
+      "materials": 6,
+      "dimensions": [
+        2.078,
+        0.72,
+        1.1653
+      ],
+      "status": "TECHNICAL_PASS"
+    }
+  ],
+  "artStatus": "ART_REVIEW_PENDING",
+  "userApproval": "USER_APPROVAL_PENDING"
+}

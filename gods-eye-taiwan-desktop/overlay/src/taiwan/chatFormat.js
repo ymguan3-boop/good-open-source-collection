@@ -5,11 +5,15 @@ function imageUrl(value) {
 }
 function inline(value) {
   const images=[];
+  const links=[];
   const text=String(value).replace(/!\[([^\]]*)\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g,(_,alt,url)=>{
     const safe=imageUrl(url);if(!safe)return alt || '圖片網址無效';
     const index=images.length;images.push(`<figure class="tw-chat-figure"><button data-act="chat-image" data-image-url="${escape(safe)}" data-image-alt="${escape(alt)}">顯示圖片：${escape(alt || 'AI 提供的圖片')}</button><figcaption>圖片由回覆提供；點擊後連線至圖片來源。</figcaption></figure>`);return `\u0000IMAGE${index}\u0000`;
+  }).replace(/\[([^\]\n]+)\]\(([^\s)]+)\)/g,(_,label,url)=>{
+    const safe=imageUrl(url);if(!safe)return label;
+    const index=links.length;links.push(`<a href="${escape(safe)}" target="_blank" rel="noopener noreferrer">${escape(label)}</a>`);return `\u0000LINK${index}\u0000`;
   });
-  return escape(text).replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>').replace(/__([^_\n]+)__/g,'<strong>$1</strong>').replace(/\*([^*\n]+)\*/g,'<em>$1</em>').replace(/\u0000IMAGE(\d+)\u0000/g,(_,index)=>images[Number(index)] || '');
+  return escape(text).replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>').replace(/__([^_\n]+)__/g,'<strong>$1</strong>').replace(/\*([^*\n]+)\*/g,'<em>$1</em>').replace(/\u0000IMAGE(\d+)\u0000/g,(_,index)=>images[Number(index)] || '').replace(/\u0000LINK(\d+)\u0000/g,(_,index)=>links[Number(index)] || '');
 }
 const cells=line=>line.trim().replace(/^\|/,'').replace(/\|$/,'').split(/(?<!\\)\|/).map(s=>s.trim().replace(/\\\|/g,'|'));
 const separator=line=>cells(line).every(cell=>/^:?-{3,}:?$/.test(cell));

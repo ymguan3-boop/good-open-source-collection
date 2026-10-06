@@ -1,0 +1,82 @@
+{
+  "id": "hsr",
+  "file": "overlay/public/models/taiwan-hsr.glb",
+  "source": "assets/transit-v26/taiwan-hsr.blend",
+  "sourceMetrics": {
+    "triangles": 3546,
+    "vertices": 1904,
+    "meshCount": 65,
+    "boundsSourceAxesMetres": [
+      [
+        -12.535000801086426,
+        12.5
+      ],
+      [
+        -1.7195000648498535,
+        1.7195000648498535
+      ],
+      [
+        0.029999997466802597,
+        3.740000009536743
+      ]
+    ],
+    "dimensionsMetres": [
+      25.035,
+      3.439,
+      3.71
+    ],
+    "materialCount": 6,
+    "materials": [
+      "Brushed metal",
+      "Dark blue glazed windows",
+      "Headlamp lens",
+      "Pearl white panels",
+      "Tyre and dark trim",
+      "hsr distinctive accent paint"
+    ]
+  },
+  "reimportMetrics": {
+    "triangles": 3546,
+    "vertices": 6516,
+    "meshCount": 65,
+    "boundsSourceAxesMetres": [
+      [
+        -12.535000801086426,
+        12.499999046325684
+      ],
+      [
+        -1.7195006608963013,
+        1.7195013761520386
+      ],
+      [
+        0.029999958351254463,
+        3.740000009536743
+      ]
+    ],
+    "dimensionsMetres": [
+      25.035,
+      3.439,
+      3.71
+    ],
+    "materialCount": 6,
+    "materials": [
+      "Brushed metal.001",
+      "Dark blue glazed windows.001",
+      "Headlamp lens.001",
+      "Pearl white panels.001",
+      "Tyre and dark trim.001",
+      "hsr distinctive accent paint.001"
+    ]
+  },
+  "bytes": 265468,
+  "sha256": "87f00c218680931662886f3b02a9b39c8cda0f4477e4b2ba40c94036c0396395",
+  "sourceSha256": "fce581e956dcb3d582203770f4ecccc767c0e5e03afd1adca97fb6b156488f9b",
+  "clips": [],
+  "technicalStatus": "TECHNICAL_PASS",
+  "artStatus": "ART_REVIEW_PENDING",
+  "userApproval": "USER_APPROVAL_PENDING",
+  "sourceForward": "+X",
+  "sourceUp": "+Z",
+  "glTFForward": "+Z",
+  "runtimePixelSizeRecommendation": 64
+}

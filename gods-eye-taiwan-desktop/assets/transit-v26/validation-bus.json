@@ -1,0 +1,88 @@
+{
+  "id": "bus",
+  "file": "overlay/public/models/taiwan-bus.glb",
+  "source": "assets/transit-v26/taiwan-bus.blend",
+  "sourceMetrics": {
+    "triangles": 3572,
+    "vertices": 1936,
+    "meshCount": 75,
+    "boundsSourceAxesMetres": [
+      [
+        -5.267499923706055,
+        5.360000133514404
+      ],
+      [
+        -1.6750000715255737,
+        1.6750000715255737
+      ],
+      [
+        0.009999985806643963,
+        3.369999885559082
+      ]
+    ],
+    "dimensionsMetres": [
+      10.6275,
+      3.35,
+      3.36
+    ],
+    "materialCount": 9,
+    "materials": [
+      "Amber lamps",
+      "Brushed metal",
+      "Bus silver roof",
+      "Bus turquoise paint",
+      "Dark blue glazed windows",
+      "Headlamp lens",
+      "Pearl white panels",
+      "Rear red lamps",
+      "Tyre and dark trim"
+    ]
+  },
+  "reimportMetrics": {
+    "triangles": 3572,
+    "vertices": 7384,
+    "meshCount": 75,
+    "boundsSourceAxesMetres": [
+      [
+        -5.267499923706055,
+        5.360000133514404
+      ],
+      [
+        -1.6750006675720215,
+        1.674999475479126
+      ],
+      [
+        0.009999917820096016,
+        3.369999885559082
+      ]
+    ],
+    "dimensionsMetres": [
+      10.6275,
+      3.35,
+      3.36
+    ],
+    "materialCount": 9,
+    "materials": [
+      "Amber lamps.001",
+      "Brushed metal.001",
+      "Bus silver roof.001",
+      "Bus turquoise paint.001",
+      "Dark blue glazed windows.001",
+      "Headlamp lens.001",
+      "Pearl white panels.001",
+      "Rear red lamps.001",
+      "Tyre and dark trim.001"
+    ]
+  },
+  "bytes": 301508,
+  "sha256": "b8e19df47c7bb474127770004a5c3274da97caf7e5bdc72e02e1e9989e5f3700",
+  "sourceSha256": "947bed473fd0b514ad6f35fc453ead28bf262a600425ea42318aea570653e56d",
+  "clips": [],
+  "technicalStatus": "TECHNICAL_PASS",
+  "artStatus": "ART_REVIEW_PENDING",
+  "userApproval": "USER_APPROVAL_PENDING",
+  "sourceForward": "+X",
+  "sourceUp": "+Z",
+  "glTFForward": "+Z",
+  "runtimePixelSizeRecommendation": 64
+}

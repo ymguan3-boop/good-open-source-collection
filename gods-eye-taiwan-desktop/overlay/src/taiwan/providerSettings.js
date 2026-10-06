@@ -6,6 +6,7 @@ const SECURE_SERVICES = [
   { id:'tomtom', key:'tomtom', title:'TOMTOM', url:'https://my.tomtom.com/' },
   { id:'openrouter', key:'openrouter', title:'OPENROUTER', url:'https://openrouter.ai/settings/keys', description:'AI 查核主題建議；免費模型清單會依目前可用模型更新。' },
   { id:'gemini-live', key:'gemini', title:'GEMINI LIVE', url:'https://aistudio.google.com/apikey', description:'即時語音助理；使用 Google AI Studio API Key。' },
+  { id:'tdx', key:'TDX_CLIENT_ID', title:'TDX 運輸資料服務', url:'https://tdx.transportdata.tw/', description:'公共運輸旅程規劃。需 Client ID 與 Client Secret；權限與額度依 TDX 帳號方案。' },
 ];
 
 export function integrateProviderSettings({manager,onRestartRequired}={}) {
@@ -57,6 +58,17 @@ export function integrateProviderSettings({manager,onRestartRequired}={}) {
     input.placeholder = '貼上後加密保存；留白沿用已存金鑰';
     input.disabled = false;
     fields.append(input);
+    if(service.id==='tdx'){
+      input.setAttribute('aria-label','TDX Client ID');input.placeholder='TDX Client ID（留白沿用）';
+      const secret=document.createElement('input');secret.type='password';secret.autocomplete='off';secret.dataset.twSecureKey='TDX_CLIENT_SECRET';secret.placeholder='TDX Client Secret（留白沿用）';secret.setAttribute('aria-label','TDX Client Secret');
+      const result=document.createElement('p');result.dataset.tdxStatus='';result.setAttribute('role','status');result.textContent='使用頁面下方「儲存金鑰」保存；規劃時會自動驗證授權與服務權限。';
+      fields.append(secret,result);
+      const fare=document.createElement('section');fare.className='tw-fare-status';fare.innerHTML='<strong>票價資料</strong><div data-fare-data-status role="status">尚未查詢</div><label>重新驗證間隔（小時）<input type="number" data-fare-ttl min="0.017" max="720" step="1" value="24"></label><button type="button" data-fare-refresh>更新最新票價</button>';
+      fields.append(fare);
+      const display=data=>{const labels={TRA:'臺鐵',HSR:'高鐵',BUS:'公車',METRO:'捷運',LRT:'輕軌',BIKE:'公共自行車'};fare.querySelector('[data-fare-data-status]').textContent=Object.entries(labels).map(([mode,name])=>`${name}：${data.modes?.[mode]?.records?'部分（已核實 '+data.modes[mode].records+' 筆）':'無資料'}${data.modes?.[mode]?.stale?'／待重新驗證':''}`).join('；')+'。最後更新：'+(data.lastUpdated?new Date(data.lastUpdated).toLocaleString('zh-TW'):'尚未取得')+(data.warning?'；'+data.warning:'')+(data.quarantine?.length?'；需要重新驗證票價來源，異常價格未覆蓋舊資料。':'')+((data.report||[]).some(r=>r.status==='kept-last-verified')?'；官方來源未通過此次驗證，保留最近成功驗證的票價。':'');fare.querySelector('[data-fare-ttl]').value=String((data.ttlMs||86400000)/3600000);};
+      void browserAi('/tdx',{method:'POST',data:{action:'fare-status'}}).then(display).catch(()=>{fare.querySelector('[data-fare-data-status]').textContent='票價資料狀態暫不可用';});
+      fare.querySelector('[data-fare-refresh]').addEventListener('click',async()=>{const button=fare.querySelector('[data-fare-refresh]');button.disabled=true;fare.querySelector('[data-fare-data-status]').textContent='正在重新驗證已使用的官方票價來源…';try{await browserAi('/tdx',{method:'POST',data:{action:'fare-config',ttlMs:Number(fare.querySelector('[data-fare-ttl]').value)*3600000}});display(await browserAi('/tdx',{method:'POST',data:{action:'fare-update'}}));}catch(e){fare.querySelector('[data-fare-data-status]').textContent=e.message+'；最近成功驗證資料保留。';}finally{button.disabled=false;}});
+    }
     if (service.key === 'openrouter') {
       const select = document.createElement('select');
       select.dataset.twFreeModel = '';

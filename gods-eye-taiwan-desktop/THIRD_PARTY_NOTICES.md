@@ -1,4 +1,11 @@
 
+
+## v26 原創多運具模型與 TDX
+
+七件公車、步行人物、臺鐵、高鐵、捷運、輕軌及公共自行車 GLB、Blender 來源與建模腳本均為本專案原創 MIT 資產，無業者商標或第三方模型。Blender（GPL）僅為製作工具，不是瀏覽器執行依賴；來源、網格數、尺寸與重新匯入對照見 `assets/transit-v26/README.md` 及 manifest。
+
+沒有新增 npm 依賴。沿用 CesiumJS（Apache-2.0）、Turf（MIT）與既有本機金鑰服務。TDX 資料依交通部服務條款與會員權限，來源標示 TDX MaaS／運輸業者；不能將所有 API 視為永久無限制免費。步行／自行車實際線形可重用既有 TomTom Routing，依其用量條款；自然語言解析可選用使用者已設定的 OpenRouter 免費模型，不自動升級或訂閱。
+
 # Third-party notices
 
 ## v22 原創模型與瀏覽器錄影
@@ -51,3 +58,29 @@ Source and derived checksums, county coverage and counts are in `osm-national-me
 ## v25 原創矩形標籤與空拍規劃（2026-10-05）
 
 矩形地點標籤以既有瀏覽器 Canvas 繪製，未加入或散布參考 PNG。新增 aerialFreeSpace、aerialAiPlanner、aerialPlanningOutput 均為本專案原創程式碼，採現有 MIT 授權。沿用 CesiumJS Apache-2.0、MediaRecorder 及既有 OpenRouter provider，沒有新增套件、外部 API、必要付費相依或訂閱。選用 AI 規劃仍依使用者指定模型及 OpenRouter 服務額度；自動備援只用確認免費文字模型，排除 Lyria 音樂生成模型。官方影像／地形與模型既有授權及 attribution 保留。
+
+
+## v26 官方網站票價補查來源（2026-10-05）
+
+無新增第三方程式庫。票價是營運單位提供的事實資料，不移除來源標示、不鏡像網站或將網站授權誤稱為 MIT。
+
+- 臺北捷運官方「票價及乘車時間」：https://web.metro.taipei/pages2026/WebStation/051/8 。只查確認起訖的成人全票，回報來源與取得時間；網站更新時間未明示時不推測。
+- 臺鐵官方互動票價查詢：https://www.railway.gov.tw/tra-tip-web/tip/tip001/tip114/query 。先確認車種；未取得精確結果時僅提供查詢連結，不填入總票價。
+- TDX 班次與票價仍依會員權限與官方資料使用規定，403/429保留錯誤狀態。官方網站補查不需要新的 API Key。
+
+
+## 2026-10-06 臺鐵官方票價補查
+
+沿用 `tdxFareWeb.js` 新增臺鐵官方票價試算 adapter。實際車種已核實且使用者已確認後，從官方頁面讀取車站代碼、車種選項與一次性表單驗證值，僅送出一般單程票、成人全票、一般座位的試算；不訂票、不付款。僅接受同起訖、同車種與同日期的唯一金額，12 秒總時限、每頁 500 KB、24 小時最多 32 組報價快取，取消及來源失敗保留未知。表單 Cookie／驗證值只在這次請求記憶體，不回傳 UI 或存入資料庫。官方來源：<https://www.railway.gov.tw/tra-tip-web/tip/tip001/tip114/query>。沒有新增第三方套件、長效金鑰或收費訂閱。班次來自 TDX，補價來源另標為臺鐵官方網站；官方試算採最短里程，實際票價依票面及運行里程。
+
+
+## v27 官方票價資料（2026-10-06）
+
+本節為目前實作，前述 v26 成人全票限制屬歷程。沿用 Node fetch，沒有新增套件、API Key 或必要付費服務。只擷取已設定來源的公開票價事實，不鏡像網站；來源內容不屬於本程式 MIT 授權。
+
+- TDX 官方 rail／bus／bike API：<https://tdx.transportdata.tw/>。班次、列車 ID、OD 票價、票種及票證代碼依官方資料核對，金鑰沿用 DPAPI。
+- 臺鐵官方試算：<https://www.railway.gov.tw/tra-tip-web/tip/tip001/tip114/query>。比對實際車種、起訖站、日期、乘客與座位；公開表單短期 Cookie／驗證值只保留此次記憶體，無訂票／付款。官方最短營業里程不保證等於實際車次里程。
+- 臺北捷運官方 OD：<https://web.metro.taipei/pages2026/WebStation/051/8>。不以成人價格自行折半製造孩童報價。
+- 台灣高鐵官方一般票價：<https://en.thsrc.com.tw/ArticleContent/4c3efc1d-e6df-4bfd-97b4-52e89f79ee5c>；自由座：<https://en.thsrc.com.tw/ArticleContent/4db23462-3589-4f0e-8158-29f5ccfe3117>。區分標準／商務及全票／優待表格，不推定早鳥、座位庫存或購票資格。
+- YouBike 官方各地基本費率，例如臺北：<https://www.youbike.com.tw/region/taipei/rate/>。按已核實系統、租借時間計基本費率，未套用會員、地方補助或轉乘優惠。遵守來源 robots，包括目前 YouBike Crawl-delay 5 秒。
+- 官方 HTTP／解析失敗不繞過登入、CAPTCHA 或反爬機制；保留既有已驗證報價與日期，無可靠資料則回報未知。HTML不保存至使用者票價資料庫或 GitHub；資料庫只保存必要公開票價事實與來源定位。

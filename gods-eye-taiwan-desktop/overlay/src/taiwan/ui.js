@@ -1,3 +1,7 @@
+import {createTransitPanel} from './transitPanel.js';
+import {SEAT_NAMES} from './farePreference.js';
+import {createJourneyDisplay} from './journeyDisplay.js';
+import './transit.css';
 import {requestAiAerialPlan} from './aerialAiPlanner.js';
 import {createVoiceSubtitles} from './voiceSubtitles.js';
 import {cctvResultMessage,cctvContext,cctvFrameHtml} from './cctvChatResult.js';
@@ -235,7 +239,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     const wasRunning = !!activeLoad || batchRunning || !!geminiLive.active || !!navigation.active || aiPending;
     workEpoch++;
     chatController?.abort();
-    drawing.cancel();labels.cancel();cameraPath.cancel();cinematic.stop();
+    drawing.cancel();labels.cancel();cameraPath.cancel();cinematic.stop();journey.stop();transit.cancel?.();
     activeLoad?.abort();
     automaticBuildingLoad?.abort();
     viewer.camera.cancelFlight();
@@ -301,7 +305,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   }
   const navigation = createNavigationController({
     viewer,
-    beforeCamera:()=>cinematic.stop(),
+    beforeCamera:()=>{cinematic.stop();journey.stop();},
     onRoute:summary=>{const card=root.querySelector('.tw-navigation-card');card.hidden=!summary;if(summary)card.querySelector('[data-route-summary]').textContent=`起點：${summary.origin} → 終點：${summary.destination}｜${(summary.lengthMeters/1000).toFixed(1)} 公里｜預估 ${Math.max(1,Math.ceil(summary.travelTimeSeconds/60))} 分鐘${summary.trafficDelaySeconds ? `（交通延誤約 ${Math.ceil(summary.trafficDelaySeconds/60)} 分鐘）` : ''}`;},
     onStatus:(message) => {
       const el = root.querySelector('#tw-navigation-status');
@@ -310,9 +314,43 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     },
   });
 
+  let journeyInfo=null;
+  const journey=createJourneyDisplay({viewer,governor,beforeCamera:()=>{cinematic.stop();cameraPath.stop();navigation.stopNavigation();viewer.trackedEntity=undefined;},onStatus:status=>transit.updateJourney(status),onPick:info=>{
+    if(!info){journeyInfo?.hide();return;}
+    journeyInfo??=floatingPanels.create({id:'transit-segment-info',title:'旅程路段資訊',width:400,height:380});
+    journeyInfo.body.innerHTML=info.html;journeyInfo.restore();
+  }});
+  const transit=createTransitPanel({manager:floatingPanels,viewer,onPlan:async(plan,options)=>{await journey.load(plan,options);journey.setView('overview');},onExplain:async (result,{signal}={})=>{
+    chatMessages.push({role:'assistant',content:transitSummary(result),tripResult:result});showAssistant();chatStatus(result.needsClarification?'請先確認車種或旅程條件，再繼續規劃。':result.plans?.length?'已取得公共運輸規劃，可繼續修改旅程或儲存對話。':'目前沒有符合條件的可靠方案，請調整需求後重查。');
+    // The verified plan is usable immediately; optional model commentary does
+    // not hold the main planning button. Editing/closing aborts this signal.
+    void explainTransit(result,{signal}).catch(()=>{});
+  },onError:error=>{toast(error.message||String(error));chatMessages.push({role:'system',content:`大眾運輸規劃未完成：${error.message||String(error)}`});showAssistant();}});
+  transit.setJourneyController(journey);
+  function transitSummary(result){
+    const fareInfo=s=>{
+      const fare=s.fare,lookup=s.fareLookup;
+      if(!fare||!Number.isFinite(fare.amount))return '目前無法取得可靠的最新票價資料。'+(lookup?.sourceUrl?`；[${lookup.source}](${lookup.sourceUrl})（未納入總票價）`:'');
+      const quotes=fare.quotes?.length?fare.quotes:[fare];
+      const details=quotes.map(q=>`${q.ticketType||fare.ticketType||''}${q.quantity?` × ${q.quantity}`:''}：${Number.isFinite(q.amount)?`NT$${q.amount}`:'無可靠資料'}${q.sourceUrl?`；[${q.source||'官方票價'}](${q.sourceUrl})`:''}；資料更新 ${q.sourceUpdatedAt||q.sourceTime||'官方未提供'}；最後驗證 ${q.fetchedAt||'未提供'}${q.effectiveFrom?`；票價生效 ${q.effectiveFrom}`:''}${q.notice?`；${q.notice}`:''}`).join('；');
+      const alternatives=fare.alternatives?.length>1?'；車廂比較：'+fare.alternatives.map(c=>`${SEAT_NAMES[c.seatClass]||c.seatClass} ${c.complete?`NT$${c.amount}`:'未取得可靠票價'}`).join('、'):'';
+      return `小計 NT$${fare.amount}；${details}${alternatives}${fare.notice?`；${fare.notice}`:''}`;
+    };
+    const plans=result.plans||[];
+    const planName=id=>plans.find(p=>p.id===id)?.label||id;
+    const comparisonText=c=>`${planName(c.b)} 相較 ${planName(c.a)}，${c.extraAmount>0?'多花 NT$'+c.extraAmount:c.extraAmount<0?'省下 NT$'+Math.abs(c.extraAmount):'費用相同'}；${c.savedMinutes>0?'可省 '+c.savedMinutes+' 分鐘':c.savedMinutes<0?'多需 '+Math.abs(c.savedMinutes)+' 分鐘':'旅行時間相同'}`;
+    return `## AI智慧大眾運輸\n${[...(result.questions||[]),...(result.notices||[])].join('\n')}\n\n${plans.map(p=>`### ${p.label||p.id}${p.badges?.length?'｜'+p.badges.join('／'):''}\n${p.departureTime||'未提供時間'} → ${p.arrivalTime||'未提供時間'}\n轉乘：${p.transfers??'未知'}；步行：${Number.isFinite(p.walkDistanceMeters)?Math.round(p.walkDistanceMeters):'未知'}公尺；預估總交通費：${p.totalFare==null?'目前無可靠總票價':`NT$${p.totalFare}`}\n${(p.segments||[]).map(s=>`- ${s.mode} ${s.routeName||''} ${s.transportType&&s.transportType!==s.mode?s.transportType:''} ${s.trainNumber||''}：${s.from?.name||''} → ${s.to?.name||''}；${s.departureTime||''} → ${s.arrivalTime||''}；${fareInfo(s)}；資料狀態 ${s.realtimeStatus||'unknown'}`).join('\n')}\n來源：${(p.sources||[]).join('、')}\n${(p.notices||[]).join('\n')}`).join('\n\n')}\n\n行程模擬為規劃路徑推算，不是車輛即時位置。實際票價依業者與票種。${result.comparisons?.length?'\n\n費用／時間比較（結構化計算）：\n'+result.comparisons.map(comparisonText).join('\n'):''}`;
+  }
+  async function explainTransit(result,{signal}={}){
+    if(!result.plans?.length || chatBusy || signal?.aborted || !(await hasApiKey('openrouter')))return;
+    signal?.throwIfAborted();const generation=chatGeneration;chatBusy=true;chatController=new AbortController();const comparisonSignal=signal?AbortSignal.any([signal,chatController.signal]):chatController.signal;let draft=null;
+    try{const answer=await streamBrowserChat({model:selectedModel()||'openrouter/free',messages:[{role:'user',content:'請只比較目前已取得的公共運輸方案，說明推薦、最快及最便宜（票價完整才可比較），描述轉乘風險與缺漏。不得補造班次、票價、路徑或即時位置；不要聲稱已執行地圖操作。'}],context:{tripRequest:result.request,plans:result.plans},responseStyle},{signal:comparisonSignal,onDelta:text=>{if(generation!==chatGeneration)return;if(!draft){draft={role:'assistant',content:''};chatMessages.push(draft);}draft.content=text;renderChatMessages();}});if(generation===chatGeneration && draft)draft.content=answer.content;}
+    catch(error){if(generation===chatGeneration&&error.name!=='AbortError')chatMessages.push({role:'system',content:`方案資料已取得；AI比較暫時不可用：${error.message}`});}
+    finally{if(generation===chatGeneration){chatBusy=false;chatController=null;renderChatMessages();}}
+  }
   navigation.attachCard(root.querySelector('.tw-navigation-card'));
-  const flightObservation = createFlightObservation({root,viewer,dataManager,styleManager,beforeCamera:()=>cinematic.stop(),onStatus:toast});
-  const cinematic=createCinematicCameraPanel({viewer,manager:floatingPanels,governor,freehand:cameraPath,beforeStart:async()=>{drawing.cancel();labels.cancel();cctvWall.hideMarkers();cameraPath.stop();await flightObservation.stop();navigation.stopNavigation();await stopLegacyWork();viewer.trackedEntity=undefined;},getLines:()=>{
+  const flightObservation = createFlightObservation({root,viewer,dataManager,styleManager,beforeCamera:()=>{cinematic.stop();journey.stop();},onStatus:toast});
+  const cinematic=createCinematicCameraPanel({viewer,manager:floatingPanels,governor,freehand:cameraPath,beforeStart:async()=>{drawing.cancel();labels.cancel();cctvWall.hideMarkers();cameraPath.stop();journey.stop();await flightObservation.stop();navigation.stopNavigation();await stopLegacyWork();viewer.trackedEntity=undefined;},getLines:()=>{
     const lines=[];
     if(navigation.currentRoute)lines.push({id:'current-route',name:'目前 TomTom 行車路線',coordinates:navigation.currentRoute.coordinates});
     lineCatalog: for(const layer of listLayers()){if(layer.visible===false)continue;for(const [index,feature] of (layer.geojson?.features||[]).entries()){if(lines.length>500)break lineCatalog;const g=feature.geometry;if(g?.type==='LineString')lines.push({id:`${layer.id}:${index}`,name:`${layer.name}｜${feature.properties?.name||index+1}`,coordinates:g.coordinates});if(g?.type==='MultiLineString')for(const [part,coords] of g.coordinates.entries())lines.push({id:`${layer.id}:${index}:${part}`,name:`${layer.name}｜${feature.properties?.name||index+1} (${part+1})`,coordinates:coords});}}
@@ -508,6 +546,8 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
       if (a === 'global') return flyGlobal(viewer);
       if (a === 'layers') return renderLayers();
       if (a === 'analysis') return renderAnalysis();
+      if(a==='driving-panel')return drivingPanel?drivingPanel.restore():renderDriving();
+      if(a==='transit-panel')return transit.show();
       if (a === 'project') return renderProject();
       if (a === 'settings') return renderSettings();
       if (a === 'resources') return renderResources();
@@ -596,9 +636,9 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
 
       if (a === 'validate-cesium') return await validateProvider('cesium');
       if (a === 'validate-tomtom') return await validateProvider('tomtom');
-      if(a==='route-stop-add'){captureRouteInputs();routeInputs.waypoints.push('');return renderAnalysis();}
-      if(a==='route-stop-remove'){captureRouteInputs();routeInputs.waypoints.splice(Number(btn.dataset.index),1);return renderAnalysis();}
-      if(a==='route-stop-move'){captureRouteInputs();const index=Number(btn.dataset.index),next=index+(btn.dataset.direction==='up'?-1:1);if(next>=0 && next<routeInputs.waypoints.length)[routeInputs.waypoints[index],routeInputs.waypoints[next]]=[routeInputs.waypoints[next],routeInputs.waypoints[index]];return renderAnalysis();}
+      if(a==='route-stop-add'){captureRouteInputs();routeInputs.waypoints.push('');return renderDriving();}
+      if(a==='route-stop-remove'){captureRouteInputs();routeInputs.waypoints.splice(Number(btn.dataset.index),1);return renderDriving();}
+      if(a==='route-stop-move'){captureRouteInputs();const index=Number(btn.dataset.index),next=index+(btn.dataset.direction==='up'?-1:1);if(next>=0 && next<routeInputs.waypoints.length)[routeInputs.waypoints[index],routeInputs.waypoints[next]]=[routeInputs.waypoints[next],routeInputs.waypoints[index]];return renderDriving();}
       if(a==='route-ai-analyze')return await analyzeCurrentRoute();
       if (a === 'route-plan') return await doRoutePlan();
       if (a === 'route-view') return await navigation.navigationView();
@@ -1179,17 +1219,23 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   }
 
   function captureRouteInputs(){
-    const field=key=>body.querySelector(`#tw-route-${key}`);
-    if(field('origin'))routeInputs={...routeInputs,origin:field('origin').value,destination:field('destination').value,travelMode:field('mode').value,waypoints:[...body.querySelectorAll('[data-route-waypoint]')].map(input=>input.value)};
+    const field=key=>drivingPanel?.body.querySelector(`#tw-route-${key}`);
+    if(field('origin'))routeInputs={...routeInputs,origin:field('origin').value,destination:field('destination').value,travelMode:field('mode').value,waypoints:[...(drivingPanel?.body.querySelectorAll('[data-route-waypoint]')||[])].map(input=>input.value)};
     return routeInputs;
   }
-  function renderAnalysis() {
-    open('分析', `<article class="tw-card"><h3>行車路線與導航</h3><label>起點<input id="tw-route-origin" value="${esc(routeInputs.origin)}" placeholder="例如 宜蘭縣審計室（留空使用裝置定位）"></label><label>交通方式<select id="tw-route-mode"><option value="car" ${routeInputs.travelMode==='car'?'selected':''}>汽車</option><option value="motorcycle" ${routeInputs.travelMode==='motorcycle'?'selected':''}>機車（避開高速公路）</option></select></label>
+  let drivingPanel=null;
+  function renderAnalysis(){
+    open('分析',`<article class="tw-card"><h3>交通與影像分析</h3><div class="tw-actions tw-analysis-entries"><button data-act="transit-panel">AI智慧大眾運輸</button><button data-act="driving-panel">行車路線與導航</button><button data-act="cctv-panel">CCTV監看與AI辨識</button></div><p class="tw-note">三個功能可同時開啟；再次點選會叫回原視窗。GIS 圖層分析仍可於圖資與標註使用。</p></article>`);
+  }
+  function renderDriving(){
+    if(!drivingPanel)drivingPanel=floatingPanels.create({id:'driving-controls',title:'行車路線與導航',width:440,height:650,onClose:()=>{captureRouteInputs();navigation.stopNavigation();}});
+    drivingPanel.body.classList.add('tw-driving');
+    drivingPanel.body.innerHTML=`<article class="tw-card"><h3>行車路線與導航</h3><label>起點<input id="tw-route-origin" value="${esc(routeInputs.origin)}" placeholder="例如 宜蘭縣審計室（留空使用地圖中心）"></label><label>交通方式<select id="tw-route-mode"><option value="car" ${routeInputs.travelMode==='car'?'selected':''}>汽車</option><option value="motorcycle" ${routeInputs.travelMode==='motorcycle'?'selected':''}>機車（避開高速公路）</option></select></label>
       <div class="tw-route-stops">${routeInputs.waypoints.map((value,index)=>`<label>中途點 ${index+1}<div class="tw-actions"><input data-route-waypoint value="${esc(value)}" placeholder="學校、地址或地標"><button data-act="route-stop-remove" data-index="${index}" aria-label="刪除中途點 ${index+1}">×</button><button data-act="route-stop-move" data-index="${index}" data-direction="up" aria-label="上移中途點">↑</button><button data-act="route-stop-move" data-index="${index}" data-direction="down" aria-label="下移中途點">↓</button></div></label>`).join('')}</div><button data-act="route-stop-add">新增中途點</button><label>終點<input id="tw-route-destination" value="${esc(routeInputs.destination)}" placeholder="例如 宜蘭縣政府"></label>
       <div class="tw-actions"><button data-act="route-plan">規劃行車路線</button><button data-act="route-show">查看路線</button><button data-act="nav-drive">沿路線行車視角</button><button data-act="nav-stop">停止</button><button data-act="route-ai-analyze">AI 分析目前路線</button></div><p class="tw-note" id="tw-navigation-status">TomTom 依序計算每段行車距離與即時路況時間；機車模式仍需依現場標誌確認。行進示意不是 GPS 實際位置。</p>
       <div class="tw-label-controls"><label>路線顏色<input type="color" data-route-style="color" value="${navigation.routeStyle.color}"></label><label>虛線粗細（像素）<input type="number" data-route-style="width" min="0.5" max="16" step="0.5" value="${navigation.routeStyle.width}"></label></div>
-      <div class="tw-label-controls">${['car','motorcycle'].map(mode=>`<label>${mode==='car'?'汽車':'機車'}車身顏色<select data-vehicle-color="${mode}">${VEHICLE_COLORS.map(color=>`<option value="${color.id}" ${navigation.vehicleColors[mode]===color.id?'selected':''}>${color.name}</option>`).join('')}</select></label>`).join('')}</div><small>顏色保存在本機；只更換車身烤漆，保留輪胎、玻璃及燈具。</small></article>
-      <article class="tw-card"><h3>CCTV 監看與 AI 辨識</h3><p class="tw-note">開啟專屬浮動視窗選擇目前視野、圈選或全臺目錄。本機 YOLOX 辨識不需要 AI 金鑰；深度分析為選用的外部服務。</p><button data-act="cctv-panel">開啟 CCTV 監看與 AI 辨識</button></article>`);
+      <div class="tw-label-controls">${['car','motorcycle'].map(mode=>`<label>${mode==='car'?'汽車':'機車'}車身顏色<select data-vehicle-color="${mode}">${VEHICLE_COLORS.map(color=>`<option value="${color.id}" ${navigation.vehicleColors[mode]===color.id?'selected':''}>${color.name}</option>`).join('')}</select></label>`).join('')}</div><small>顏色保存在本機；只更換車身烤漆，保留輪胎、玻璃及燈具。</small></article>`;
+    drivingPanel.restore();
   }
   async function analyzeCurrentRoute(){
     const route=navigation.currentRoute;if(!route)throw new Error('請先規劃行車路線');
@@ -1489,6 +1535,10 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
       catch(error){if(generation!==chatGeneration)return;chatMessages.push({role:'system',content:error.message});chatStatus('地標搜尋失敗');}
       finally{if(generation===chatGeneration){chatBusy=false;renderChatMessages();}}return;
     }
+    if(transit.results?.needsClarification&&/(?:車種|自強|莒光|區間|普悠瑪|太魯閣|不限|都可以)/.test(content)||transit.results?.plans?.length && /(?:改成|不要搭|不搭|只搭|便宜|少走|走路少|少轉乘|晚\s*\d+|錯過|重新規劃|現在出發)/.test(content)){
+      input.value='';chatBusy=true;chatMessages.push({role:'user',content});renderChatMessages();
+      try{await transit.handleMessage(content);}catch(error){chatMessages.push({role:'system',content:`旅程修改失敗：${error.message}`});}finally{chatBusy=false;renderChatMessages();}return;
+    }
     if (!await hasApiKey('openrouter')) { chatStatus('請先在「服務與 API」設定 OpenRouter 金鑰。'); return; }
     if(generation!==chatGeneration)return;
     const latestCctv=chatMessages.filter(message=>message.cctvResult).at(-1)?.cctvResult;
@@ -1516,7 +1566,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
       chatSentCount++; updateChatCount();
       await responseStyleReady;
       if (epoch !== workEpoch || generation !== chatGeneration || chatController?.signal.aborted) return;
-      const context = {...buildSpatialContext(listLayers(),{project:activeProject,drawing:lastDrawingResult,focusLayer}),cctvResults:cctvContext(chatMessages)};
+      const context = {...buildSpatialContext(listLayers(),{project:activeProject,drawing:lastDrawingResult,focusLayer}),cctvResults:cctvContext(chatMessages),tripContext:transit.state,tripPlans:transit.results};
       const answer = await streamBrowserChat({model,messages,context,responseStyle},{signal:chatController.signal,
           onStatus:message => { if (epoch === workEpoch && generation===chatGeneration) chatStatus(message); },
           onDelta:text => { if (epoch !== workEpoch || generation!==chatGeneration) return; if (!draft) { draft = {role:'assistant',content:''}; chatMessages.push(draft); } draft.content = text; aiStreaming = true; renderChatMessages(); }
@@ -1631,7 +1681,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     captureRouteInputs();
     const waypoints=routeInputs.waypoints.map(name=>{const point=routeCandidates.get(name);return point?{lat:point.lat,lon:point.lon,label:name}:name;});
     const result = await navigation.planRoute({...routeInputs,waypoints});
-    const el = body.querySelector('#tw-navigation-status');
+    const el = root.querySelector('#tw-navigation-status');
     if (el) el.textContent = `已規劃：${result.origin} → ${result.destination}｜${(result.lengthMeters/1000).toFixed(1)} km｜約 ${Math.round(result.travelTimeSeconds/60)} 分鐘`;
   }
 
@@ -1728,6 +1778,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     voiceSubtitles.destroy();chatArchive.destroy();labels.destroy();
     drawing.destroy();
     geminiLive.stop().catch(()=>{});
+    transit.destroy();journey.destroy();drivingPanel?.destroy();
     navigation.destroy();
     chatController?.abort();
     window.removeEventListener('resize', refreshGlobeViewport);

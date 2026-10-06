@@ -1,4 +1,5 @@
 import {searchVoiceNews} from './voiceNews.js';
+import {tdxService} from './tdxService.js';
 import {probeGeminiLive} from './geminiLiveProbe.js';
 import {planningModels,selectPlanningModel} from './planningModels.js';
 import {readVoiceSettings,writeVoiceSettings} from './taiwanVoiceSettings.js';
@@ -91,6 +92,18 @@ export function taiwanAiProxy() {
           if (route==='/response-style' && req.method==='GET')return json(res,200,{setting:await readResponseStyle()});
           if (route==='/response-style' && req.method==='POST')return json(res,200,{setting:await writeResponseStyle(await body(req))});
           if (!(route === '/keys' && req.method === 'POST')) await refreshCredentials();
+          if(route==='/tdx' && req.method==='POST'){
+            const controller=new AbortController(),cancel=()=>controller.abort();
+            res.once('close',cancel);
+            try{
+              if(req.aborted||res.destroyed)controller.abort();
+              const data=await body(req);controller.signal.throwIfAborted();
+              const result=await tdxService.handle(data,{signal:AbortSignal.any([controller.signal,AbortSignal.timeout(90000)])});
+              if(!res.destroyed)return json(res,200,result);
+            }catch(error){if(!res.destroyed)return json(res,error.status||400,{error:error.code?'TDX 大眾運輸服務：'+error.message:'大眾運輸查詢中斷或逾時；請重新查詢',code:error.code||'TRANSIT_REQUEST_FAILED'});}
+            finally{res.removeListener('close',cancel);}
+            return;
+          }
           if (route === '/runtime' && req.method === 'GET') return json(res,200,{googleMapsApiKey:getCredential('GOOGLE_MAPS_API_KEY'),cesiumIonToken:getCredential('CESIUM_ION_TOKEN')});
           if (route === '/search' && req.method === 'POST') {
             const data = await body(req);

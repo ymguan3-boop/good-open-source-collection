@@ -1,0 +1,84 @@
+{
+  "id": "metro",
+  "file": "overlay/public/models/taiwan-metro.glb",
+  "source": "assets/transit-v26/taiwan-metro.blend",
+  "sourceMetrics": {
+    "triangles": 4312,
+    "vertices": 2328,
+    "meshCount": 86,
+    "boundsSourceAxesMetres": [
+      [
+        -9.300000190734863,
+        9.300000190734863
+      ],
+      [
+        -1.5019999742507935,
+        1.5019999742507935
+      ],
+      [
+        0.029999997466802597,
+        3.68999981880188
+      ]
+    ],
+    "dimensionsMetres": [
+      18.6,
+      3.004,
+      3.66
+    ],
+    "materialCount": 7,
+    "materials": [
+      "Brushed metal",
+      "Dark blue glazed windows",
+      "Headlamp lens",
+      "Pearl white panels",
+      "Rear red lamps",
+      "Tyre and dark trim",
+      "metro distinctive accent paint"
+    ]
+  },
+  "reimportMetrics": {
+    "triangles": 4312,
+    "vertices": 8460,
+    "meshCount": 86,
+    "boundsSourceAxesMetres": [
+      [
+        -9.300000190734863,
+        9.300000190734863
+      ],
+      [
+        -1.5020005702972412,
+        1.5020005702972412
+      ],
+      [
+        0.029999958351254463,
+        3.68999981880188
+      ]
+    ],
+    "dimensionsMetres": [
+      18.6,
+      3.004,
+      3.66
+    ],
+    "materialCount": 7,
+    "materials": [
+      "Brushed metal.001",
+      "Dark blue glazed windows.001",
+      "Headlamp lens.001",
+      "Pearl white panels.001",
+      "Rear red lamps.001",
+      "Tyre and dark trim.001",
+      "metro distinctive accent paint.001"
+    ]
+  },
+  "bytes": 344924,
+  "sha256": "af1d2011e39d3f28d707d5a3c9abc1be8b2ef2907124c85dbe6001e086ef746e",
+  "sourceSha256": "e331158bc5cb5308fa449bc262f00ddaba6aa8b57a50d216fbfd254ae3fde709",
+  "clips": [],
+  "technicalStatus": "TECHNICAL_PASS",
+  "artStatus": "ART_REVIEW_PENDING",
+  "userApproval": "USER_APPROVAL_PENDING",
+  "sourceForward": "+X",
+  "sourceUp": "+Z",
+  "glTFForward": "+Z",
+  "runtimePixelSizeRecommendation": 64
+}

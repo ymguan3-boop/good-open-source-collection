@@ -1,0 +1,84 @@
+{
+  "id": "person",
+  "file": "overlay/public/models/taiwan-person.glb",
+  "source": "assets/transit-v26/taiwan-person.blend",
+  "sourceMetrics": {
+    "triangles": 4036,
+    "vertices": 2080,
+    "meshCount": 31,
+    "boundsSourceAxesMetres": [
+      [
+        -0.2990000247955322,
+        0.39100003242492676
+      ],
+      [
+        -0.37682268023490906,
+        0.37682271003723145
+      ],
+      [
+        0.0044999998062849045,
+        1.7920000553131104
+      ]
+    ],
+    "dimensionsMetres": [
+      0.69,
+      0.7536,
+      1.7875
+    ],
+    "materialCount": 7,
+    "materials": [
+      "Dark hair",
+      "Navy trousers",
+      "Orange daypack",
+      "Pearl white panels.002",
+      "Tyre and dark trim.002",
+      "Walking cyan jacket",
+      "Warm skin"
+    ]
+  },
+  "reimportMetrics": {
+    "triangles": 4036,
+    "vertices": 3509,
+    "meshCount": 31,
+    "boundsSourceAxesMetres": [
+      [
+        -0.2990000247955322,
+        0.39100000262260437
+      ],
+      [
+        -0.37682271003723145,
+        0.37682271003723145
+      ],
+      [
+        0.0044999998062849045,
+        1.7920000553131104
+      ]
+    ],
+    "dimensionsMetres": [
+      0.69,
+      0.7536,
+      1.7875
+    ],
+    "materialCount": 7,
+    "materials": [
+      "Dark hair.001",
+      "Navy trousers.001",
+      "Orange daypack.001",
+      "Pearl white panels.003",
+      "Tyre and dark trim.003",
+      "Walking cyan jacket.001",
+      "Warm skin.001"
+    ]
+  },
+  "bytes": 156716,
+  "sha256": "ec5c4cd0c2a2106a3f80c37cb0b9cdb6b5bc1f6e35eb0ee0757400239113d005",
+  "sourceSha256": "1e331fd0f96571c08fe70ee78e9c0b16053769d1439844c80c2bc7cc864571b0",
+  "clips": [],
+  "technicalStatus": "TECHNICAL_PASS",
+  "artStatus": "ART_REVIEW_PENDING",
+  "userApproval": "USER_APPROVAL_PENDING",
+  "sourceForward": "+X",
+  "sourceUp": "+Z",
+  "glTFForward": "+Z",
+  "runtimePixelSizeRecommendation": 56
+}

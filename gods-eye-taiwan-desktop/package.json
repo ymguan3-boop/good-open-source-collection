@@ -14,6 +14,7 @@
     "build": "npm --prefix .work/upstream run build",
     "preview": "npm --prefix .work/upstream run preview",
     "start": "node scripts/start-gods-eye-browser.mjs",
-    "check:boundaries": "npm --prefix .work/upstream run check:boundaries"
+    "check:boundaries": "npm --prefix .work/upstream run check:boundaries",
+    "test:fare": "node --test tests/fare-engine.test.mjs"
   }
 }

@@ -1,0 +1,82 @@
+{
+  "id": "bicycle",
+  "file": "overlay/public/models/taiwan-bicycle.glb",
+  "source": "assets/transit-v26/taiwan-bicycle.blend",
+  "sourceMetrics": {
+    "triangles": 4892,
+    "vertices": 2572,
+    "meshCount": 68,
+    "boundsSourceAxesMetres": [
+      [
+        -1.034000039100647,
+        1.0440000295639038
+      ],
+      [
+        -0.36000001430511475,
+        0.36000001430511475
+      ],
+      [
+        0.006000010296702385,
+        1.1713160276412964
+      ]
+    ],
+    "dimensionsMetres": [
+      2.078,
+      0.72,
+      1.1653
+    ],
+    "materialCount": 6,
+    "materials": [
+      "Bike basket dark teal",
+      "Brushed metal.010",
+      "Headlamp lens.010",
+      "Public cycle orange frame",
+      "Rear red lamps.008",
+      "Tyre and dark trim.012"
+    ]
+  },
+  "reimportMetrics": {
+    "triangles": 4892,
+    "vertices": 5877,
+    "meshCount": 68,
+    "boundsSourceAxesMetres": [
+      [
+        -1.034000039100647,
+        1.0440000295639038
+      ],
+      [
+        -0.36000004410743713,
+        0.36000001430511475
+      ],
+      [
+        0.0059999763034284115,
+        1.1713160276412964
+      ]
+    ],
+    "dimensionsMetres": [
+      2.078,
+      0.72,
+      1.1653
+    ],
+    "materialCount": 6,
+    "materials": [
+      "Bike basket dark teal.001",
+      "Brushed metal.011",
+      "Headlamp lens.011",
+      "Public cycle orange frame.001",
+      "Rear red lamps.009",
+      "Tyre and dark trim.013"
+    ]
+  },
+  "bytes": 255528,
+  "sha256": "2e8b44caae2fe349f91a26ffff8a5a7fcee1b039e329ec3d3bc1d22f5a6c5cae",
+  "sourceSha256": "3c7753e7bf3dc8f899e7f09a1662b36f4573c1ea2824c2a713ffc278c40bd539",
+  "clips": [],
+  "technicalStatus": "TECHNICAL_PASS",
+  "artStatus": "ART_REVIEW_PENDING",
+  "userApproval": "USER_APPROVAL_PENDING",
+  "sourceForward": "+X",
+  "sourceUp": "+Z",
+  "glTFForward": "+Z",
+  "runtimePixelSizeRecommendation": 56
+}

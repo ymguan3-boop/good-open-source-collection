@@ -1,5 +1,15 @@
 # 架構
 
+## v27 公共運輸與票價模組
+
+`transitPlanning.js` 統一 TripPlanningRequest；`transitPanel.js` 使用同一 Floating Panel Manager，兩種輸入共用一個主要按鈕，完整需求直接由本機 provider 查詢；只有缺漏與歧義才確認。`journeyDisplay.js` 僅操作目前 Viewer 的專屬 DataSource，TripSegments 同時決定路徑與 GLB，與駕車視角／空拍交接相機控制。
+
+`POST /api/taiwan/ai/tdx` 的固定 action 為 status、test、resolve、parse、plan、fare-options、fare-status、fare-update、fare-config。`tdxService.js` 管理 OAuth、快取與時限；`tdxTrip.js` 驗證時間及途經停留；`tdxGeometry.js` 核實官方站序與 Shape，步行／自行車可重用既有 TomTom；`tdxParse.js` 只讓 AI 更新需求，不讓它提供班次或位置。金鑰沿用 DPAPI，不增加明文 env 檔或瀏覽器 token。
+
+未知線形禁止沿線播放、未知票價保留 null。關閉中止請求與模擬，縮小／隱藏保留工作。旅程統計與可選 AI 比較送入既有 AI 空間助理，取消規劃也中止比較串流。背景模型按需載入、退役 Entity 參照最多20件，關閉整個程式時解除 listener／RAF／Governor 訂閱。
+
+`farePreference.js` 是前後端共用乘客／車種／車廂契約；`fareEngine.js` 集中各運具計價與確定性方案比較，`fareWebAdapters.js` 解析高鐵與 YouBike 表格，`tdxFareWeb.js` 解析臺鐵／臺北捷運。`officialFareSources.js` 限定官方來源、公開頁面與 robots 政策，含 origin 排程與 Crawl-delay；`fareCache.js` 保存版本、hash、parser、日期與已驗證單位報價，依設定 TTL 重驗。啟動僅背景檢查過期已使用來源，不抓全網路。每次請求按人數計算，不把 LLM 金額、未核實優惠或快取過期資料標成最新。
+
 本版本為瀏覽器介面搭配本機 Node.js provider service；不需要原生桌面 Runtime、Rust、Visual Studio 或 WebView2。
 
 ```text
@@ -136,3 +146,21 @@ OpenRouter /planning-models 取得所有文字模型，/chat-stream 的 planning
 `aerialFreeSpace.js` 保存最多20筆實際驗證的 swept corridor。逐一公尺子段要求兩端在同一已驗膠囊內，利用凸集合確認整段機身體積；沒有把六方向走廊稱為完整安全立方體。來源簽章更新即失效；新方向提前四秒距離查詢，接近已驗邊界平滑減速，尚未完成則留在已驗範圍。停止、暫停、關閉取消查詢並防止晚到結果復活資源。
 
 啟動時讀取金鑰完成後，若使用者已切換底圖，略過較晚抵達的預設底圖切換，避免覆寫正在準備的 NLSC 拍攝場景。
+
+
+### v26 票價來源與車種確認
+
+`tdxFareWeb.js` 是可替換的官方網站票價 adapter，固定官方來源白名單、禁止跨站重新導向、限定讀取大小／逾時、24小時快取。只從票價表匹配精確起訖與票種；頁面資料不執行，不採用頁面指令。`tdxService.js` 優先 TDX，缺價再補查；連續站內轉乘以整段票價處理。
+
+`traTrainType` 為使用者需求欄位，不由 AI 猜測。臺鐵候選先確認車種，後端以已知車種或唯一日期／起訖／時刻班次核實，與需求不符或無法核實者不得當作成功方案。來源、票種、fetchedAt由後端回傳至既有AI空間助理；unknown不能變成0元。
+
+
+## 2026-10-06 臺鐵官方票價補查
+
+沿用 `tdxFareWeb.js` 新增臺鐵官方票價試算 adapter。實際車種已核實且使用者已確認後，從官方頁面讀取車站代碼、車種選項與一次性表單驗證值，僅送出一般單程票、成人全票、一般座位的試算；不訂票、不付款。僅接受同起訖、同車種與同日期的唯一金額，12 秒總時限、每頁 500 KB、24 小時最多 32 組報價快取，取消及來源失敗保留未知。表單 Cookie／驗證值只在這次請求記憶體，不回傳 UI 或存入資料庫。官方來源：<https://www.railway.gov.tw/tra-tip-web/tip/tip001/tip114/query>。沒有新增第三方套件、長效金鑰或收費訂閱。班次來自 TDX，補價來源另標為臺鐵官方網站；官方試算採最短里程，實際票價依票面及運行里程。
+
+
+2026-10-06 時間追修：TDX MaaS 的 depart 是理想時間，連未來指定時間也可能回傳必須提早步行的候選。現在「現在出發」及「指定最早出發」均使用下限後10分鐘的理想搜尋時間，仍以原本出發下限過濾真實候選；指定抵達時間不加此窗口。沒有修改官方時刻、沒有宣稱所有班次窮舉，仍為單次最多三個候選。新增此條件回歸後66/66 PASS。
+
+
+2026-10-06 AI 比較資料追修：公共運輸只送三個方案的完整結構化摘要、每段班次／起訖／票價與來源，排除地圖座標陣列與表單修改前的原始語句。若路段摘要超過預算，整筆改為明示的方案摘要模式；不得截斷 JSON 使後續方案被誤認缺漏。實測發現原本座標陣列使方案 B/C 遭截斷的問題，已修正。追修回歸為39+28＝67/67 PASS；臺鐵跨線線形及七運具完整真實驗收與發布仍待完成。
