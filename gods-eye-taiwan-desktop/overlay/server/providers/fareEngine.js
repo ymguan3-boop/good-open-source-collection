@@ -1,3 +1,4 @@
+import {parseTraRateRules,estimateTraFare,estimateFromAdult} from './fareEstimates.js';
 import {parseHsrTable,parseBikeRate} from './fareWebAdapters.js';
 import {join} from 'node:path';
 import {createFareCache,fareHash} from './fareCache.js';
@@ -133,7 +134,12 @@ export function createFareService({basic,stations,fetcher=fetch,now=Date.now,cac
     const seats=segment.mode==='HSR'?(p.seatClasses.length?p.seatClasses:['standard']):segment.mode==='TRA'?(p.seatClasses.length?p.seatClasses:['normal']):[null];
     if(segment.mode==='BIKE'){segment.bikeSystem=p.vehicleTypes[0]||'YouBike 2.0';if(!segment.bikeSystems?.includes(segment.bikeSystem))return {amount:null,complete:false,notice:'未核實租借系統與自行車類型，不推定公共自行車費率。'};}
     const fm=['BUS','METRO','LRT'].includes(segment.mode)?pref.fareMedia[0]||'single':'single';
-    const choices=[];for(const seat of seats){if(segment.mode==='TRA'&&seat==='premium'&&!/3000/.test(segment.transportType))continue;const quotes=[];for(const profile of pref.passengerProfiles){options.signal?.throwIfAborted();const unit=await unitQuote(segment,profile,seat,fm,options);quotes.push({...unit,quantity:profile.quantity,unitAmount:unit.amount,amount:unit.amount===null?null:Math.round(unit.amount*profile.quantity*100)/100});}const complete=quotes.every(q=>Number.isFinite(q.amount));choices.push({seatClass:seat,quotes,complete,amount:complete?quotes.reduce((a,q)=>a+q.amount,0):null});}
+    const choices=[];for(const seat of seats){if(segment.mode==='TRA'&&seat==='premium'&&!/3000/.test(segment.transportType))continue;const quotes=[];for(const profile of pref.passengerProfiles){options.signal?.throwIfAborted();let unit=await unitQuote(segment,profile,seat,fm,options);
+      if(options.allowEstimates&&unit.amount===null){
+        if(segment.mode==='TRA'&&seat!=='premium')try{const html=await webPage(TRA_FARE_URL,options);unit=estimateTraFare(segment,profile,seat,parseTraRateRules(html),{now:now()})||unit;}catch(error){options.signal?.throwIfAborted();}
+        if(unit.amount===null&&profile.type!=='adult'){const adult=await unitQuote(segment,{type:'adult',quantity:1},seat,fm,options);unit=estimateFromAdult(adult,profile)||unit;}
+      }
+      quotes.push({...unit,quantity:profile.quantity,unitAmount:unit.amount,amount:unit.amount===null?null:Math.round(unit.amount*profile.quantity*100)/100});}const budgetComplete=quotes.every(q=>Number.isFinite(q.amount)),estimated=quotes.some(q=>q.estimated),complete=budgetComplete&&!estimated;choices.push({seatClass:seat,quotes,estimated,budgetComplete,complete,amount:budgetComplete?quotes.reduce((a,q)=>a+q.amount,0):null});}
     if(!choices.length)return {amount:null,complete:false,notice:'此班次未核實提供所選車廂，不套用不存在的票價'};
     const selected=options.preferCheapest?choices.filter(c=>c.complete).sort((a,b)=>a.amount-b.amount)[0]||choices[0]:choices[0],q=selected.quotes.find(q=>q.confidence==='verified')||{},notices=[...new Set(selected.quotes.map(q=>q.notice).filter(Boolean))];
     if(pref.passengerProfiles.some(p=>p.type!=='adult'))notices.push('實際優惠資格仍以運輸業者規定及現場驗證為準。');

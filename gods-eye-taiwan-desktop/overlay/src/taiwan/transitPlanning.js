@@ -94,7 +94,7 @@ export function describeTripRequest(request) {
   return `${itinerary}；${time}${request.timeMode!=='arrival'&&request.arrivalDeadline?`；最晚 ${localDateTime(request.arrivalDeadline).replace('T',' ')} 抵達`:''}；${TRANSIT_PREFERENCES[request.preference]}；允許 ${request.allowedModes.map(mode=>TRANSIT_MODES[mode]).join('、')}${request.waypoints.some(item=>item.stayDurationMinutes)?`；停留 ${request.waypoints.map((item,index)=>`${index+1}：${item.stayDurationMinutes} 分鐘`).join('、')}`:''}`;
 }
 export function normalizeTransitStyle(value={}) {
-  return {color:/^#[\da-f]{6}$/i.test(value.color)?value.color:'#35b6ff',width:Number.isFinite(Number(value.width))?Math.min(12,Math.max(1,Number(value.width))):3};
+  return {color:/^#[\da-f]{6}$/i.test(value.color)?value.color:'#ffac45',width:Number.isFinite(Number(value.width))?Math.min(12,Math.max(1,Number(value.width))):3};
 }
 export function fareText(fare) {
   const amount=typeof fare==='number'?fare:fare?.amount;

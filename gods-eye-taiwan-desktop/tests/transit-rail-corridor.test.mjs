@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {clipTdxShape} from '../overlay/server/providers/tdxGeometry.js';
+const line=[[121,25],[121.005,25.005],[121.01,25.01]],parallel=line.map(([x,y])=>[x+.00005,y]),from={lon:121,lat:25},to={lon:121.01,lat:25.01};
+test('same-line parallel official tracks may form an explicitly illustrative corridor',()=>{assert.equal(clipTdxShape([line,parallel],from,to),null);const result=clipTdxShape([line,parallel],from,to,[],150,{allowParallel:true});assert.equal(result.illustrativeCorridor,true);assert.deepEqual(result.coordinates,line);});
+test('divergent branches and mismatched stops stay unresolved',()=>{const detour=[[121,25],[121.005,25.008],[121.01,25.01]];assert.equal(clipTdxShape([line,detour],from,to,[],150,{allowParallel:true}),null);assert.equal(clipTdxShape([line],from,to,[{lon:121.015,lat:25.005}],150,{allowParallel:true}),null);});

@@ -9,22 +9,14 @@ export function createFlightObservation({ root, viewer, dataManager, styleManage
   card.innerHTML = '<p data-aircraft-label></p><p data-aircraft-status role="status"></p><dl class="tw-flight-info" data-aircraft-info></dl><div class="tw-actions"><button data-aircraft-view="first">第一人稱</button><button data-aircraft-view="third">第三人稱</button><button data-aircraft-view="stop">停止觀察</button></div>';
   root.appendChild(card);
   const disposeDrag=makePanelDraggable(card,card.querySelector('[data-aircraft-label]'));
-  // A small, depth-independent silhouette remains visible when a streamed GLB
-  // is missing or hidden. It follows the tracker's exact rendered position.
-  const silhouette='data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><path d="M20 3L23 16L36 24L36 28L23 24L23 32L28 36L28 39L20 36L12 39L12 36L17 32L17 24L4 28L4 24L17 16Z" fill="#43eaff" stroke="#062d3c" stroke-width="1.5"/></svg>');
-  const marker=viewer.entities.add({id:'tw-aircraft-observation-marker',show:false,position:new Cesium.CallbackProperty(time=>{
-    const tracked=viewer.trackedEntity;
-    return tracked?.position?.getValue(time) || module()?.getTrackedSubject?.()?.position;
-  },false),billboard:{image:silhouette,width:32,height:32,disableDepthTestDistance:Number.POSITIVE_INFINITY}});
+  // Aircraft rendering (model / loading fallback) is owned by the upstream tracker.
+  // An additional observer billboard would duplicate the same aircraft in third-person view.
   let pending = null, disposed = false, ownsContext = false, restoreMode = null, pendingTarget=null;
   const module = () => dataManager?.layers.get('flights')?.module;
   const cockpitActive = () => styleManager?.getCockpitState?.()?.active === true;
   const ownCockpit = () => {const state=styleManager?.getCockpitState?.();return state?.active && state.subject?.layerId==='flights';};
   function update() {
     if (disposed) return;
-    marker.show=dataManager?.isEnabled('flights') && !!module()?.getTrackedSubject?.() && !cockpitActive();
-    const heading=module()?.getTrackedInfo?.()?.track;
-    if(Number.isFinite(heading))marker.billboard.rotation=Cesium.Math.toRadians((viewer.camera.heading*180/Math.PI)-heading);
     const subject = module()?.getTrackedSubject?.() || pendingTarget || (ownCockpit() ? styleManager.getCockpitState().subject : null);
     if (!dataManager?.isEnabled('flights') || !subject) {
       if(!dataManager?.isEnabled('flights') && ownCockpit())void styleManager.controlCockpit('exit');
@@ -93,7 +85,7 @@ export function createFlightObservation({ root, viewer, dataManager, styleManage
     pending?.abort(); pending = null;pendingTarget=null;
     if (ownCockpit()) styleManager?.controlCockpit?.('exit');
     module()?.stopTracking?.({ origin: 'user' });
-    card.hidden = true; marker.show=false;
+    card.hidden = true;
     const restore=ownsContext && styleManager?.getContextModeState?.()?.mode==='flights',mode=restoreMode;ownsContext=false;restoreMode=null;
     if(restore)await styleManager.setContextMode(mode,{claimVisualAuthority:false});
     return { ok: true, message: '已停止飛機觀察' };
@@ -113,6 +105,6 @@ export function createFlightObservation({ root, viewer, dataManager, styleManage
     window.removeEventListener('gev:awareness-subject-selected', selection);
     window.removeEventListener('gev:awareness-subject-cleared', selection);
     window.removeEventListener('gev:cockpit-mode-changed', update);
-    disposeDrag();viewer.entities.remove(marker);card.removeEventListener('click', click); card.remove();
+    disposeDrag();card.removeEventListener('click', click); card.remove();
   } };
 }

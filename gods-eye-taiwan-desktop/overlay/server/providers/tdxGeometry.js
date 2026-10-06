@@ -18,7 +18,7 @@ export function joinTdxShapeParts(lines){
   for(;;){
     const ends=new Map();
     parts.forEach((p,i)=>{for(const side of [0,1]){const k=key(side?p.at(-1):p[0]);if(!ends.has(k))ends.set(k,[]);ends.get(k).push({i,side});}});
-    const pair=[...ends.values()].find(matches=>matches.length===2&&matches[0].i!==matches[1].i);
+    const pair=[...ends.values()].find(matches=>{if(matches.length!==2||matches[0].i===matches[1].i)return false;const a=parts[matches[0].i],b=parts[matches[1].i];return ![key(a[0]),key(a.at(-1))].every(k=>[key(b[0]),key(b.at(-1))].includes(k));});
     if(!pair)break;
     const [a,b]=pair,left=a.side?parts[a.i]:[...parts[a.i]].reverse(),right=b.side?[...parts[b.i]].reverse():parts[b.i],joined=[...left,...right.slice(1)];
     const hi=Math.max(a.i,b.i),lo=Math.min(a.i,b.i);parts.splice(hi,1);parts.splice(lo,1,joined);
@@ -33,7 +33,7 @@ function project(points,position){
     if(!best||gap<best.gap)best={point,gap,index};
   }return best;
 }
-export function clipTdxShape(lines,from,to,stops=[],maxGap=150){
+export function clipTdxShape(lines,from,to,stops=[],maxGap=150,{allowParallel=false}={}){
   const candidates=[];
   for(const points of joinTdxShapeParts(lines)){
     const start=project(points,[from.lon,from.lat]),end=project(points,[to.lon,to.lat]);
@@ -46,7 +46,17 @@ export function clipTdxShape(lines,from,to,stops=[],maxGap=150){
     result=result.filter((p,i)=>!i||distance(p,result[i-1])>.01);
     if(result.length>=2)candidates.push({type:'LineString',coordinates:result});
   }
-  return candidates.length===1?candidates[0]:null;
+  if(candidates.length===1)return candidates[0];
+  // Parallel tracks may share one verified line and ordered stations. Choose
+  // an existing official line only when all candidates occupy the same corridor.
+  // Divergent branches and large/unbounded comparisons remain unresolved.
+  if(allowParallel&&candidates.length>1&&candidates.length<=4){
+    const reference=candidates[0].coordinates;
+    const length=points=>points.slice(1).reduce((n,p,i)=>n+distance(p,points[i]),0),baseline=length(reference);
+    const equivalent=candidates.every(({coordinates})=>reference.length<=2000&&coordinates.length<=2000&&baseline>0&&Math.abs(length(coordinates)-baseline)/baseline<=.03&&distance(reference[0],coordinates[0])<=25&&distance(reference.at(-1),coordinates.at(-1))<=25&&coordinates.every(p=>project(reference,p)?.gap<=25)&&reference.every(p=>project(coordinates,p)?.gap<=25));
+    if(equivalent)return {...candidates[0],illustrativeCorridor:true};
+  }
+  return null;
 }
 const cities={臺北市:'Taipei',台北市:'Taipei',新北市:'NewTaipei',桃園市:'Taoyuan',臺中市:'Taichung',台中市:'Taichung',臺南市:'Tainan',台南市:'Tainan',高雄市:'Kaohsiung',基隆市:'Keelung',新竹市:'Hsinchu',新竹縣:'HsinchuCounty',苗栗縣:'MiaoliCounty',彰化縣:'ChanghuaCounty',南投縣:'NantouCounty',雲林縣:'YunlinCounty',嘉義縣:'ChiayiCounty',嘉義市:'Chiayi',屏東縣:'PingtungCounty',宜蘭縣:'YilanCounty',花蓮縣:'HualienCounty',臺東縣:'TaitungCounty',台東縣:'TaitungCounty',金門縣:'KinmenCounty',澎湖縣:'PenghuCounty',連江縣:'LienchiangCounty'};
 const byName=(name,p,rows)=>rows.filter(s=>normal(name(s))===normal(p.name)&&distance([Number(s.StationPosition?.PositionLon??s.StopPosition?.PositionLon),Number(s.StationPosition?.PositionLat??s.StopPosition?.PositionLat)],[p.lon,p.lat])<250);
@@ -94,12 +104,12 @@ export function createTdxGeometry({basic,credential,fetcher=fetch,signal,ttl}){
       // intermediate stop in travel order. Branch ambiguities remain missing.
       let last=-1,valid=true;for(const stop of segment.intermediateStops||[]){const next=names.findIndex((n,i)=>i>last&&n===normal(stop.name));if(next<0){valid=false;break;}last=next;}if(!valid)continue;
       for(const shape of shapes.filter(s=>s.LineID===line.LineID)){
-        const geometry=clipTdxShape(parseTdxWkt(shape.Geometry),segment.from,segment.to,segment.intermediateStops||[],250);
+        const geometry=clipTdxShape(parseTdxWkt(shape.Geometry),segment.from,segment.to,segment.intermediateStops||[],250,{allowParallel:true});
         if(geometry)geometries.push({geometry,shape,origin,destination});
       }
     }
     const unique=new Map(geometries.map(g=>[JSON.stringify(g.geometry),g]));if(unique.size!==1)return false;
-    const chosen=[...unique.values()][0];Object.assign(segment,{geometry:chosen.geometry,geometryStatus:'ready',geometrySource:`TDX ${system||segment.mode} Shape（依站點與路線核實）`,geometryUpdatedAt:chosen.shape.UpdateTime||null,railSystem:system||segment.mode});
+    const chosen=[...unique.values()][0];Object.assign(segment,{geometry:chosen.geometry,geometryStatus:'ready',geometrySource:`TDX ${system||segment.mode} Shape（${chosen.geometry.illustrativeCorridor?'同線平行軌道路廊示意，非實際營運股道':'依站點與路線核實'}）`,geometryUpdatedAt:chosen.shape.UpdateTime||null,railSystem:system||segment.mode});
     segment.from.id=chosen.origin.StationID;segment.to.id=chosen.destination.StationID;return true;
   }
   async function bus(segment){

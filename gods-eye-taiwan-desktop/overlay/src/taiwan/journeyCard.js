@@ -1,0 +1,13 @@
+import {TRANSIT_MODES,timeText} from './transitPlanning.js';
+const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+export function createJourneyCard({manager,controller,onError=()=>{}}){
+  let panel=null,plan=null,state={},lastRender=0;
+  const clock=()=>globalThis.performance?.now?.()||Date.now();
+  function render(){if(!panel||!plan)return;
+    const segment=state.segment||plan.segments[0],done=state.fraction>=1&&state.index===plan.segments.length-1;
+    const cost=Number.isFinite(plan.totalFare)?`NT$${plan.totalFare}`:Number.isFinite(plan.estimatedTotal)?`估算 NT$${plan.estimatedTotal}`:'部分費用尚無估算依據';
+    const text=`<p>起點：${escape(plan.segments[0]?.from?.name)} → 終點：${escape(plan.segments.at(-1)?.to?.name)}｜${Math.ceil(plan.durationSeconds/60)} 分鐘｜${cost}</p><p data-journey-motion>${state.notice?escape(state.notice):done?'旅程行進示意已完成':state.running?'旅程行進示意播放中':'旅程行進示意已停止'}（非裝置實際位置）｜第 ${(state.index||0)+1}/${plan.segments.length} 段 ${escape(TRANSIT_MODES[segment?.mode])}${Number.isFinite(state.remainingDistanceMeters)?`｜剩餘可展示路徑約 ${(state.remainingDistanceMeters/1000).toFixed(1)} 公里`:''}</p><p data-journey-segment>${escape(segment?.from?.name)} → ${escape(segment?.to?.name)}｜${escape(timeText(segment?.departureTime))} → ${escape(timeText(segment?.arrivalTime))}</p><div class="tw-journey-card-actions">${[['overview','整條路線'],['play','行進示意'],['follow','行進視角沿路線'],['stop','停止'],['close','關閉路線']].map(([action,label])=>`<button type="button" data-journey-card="${action}">${label}</button>`).join('')}</div>`;
+    if(!panel.body.querySelector('[data-journey-motion]'))panel.body.innerHTML=text;else{const draft=document.createElement('div');draft.innerHTML=text;for(const selector of ['[data-journey-motion]','[data-journey-segment]'])panel.body.querySelector(selector).textContent=draft.querySelector(selector).textContent;}
+  }
+  return {show(next){plan=next;state={};if(panel)panel.body.innerHTML='';if(!panel){panel=manager.create({id:'transit-journey-preview',title:'大眾運輸路線與行進示意',width:560,height:245,onClose:()=>controller.stop()});panel.body.classList.add('tw-journey-card');panel.body.addEventListener('click',event=>{const action=event.target.closest('[data-journey-card]')?.dataset.journeyCard;if(!action)return;try{if(action==='overview')controller.setView('overview');else if(action==='follow'){controller.setView('follow');controller.play();}else if(action==='close'){controller.clear();panel.hide();}else controller[action]();}catch(error){onError(error);}});}render();panel.restore();},update(value){state={...state,...value};if(!value.running||clock()-lastRender>250){lastRender=clock();render();}},hide(){panel?.hide();},destroy(){panel?.destroy();}};
+}

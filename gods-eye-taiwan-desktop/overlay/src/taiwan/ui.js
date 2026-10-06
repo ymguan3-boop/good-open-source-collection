@@ -1,3 +1,4 @@
+import {createJourneyCard} from './journeyCard.js';
 import {createTransitPanel} from './transitPanel.js';
 import {SEAT_NAMES} from './farePreference.js';
 import {createJourneyDisplay} from './journeyDisplay.js';
@@ -239,7 +240,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     const wasRunning = !!activeLoad || batchRunning || !!geminiLive.active || !!navigation.active || aiPending;
     workEpoch++;
     chatController?.abort();
-    drawing.cancel();labels.cancel();cameraPath.cancel();cinematic.stop();journey.stop();transit.cancel?.();
+    drawing.cancel();labels.cancel();cameraPath.cancel();cinematic.stop();journey.stop();journeyCard?.hide();transit.cancel?.();
     activeLoad?.abort();
     automaticBuildingLoad?.abort();
     viewer.camera.cancelFlight();
@@ -314,17 +315,18 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     },
   });
 
-  let journeyInfo=null;
-  const journey=createJourneyDisplay({viewer,governor,beforeCamera:()=>{cinematic.stop();cameraPath.stop();navigation.stopNavigation();viewer.trackedEntity=undefined;},onStatus:status=>transit.updateJourney(status),onPick:info=>{
+  let journeyInfo=null,journeyCard=null;
+  const journey=createJourneyDisplay({viewer,governor,beforeCamera:()=>{cinematic.stop();cameraPath.stop();navigation.stopNavigation();viewer.trackedEntity=undefined;},onStatus:status=>{transit.updateJourney(status);journeyCard?.update(status);},onPick:info=>{
     if(!info){journeyInfo?.hide();return;}
     journeyInfo??=floatingPanels.create({id:'transit-segment-info',title:'旅程路段資訊',width:400,height:380});
     journeyInfo.body.innerHTML=info.html;journeyInfo.restore();
   }});
-  const transit=createTransitPanel({manager:floatingPanels,viewer,onPlan:async(plan,options)=>{await journey.load(plan,options);journey.setView('overview');},onExplain:async (result,{signal}={})=>{
+  journeyCard=createJourneyCard({manager:floatingPanels,controller:journey,onError:error=>toast(error.message)});
+  const transit=createTransitPanel({manager:floatingPanels,viewer,getDrivingColor:()=>navigation.routeStyle.color,onPlan:async(plan,options)=>{await journey.load(plan,options);journey.setView('overview');if(options.execute){journeyCard.show(plan);try{journey.play();return {animationStarted:true};}catch(error){toast(error.message);return {animationStarted:false,animationNotice:error.message};}}},onExplain:async (result,{signal}={})=>{
     chatMessages.push({role:'assistant',content:transitSummary(result),tripResult:result});showAssistant();chatStatus(result.needsClarification?'請先確認車種或旅程條件，再繼續規劃。':result.plans?.length?'已取得公共運輸規劃，可繼續修改旅程或儲存對話。':'目前沒有符合條件的可靠方案，請調整需求後重查。');
     // The verified plan is usable immediately; optional model commentary does
     // not hold the main planning button. Editing/closing aborts this signal.
-    void explainTransit(result,{signal}).catch(()=>{});
+    if(result.question&&!result.conclusion)void explainTransit(result,{signal}).catch(()=>{});
   },onRecovery:proposal=>{chatMessages.push({role:'assistant',content:proposal.content,transitRecovery:proposal});showAssistant();renderChatMessages();chatStatus('請確認三點修正建議之一，確認前不會重新規劃。');},onError:error=>{toast(error.message||String(error));}});
   transit.setJourneyController(journey);
   function transitSummary(result){
@@ -332,14 +334,14 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
       const fare=s.fare,lookup=s.fareLookup;
       if(!fare||!Number.isFinite(fare.amount))return '目前無法取得可靠的最新票價資料。'+(lookup?.sourceUrl?`；[${lookup.source}](${lookup.sourceUrl})（未納入總票價）`:'');
       const quotes=fare.quotes?.length?fare.quotes:[fare];
-      const details=quotes.map(q=>`${q.ticketType||fare.ticketType||''}${q.quantity?` × ${q.quantity}`:''}：${Number.isFinite(q.amount)?`NT$${q.amount}`:'無可靠資料'}${q.sourceUrl?`；[${q.source||'官方票價'}](${q.sourceUrl})`:''}；資料更新 ${q.sourceUpdatedAt||q.sourceTime||'官方未提供'}；最後驗證 ${q.fetchedAt||'未提供'}${q.effectiveFrom?`；票價生效 ${q.effectiveFrom}`:''}${q.notice?`；${q.notice}`:''}`).join('；');
+      const details=quotes.map(q=>`${q.ticketType||fare.ticketType||''}${q.quantity?` × ${q.quantity}`:''}：${Number.isFinite(q.amount)?`NT$${q.amount}`:'無可靠資料'}${q.sourceUrl?`；[${q.source||'官方票價'}](${q.sourceUrl})`:''}；資料更新 ${q.sourceUpdatedAt||q.sourceTime||'官方未提供'}；最後驗證 ${q.fetchedAt||'未提供'}${q.effectiveFrom?`；票價生效 ${q.effectiveFrom}`:''}${q.estimated?'；【估算】'+(q.estimateBasis||'依據未提供'):''}${q.notice?`；${q.notice}`:''}`).join('；');
       const alternatives=fare.alternatives?.length>1?'；車廂比較：'+fare.alternatives.map(c=>`${SEAT_NAMES[c.seatClass]||c.seatClass} ${c.complete?`NT$${c.amount}`:'未取得可靠票價'}`).join('、'):'';
-      return `小計 NT$${fare.amount}；${details}${alternatives}${fare.notice?`；${fare.notice}`:''}`;
+      return `${fare.estimated?'估算小計':'小計'} NT$${fare.amount}；${details}${alternatives}${fare.notice?`；${fare.notice}`:''}`;
     };
     const plans=result.plans||[];
     const planName=id=>plans.find(p=>p.id===id)?.label||id;
     const comparisonText=c=>`${planName(c.b)} 相較 ${planName(c.a)}，${c.extraAmount>0?'多花 NT$'+c.extraAmount:c.extraAmount<0?'省下 NT$'+Math.abs(c.extraAmount):'費用相同'}；${c.savedMinutes>0?'可省 '+c.savedMinutes+' 分鐘':c.savedMinutes<0?'多需 '+Math.abs(c.savedMinutes)+' 分鐘':'旅行時間相同'}`;
-    return `## AI智慧大眾運輸\n${[...(result.questions||[]),...(result.notices||[])].join('\n')}\n\n${plans.map(p=>`### ${p.label||p.id}${p.badges?.length?'｜'+p.badges.join('／'):''}\n${p.departureTime||'未提供時間'} → ${p.arrivalTime||'未提供時間'}\n轉乘：${p.transfers??'未知'}；步行：${Number.isFinite(p.walkDistanceMeters)?Math.round(p.walkDistanceMeters):'未知'}公尺；預估總交通費：${p.totalFare==null?'目前無可靠總票價':`NT$${p.totalFare}`}\n${(p.segments||[]).map(s=>`- ${s.mode} ${s.routeName||''} ${s.transportType&&s.transportType!==s.mode?s.transportType:''} ${s.trainNumber||''}：${s.from?.name||''} → ${s.to?.name||''}；${s.departureTime||''} → ${s.arrivalTime||''}；${fareInfo(s)}；資料狀態 ${s.realtimeStatus||'unknown'}`).join('\n')}\n來源：${(p.sources||[]).join('、')}\n${(p.notices||[]).join('\n')}`).join('\n\n')}\n\n行程模擬為規劃路徑推算，不是車輛即時位置。實際票價依業者與票種。${result.comparisons?.length?'\n\n費用／時間比較（結構化計算）：\n'+result.comparisons.map(comparisonText).join('\n'):''}`;
+    return `## ${result.conclusion?'規劃結論':'AI智慧大眾運輸'}\n${[...(result.questions||[]),...(result.notices||[])].join('\n')}\n\n${plans.map(p=>`### ${p.label||p.id}${p.badges?.length?'｜'+p.badges.join('／'):''}\n${p.departureTime||'未提供時間'} → ${p.arrivalTime||'未提供時間'}\n轉乘：${p.transfers??'未知'}；步行：${Number.isFinite(p.walkDistanceMeters)?Math.round(p.walkDistanceMeters):'未知'}公尺；預估總交通費：${p.totalFare==null?Number.isFinite(p.estimatedTotal)?`估算 NT$${p.estimatedTotal}（含估算費用，非正式報價）`:'部分費用無可靠估算依據，未提供假總額':`NT$${p.totalFare}`}\n${(p.segments||[]).map(s=>`- ${s.mode} ${s.routeName||''} ${s.transportType&&s.transportType!==s.mode?s.transportType:''} ${s.trainNumber||''}：${s.from?.name||''} → ${s.to?.name||''}；${s.departureTime||''} → ${s.arrivalTime||''}；${fareInfo(s)}；資料狀態 ${s.realtimeStatus||'unknown'}`).join('\n')}\n來源：${(p.sources||[]).join('、')}\n${(p.notices||[]).join('\n')}`).join('\n\n')}\n\n行程模擬為規劃路徑推算，不是車輛即時位置。實際票價依業者與票種。${result.comparisons?.length?'\n\n費用／時間比較（結構化計算）：\n'+result.comparisons.map(comparisonText).join('\n'):''}`;
   }
   async function explainTransit(result,{signal}={}){
     if(!result.plans?.length || chatBusy || signal?.aborted || !(await hasApiKey('openrouter')))return;
@@ -798,7 +800,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   },true);
   root.addEventListener('change', event => {
     const target=event.target;
-    if(target.matches('[data-route-style]')){navigation.setRouteStyle({[target.dataset.routeStyle]:target.value});return;}
+    if(target.matches('[data-route-style]')){navigation.setRouteStyle({[target.dataset.routeStyle]:target.value});transit.synchronizeColor();return;}
     if(target.matches('[data-vehicle-color]')){navigation.setVehicleColor(target.dataset.vehicleColor,target.value);toast('車身顏色已儲存，下次開啟沿用');return;}
     if(target.matches('[data-label-style]')){const layer=getLayer(target.dataset.layer);if(layer){layer.dataMetadata.annotationLabel=normalizeLabelStyle({...layer.dataMetadata.annotationLabel,[target.dataset.labelStyle]:target.value});layer.name=`標籤：${layer.dataMetadata.annotationLabel.text.slice(0,40)}`;layer.geojson.features[0].properties.name=layer.dataMetadata.annotationLabel.text;applyAnnotationLabel(layer);}return;}
     if(target.matches('[data-building-white]')){setBuildingWhiteMode(viewer,target.checked);return;}

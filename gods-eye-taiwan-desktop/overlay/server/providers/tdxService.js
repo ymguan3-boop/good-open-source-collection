@@ -1,6 +1,6 @@
 import {createFareService,defaultFareCacheFile,fareComparison,rankTransitPlans} from './fareEngine.js';
 import {vehicleAllowed} from '../../src/taiwan/farePreference.js';
-import {createHash} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import {getCredential} from './taiwanCredentialStore.js';
 import {normalizeTripRequest,normalizeMaaSRoute,finalizePlan,taipeiTime,tdxError} from './tdxTrip.js';
 import {parseTransitText} from './tdxParse.js';
@@ -17,7 +17,7 @@ const norm=name=>String(name||'').replaceAll('臺','台').replace(/(?:火車站|
 const safeId=id=>{if(!/^[A-Za-z0-9_-]{1,100}$/.test(String(id)))throw tdxError('INVALID_STATION_ID','車站代碼不正確');return encodeURIComponent(id);};
 
 export function createTdxService({fetcher=fetch,credential=getCredential,now=Date.now,cacheFile=null,checkFarePolicy=true}={}){
-  let token=null,authPromise=null;const cache=new Map(),pendingApi=new Map(),rateLimits=new Map();
+  let token=null,authPromise=null;const cache=new Map(),pendingApi=new Map(),rateLimits=new Map(),offers=new Map();
   const trainQuestion=request=>({plans:[],request,needsClarification:true,clarificationField:'traTrainType',questions:['這段旅程可能搭乘臺鐵，請先選擇自強號、莒光號、區間／區間快，或明確選擇不限車種；不同車種票價不同。'],notices:['請在旅程表單選擇「臺鐵車種需求」，或直接在 AI 空間助理回答想搭的車種，再重新規劃。'],sourceStatus:{tdx:'needs-confirmation'}});
   const fingerprint=()=>createHash('sha256').update(`${credential('TDX_CLIENT_ID')}\0${credential('TDX_CLIENT_SECRET')}`).digest('hex');
   const configured=()=>!!credential('TDX_CLIENT_ID')&&!!credential('TDX_CLIENT_SECRET');
@@ -142,7 +142,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
             }catch{abort(parentSignal);}
           }
           segment.trainClass=actual;segment.requestedTrainClass=request.traTrainType;
-          segment.trainClassStatus=segment.transportType&&(request.traTrainType==='any'||request.traTrainType===actual)&&vehicleAllowed(segment.transportType,segment.trainTypeId,request.farePreference.modePreferences.TRA)&&!(request.farePreference.modePreferences.TRA.seatClasses.length===1&&request.farePreference.modePreferences.TRA.seatClasses[0]==='premium'&&!/^自強\s*[(（]?3000/.test(segment.transportType))?'matched':actual?'mismatch':'unverified';
+          segment.trainClassStatus=actual&&segment.transportType&&(request.traTrainType==='any'||request.traTrainType===actual)&&vehicleAllowed(segment.transportType,segment.trainTypeId,request.farePreference.modePreferences.TRA)&&!(request.farePreference.modePreferences.TRA.seatClasses.length===1&&request.farePreference.modePreferences.TRA.seatClasses[0]==='premium'&&!/^自強\s*[(（]?3000/.test(segment.transportType))?'matched':actual?'mismatch':'unverified';
           segment.fareLookup={source:'臺鐵官方票價查詢',sourceUrl:TRA_FARE_URL,status:'manual-required',ticketType:TRA_TRAIN_TYPES[request.traTrainType]||'待選車種'};
         }
         if(segment.mode==='TRA'&&segment.trainNumber&&Math.abs(Date.parse(segment.departureTime)-now())<3600000){
@@ -182,8 +182,8 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
     const rows=data.data?.routes||data.routes||[];
     return rows.map((r,i)=>{try{const plan=normalizeMaaSRoute(r,i);if(plan){for(const segment of plan.segments)segment.sourceTime=data._tdxFetchedAt||null;if(plan.segments[0].from.name==='未命名站點')plan.segments[0].from.name=from.name;if(plan.segments.at(-1).to.name==='未命名站點')plan.segments.at(-1).to.name=to.name;}return plan;}catch{return null;}}).filter(Boolean).filter(p=>p.segments.every(s=>request.allowedModes.includes(s.mode)||(s.mode==='WALK'&&!request.excludedModes.includes('WALK')))).filter(p=>arrival?Date.parse(p.arrivalTime)<=Date.parse(time):Date.parse(p.departureTime)>=Date.parse(time));
   }
-  async function directTra(request,signal,refresh=false){
-    if(request.waypoints.length||!request.allowedModes.includes('TRA')||request.allowedModes.some(m=>!['TRA','WALK'].includes(m)))return null;
+  async function directTra(request,signal,refresh=false,allowAlternativeModes=false){
+    if(request.waypoints.length||!request.allowedModes.includes('TRA')||!allowAlternativeModes&&request.allowedModes.some(m=>!['TRA','WALK'].includes(m)))return null;
     const list=await stations('TRA',signal),match=p=>list.filter(s=>norm(s.StationName?.Zh_tw)===norm(p.name)&&Math.abs(Number(s.StationPosition?.PositionLat)-p.lat)<.002&&Math.abs(Number(s.StationPosition?.PositionLon)-p.lon)<.002);
     const from=match(request.origin),to=match(request.destination);if(from.length!==1||to.length!==1)return null;
     if(!request.traTrainType)return trainQuestion(request);
@@ -234,6 +234,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
       }
       const unchecked=valid.some(p=>p.segments.some(s=>s.mode==='TRA'&&s.trainClassStatus!=='matched'));
       valid=valid.filter(p=>p.segments.every(s=>s.mode!=='TRA'||s.trainClassStatus==='matched'));
+      if(unchecked&&!valid.length){const alternative=await directTra(request,signal,refresh,true);if(alternative?.plans?.length){alternative.notices.push('TDX MaaS 臺鐵時刻未對應當日官方班表，改查相同起訖的臺鐵直達候選；其他運具未窮舉。');return alternative;}}
       if(unchecked&&!valid.length)return {plans:[],request,notices:['目前回傳臺鐵班次的車種與您的選擇不符，或班次資料不足以核對車種；請調整時間／車種後再查詢。未套用其他車種票價。'],sourceStatus:{tdx:'no-matching-train'}};
       const score=p=>request.preference==='fewest-transfers'?p.transfers:request.preference==='least-walking'?p.walkDistanceMeters:request.preference==='fastest'?p.durationSeconds:request.preference==='cheapest'?(p.totalFare??Infinity):p.durationSeconds;
       rankTransitPlans(valid,request.preference,request.departureTime||new Date(now()).toISOString());
@@ -281,7 +282,28 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
       case 'status':return {configured:configured(),clientIdPresent:!!credential('TDX_CLIENT_ID'),clientSecretPresent:!!credential('TDX_CLIENT_SECRET'),authenticated:!!(token?.identity===fingerprint()&&token.expires>now()),storage:'windows-dpapi',capabilities:{routing:'TDX MaaS',geocode:'TomTom / Photon / TDX 車站',fare:'獨立 Fare Engine；六類運具逐段官方核實、乘客／車廂偏好、已驗證本機快取',realtime:'公車及臺鐵部分即時資料',geometry:'TDX Shape 依確切路線與站點核實；步行／自行車使用既有 TomTom Key'},notices:['TDX 服務依會員訂閱權限與頻率限制；本程式不購買或升級方案。']};
       case 'test':await accessToken(signal);return {ok:true,authenticated:true,source:'TDX OAuth2',notices:['權杖取得成功；不代表 MaaS、票價或加值服務權限均已開放。']};
       case 'resolve':return resolveLocation(data.query,{signal});
-      case 'plan':{const result=await plan(data.request,{signal,refresh:data.refresh===true});result.comparisons=fareComparison(result.plans||[]);return result;}
+      case 'plan':{const result=await plan(data.request,{signal,refresh:data.refresh===true});result.comparisons=fareComparison(result.plans||[]);if(result.plans?.length){result.offerId=randomUUID();if(offers.size>=12)offers.delete(offers.keys().next().value);offers.set(result.offerId,{at:now(),identity:fingerprint(),result:structuredClone(result)});}return result;}
+      case 'execute-plan':{
+        const offer=offers.get(data.offerId),index=Number(data.index??0);
+        if(!offer||now()-offer.at>1800000||offer.identity!==fingerprint())throw tdxError('PLAN_EXPIRED','方案已逾時或服務設定已變更，請重新規劃再確認。',409);
+        if(!Number.isInteger(index)||index<0||index>=offer.result.plans.length)throw tdxError('INVALID_PLAN','請確認有效方案');
+        const result=structuredClone(offer.result),selected=result.plans[index];
+        if(Date.parse(selected.departureTime)<now())throw tdxError('PLAN_DEPARTED','候選班次已出發，請依最新資訊重新規劃。',409);
+        // The server owns the timetable and geometry snapshot. The client cannot supply fares or an invented journey.
+        for(const segment of selected.segments){abort(signal);if(segment.fare?.complete||segment.mode==='WALK')continue;
+          try{segment.fare=await fares.quoteSegment(segment,result.request.farePreference,{signal,refresh:true,allowEstimates:true,preferCheapest:result.request.preference==='cheapest'});}catch(error){abort(signal);selected.notices.push('此段官方票價查核未完成，保留已取得票價及缺漏：'+error.message);}
+        }
+        // Fare boundaries span station-internal transfers; never add two short OD fares as a through fare.
+        for(let i=0;i<selected.segments.length;i++){
+          const first=selected.segments[i];if(!['METRO','LRT'].includes(first.mode)||!first.railSystem)continue;
+          const group=[first];let end=i;for(let j=i+1;j<selected.segments.length;j++){const next=selected.segments[j];if(next.mode==='WALK'&&next.transferWalk)continue;if(next.mode===first.mode&&next.railSystem===first.railSystem){group.push(next);end=j;}else break;}
+          if(group.length<2)continue;i=end;let quote=null;
+          try{quote=await fares.quoteSegment({...first,to:group.at(-1).to},result.request.farePreference,{signal,refresh:true,allowEstimates:true});}catch(error){abort(signal);}
+          if(Number.isFinite(quote?.amount)){first.fare=quote;for(const next of group.slice(1))next.fare={amount:0,complete:true,source:quote.source,sourceUrl:quote.sourceUrl,ticketType:'站內轉乘已計入前段'};}
+          else for(const next of group)next.fare={amount:null,complete:false,notice:'站內轉乘缺少完整起訖票價與估算依據，未加總分段票價。'};
+        }
+        finalizePlan(selected);result.plans=[selected];result.conclusion=true;result.executedPlanIndex=index;result.comparisons=[];return result;
+      }
       case 'fare-options':return fares.metadata({signal,refresh:data.refresh===true});
       case 'fare-status':return fares.status();
       case 'fare-update':return fares.update({signal});

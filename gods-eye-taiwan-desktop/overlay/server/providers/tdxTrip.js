@@ -69,9 +69,12 @@ export function normalizeMaaSRoute(route,index=0){
   return {id:`tdx-${index}`,label:'TDX 公共運輸方案',segments,departureTime,arrivalTime,durationSeconds:num(route.travel_time)??Math.round((Date.parse(arrivalTime)-Date.parse(departureTime))/1000),walkDistanceMeters:segments.filter(x=>x.mode==='WALK').reduce((n,x)=>n+(x.distanceMeters||0),0),transfers:num(route.transfers)??Math.max(0,transport.length-1),totalFare:null,fareComplete:false,sources:['TDX MaaS'],notices};
 }
 export function finalizePlan(plan){
-  plan.fareComplete=plan.segments.every(s=>s.fare&&Number.isFinite(s.fare.amount));
+  plan.fareComplete=plan.segments.every(s=>s.fare&&Number.isFinite(s.fare.amount)&&!s.fare.estimated);
   plan.totalFare=plan.fareComplete?plan.segments.reduce((n,s)=>n+s.fare.amount,0):null;
-  plan.knownFare=plan.segments.reduce((n,s)=>n+(s.fare?.amount||0),0);
+  plan.budgetComplete=plan.segments.every(s=>Number.isFinite(s.fare?.amount));
+  plan.estimatedFare=plan.segments.some(s=>s.fare?.estimated);
+  plan.estimatedTotal=plan.budgetComplete&&plan.estimatedFare?plan.segments.reduce((n,s)=>n+s.fare.amount,0):null;
+  plan.knownFare=plan.segments.reduce((n,s)=>n+(!s.fare?.estimated?s.fare?.amount||0:0),0);
   if(!plan.fareComplete)plan.notices.push('部分票價尚無可核實資料；未知票價不以 0 元補齊，也不保證此方案最便宜。');
   return plan;
 }
