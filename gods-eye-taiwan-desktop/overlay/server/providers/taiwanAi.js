@@ -110,7 +110,7 @@ export function taiwanAiProxy() {
               const data=await body(req);controller.signal.throwIfAborted();
               const result=await tdxService.handle(data,{signal:data.action==='parse'?controller.signal:AbortSignal.any([controller.signal,AbortSignal.timeout(90000)])});
               if(!res.destroyed)return json(res,200,result);
-            }catch(error){if(!res.destroyed)return json(res,error.status||400,{error:error.code?'TDX 大眾運輸服務：'+error.message:'大眾運輸查詢中斷或逾時；請重新查詢',code:error.code||'TRANSIT_REQUEST_FAILED'});}
+            }catch(error){if(!res.destroyed)return json(res,error.status||400,{error:error.code?'TDX 大眾運輸服務：'+error.message:'大眾運輸查詢中斷或逾時；請重新查詢',code:error.code||'TRANSIT_REQUEST_FAILED',rateLimit:error.rateLimit||null,upstreamStatus:error.upstreamStatus||null});}
             finally{res.removeListener('close',cancel);}
             return;
           }

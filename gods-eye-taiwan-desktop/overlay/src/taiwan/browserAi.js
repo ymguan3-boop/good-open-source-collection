@@ -9,7 +9,7 @@ export async function browserAi(path, { method='GET', data, signal } = {}) {
     credentials:'same-origin',
   });
   const result = await response.json();
-  if (!response.ok) throw Object.assign(new Error(result.error || `本機 AI 服務 ${response.status}`),{code:result.code,status:response.status});
+  if (!response.ok) throw Object.assign(new Error(result.error || `本機 AI 服務 ${response.status}`),{code:result.code,status:response.status,rateLimit:result.rateLimit,upstreamStatus:result.upstreamStatus});
   return result;
 }
 

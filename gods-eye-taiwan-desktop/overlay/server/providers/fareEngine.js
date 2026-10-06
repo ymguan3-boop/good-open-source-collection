@@ -149,8 +149,18 @@ export function createFareService({basic,stations,fetcher=fetch,now=Date.now,cac
   async function update({signal}={}){
     if(updateTask)return updateTask;updateTask=(async()=>{const entries=await cache.entries(),report=[];await metadataOptions({signal,refresh:true});const deadline=now()+60000;for(const entry of entries){signal?.throwIfAborted();if(now()>deadline){report.push({status:'deferred',notice:'其餘來源保留於下次背景更新'});break;}const context=contextByKey.get(entry.key);if(context){const q=await unitQuote(context.segment,context.profile,context.seat,context.fm,{signal,refresh:true});report.push({mode:context.segment.mode,status:q.cacheStatus==='stale-verified'?'kept-last-verified':q.confidence,notice:q.notice});}else{const q=entry.quotes[0],s=entry.lookup;if(s){const refreshed=await unitQuote(s,{type:q.passengerType,quantity:1},q.seatClass,q.fareType,{signal,refresh:true});report.push({mode:q.mode,status:refreshed.cacheStatus==='stale-verified'?'kept-last-verified':refreshed.confidence,notice:refreshed.notice});}else report.push({mode:q.mode,status:'kept-last-verified',notice:'舊快取缺少完整來源定位資料，保留最近成功資料'});}}return {...await cache.status(),report};})().finally(()=>updateTask=null);return updateTask;
   }
+  async function sources({signal,modes=['TRA','HSR']}={}){
+    const sources=[],targets=[];
+    if(modes.includes('TRA'))targets.push({mode:'TRA',name:'臺鐵官方公開票價查詢／計算規則',url:TRA_FARE_URL});
+    if(modes.includes('HSR'))targets.push({mode:'HSR',name:'台灣高鐵官方公開票價表',url:'https://en.thsrc.com.tw/ArticleContent/4c3efc1d-e6df-4bfd-97b4-52e89f79ee5c'});
+    for(const target of targets){signal?.throwIfAborted();try{const html=await webPage(target.url,{signal}),at=pages.get(target.url)?.at;
+      sources.push({name:target.name,mode:target.mode,sourceUrl:target.url,status:'已擷取官方公開頁面；特定起訖票價仍需驗證',fetchedAt:new Date(at||now()).toISOString(),contentHash:fareHash(html),notice:target.mode==='TRA'&&!parseTraRateRules(html)?'票價規則解析未通過，未以此頁產生金額。':'擷取遵守官方來源清單、robots 與快取頻率。'});
+    }catch(error){signal?.throwIfAborted();sources.push({name:target.name,mode:target.mode,sourceUrl:target.url,status:'擷取未完成',notice:error.message});}}
+    if(!targets.length)sources.push({name:'已登錄官方票價來源',sourceUrl:'https://tdx.transportdata.tw/',status:'目前允許運具需依營運系統、業者及起訖站查核，未任意抓取全網站',notice:'公車／捷運／輕軌及自行車會在已確認旅程的 Fare Engine 逐段查詢。'});
+    return {sources};
+  }
   // Startup only revalidates expired known sources, never crawls every operator.
   void cache.load().then(async()=>{const status=await cache.status();if(Object.values(status.modes).some(m=>m.stale))await update({signal:AbortSignal.timeout(65000)});}).catch(()=>{});
-  return {quoteSegment,metadata:metadataOptions,status:()=>cache.status(),update,configure:value=>cache.configure(value),cache};
+  return {quoteSegment,sources,metadata:metadataOptions,status:()=>cache.status(),update,configure:value=>cache.configure(value),cache};
 }
 export const defaultFareCacheFile=process.env.LOCALAPPDATA?join(process.env.LOCALAPPDATA,'GodsEyeTaiwan','fare-cache.json'):null;

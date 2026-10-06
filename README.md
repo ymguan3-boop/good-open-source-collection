@@ -54,6 +54,7 @@ https://github.com/bilawalsidhu/gods-eye-view
 - AI智慧大眾運輸整合TDX真實候選，表單／自然語言共用車種、車廂及混合乘客偏好；獨立官方票價引擎、可調TTL快取、來源與日期驗證、費用／時間比較，結果統一進AI空間助理。七種旅程模型由Blender製作，虛線粗細與顏色可保存，地圖路段可查看票價來源；官方未核實資料保持未知。見 [v27票價引擎與驗收限制](gods-eye-taiwan-desktop/docs/browser-v27-fare-engine-20261006.md)。
 - v28 修正安全分類被當成AI回答及推理耗盡回答額度；免費文字模型輪替不限前三個。旅程問題在AI空間助理提出三項修正建議，使用者確認才重查，保留混合票種與中繼點。見 [v28實測與資料限制](gods-eye-taiwan-desktop/docs/browser-v28-assistant-transit-20261006.md)。
 - v29 新增「按 AI 建議執行」與規劃結論、官方票價查核及有依據估算、自動 3D 旅程展示與導航配色區分；加入手繪軌跡刪除，修正航機第三人稱重疊。見 [v29驗收與限制](gods-eye-taiwan-desktop/docs/browser-v29-transit-execution-20261006.md)。
+- v30 修正運輸建議按鈕／文字確認與自動規劃結論；TDX 真實服務狀態、官方重試倒數及官方票價網頁擷取接入既有 AI 空間助理。見 [v30 驗收與限制](gods-eye-taiwan-desktop/docs/browser-v30-transit-assistant-20261006.md)。
 - CCTV 每頁 12 路，一鍵本機 YOLOX／ONNX 辨識，固定截圖與完整結果統一進 AI 空間助理；記錄可匯出 JPEG、Markdown 與 metadata。
 - 電影空拍只保留手繪／自由兩模式，檢查目前場景地形與建物安全體積，支援六種可編輯拍攝範例、已驗走廊重用及提前檢查、OpenRouter參數格式驗證與自動免費備援修正、本機 WebM 預覽、手動匯出與記錄，Esc 停止不自動下載，不需要 AI Key。
 - AI 空間助理、空拍與 CCTV 採共用可拖曳、縮放、縮小、隱藏與叫回的浮動視窗；保留專案、GIS、飛機視角、語音及資源控管。

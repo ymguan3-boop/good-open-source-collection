@@ -1,3 +1,4 @@
+import {tdxLimit} from './tdxLimits.js';
 import {createFareService,defaultFareCacheFile,fareComparison,rankTransitPlans} from './fareEngine.js';
 import {vehicleAllowed} from '../../src/taiwan/farePreference.js';
 import {createHash,randomUUID} from 'node:crypto';
@@ -17,10 +18,20 @@ const norm=name=>String(name||'').replaceAll('臺','台').replace(/(?:火車站|
 const safeId=id=>{if(!/^[A-Za-z0-9_-]{1,100}$/.test(String(id)))throw tdxError('INVALID_STATION_ID','車站代碼不正確');return encodeURIComponent(id);};
 
 export function createTdxService({fetcher=fetch,credential=getCredential,now=Date.now,cacheFile=null,checkFarePolicy=true}={}){
-  let token=null,authPromise=null;const cache=new Map(),pendingApi=new Map(),rateLimits=new Map(),offers=new Map();
+  let token=null,authPromise=null,lastServiceError=null;const cache=new Map(),pendingApi=new Map(),rateLimits=new Map(),offers=new Map();
   const trainQuestion=request=>({plans:[],request,needsClarification:true,clarificationField:'traTrainType',questions:['這段旅程可能搭乘臺鐵，請先選擇自強號、莒光號、區間／區間快，或明確選擇不限車種；不同車種票價不同。'],notices:['請在旅程表單選擇「臺鐵車種需求」，或直接在 AI 空間助理回答想搭的車種，再重新規劃。'],sourceStatus:{tdx:'needs-confirmation'}});
   const fingerprint=()=>createHash('sha256').update(`${credential('TDX_CLIENT_ID')}\0${credential('TDX_CLIENT_SECRET')}`).digest('hex');
   const configured=()=>!!credential('TDX_CLIENT_ID')&&!!credential('TDX_CLIENT_SECRET');
+  const limits=()=>{const prefix=fingerprint()+':';return [...rateLimits].filter(([key,l])=>key.startsWith(prefix)&&Date.parse(l.resetAt||l.retryAt)>now()).map(([key,l])=>({...l,source:new URL(key.slice(prefix.length)).pathname}));};
+  async function serviceError(response,url){
+    let text='';try{text=(await response.text()).slice(0,12000);}catch{/* Status remains authoritative. */}
+    const limited=response.status===429||response.status===403&&/quota|配額|額度|點數不足/i.test(text);
+    const limit=limited?tdxLimit(response,text,now()):null;if(limit)rateLimits.set(`${fingerprint()}:${url}`,limit);
+    const code=limit?.kind==='quota'?'TDX_QUOTA_EXCEEDED':limit?'TDX_RATE_LIMITED':response.status===403?'TDX_PERMISSION_DENIED':response.status===401?'TDX_AUTH_FAILED':'TDX_SERVICE_FAILED';
+    const message=limit?.kind==='quota'?'TDX 用量額度已滿':limit?'TDX 查詢頻率或用量受到限制':response.status===403?'TDX 此資料服務沒有存取權限':response.status===401?'TDX 權杖驗證失敗':'TDX 資料服務未能回傳資料';
+    const error=Object.assign(tdxError(code,`${message}（HTTP ${response.status}）`,limited?429:response.status===403?403:response.status===401?401:502),{upstreamStatus:response.status,rateLimit:limit});lastServiceError={code,message:error.message,rateLimit:limit,at:new Date(now()).toISOString(),source:new URL(url).pathname};return error;
+  }
+  function checkLimit(url){const limit=rateLimits.get(`${fingerprint()}:${url}`);if(limit&&Date.parse(limit.resetAt||limit.retryAt)>now())throw Object.assign(tdxError(limit.kind==='quota'?'TDX_QUOTA_EXCEEDED':'TDX_RATE_LIMITED',limit.kind==='quota'?'TDX 用量額度已滿；依官方時間等待再查詢。':'TDX 已要求暫緩此來源查詢；已驗證快取仍可使用。',429),{rateLimit:limit});}
   async function readJson(response){
     if(Number(response.headers?.get('content-length'))>12000000){await response.body?.cancel();throw tdxError('TDX_RESPONSE_TOO_LARGE','TDX 回應超過處理大小限制',502);}
     const text=await response.text();if(text.length>12000000)throw tdxError('TDX_RESPONSE_TOO_LARGE','TDX 回應超過處理大小限制',502);
@@ -30,11 +41,11 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
   const store=(key,data)=>{if(cache.size>=150)cache.delete(cache.keys().next().value);cache.set(key,{at:now(),data:structuredClone(data)});return data;};
   async function accessToken(signal){
     abort(signal);if(!configured())throw tdxError('TDX_CREDENTIALS_REQUIRED','請先在設定儲存 TDX Client ID 與 Client Secret；公共運輸班次規劃不能以 AI 虛構資料替代',428);
-    const identity=fingerprint();if(token?.identity===identity&&token.expires>now())return token.value;
+    checkLimit(AUTH);const identity=fingerprint();if(token?.identity===identity&&token.expires>now())return token.value;
     if(authPromise?.identity!==identity){
       const task=(async()=>{
         const response=await fetcher(AUTH,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'client_credentials',client_id:credential('TDX_CLIENT_ID'),client_secret:credential('TDX_CLIENT_SECRET')}),signal:AbortSignal.timeout(12000)});
-        if(!response.ok){await response.body?.cancel();throw tdxError('TDX_AUTH_FAILED',`TDX 驗證失敗（HTTP ${response.status}）；請確認金鑰與會員服務權限`,response.status===401?401:502);}
+        if(!response.ok)throw await serviceError(response,AUTH);
         const data=await readJson(response);if(typeof data.access_token!=='string'||!Number.isFinite(Number(data.expires_in)))throw tdxError('TDX_AUTH_FAILED','TDX 未提供有效存取權杖',502);
         const next={identity,value:data.access_token,expires:now()+Math.max(0,Number(data.expires_in)*1000-60000)};
         if(identity===fingerprint())token=next;return next.value;
@@ -52,7 +63,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
       const bearer=await accessToken(signal);abort(signal);
       const response=await fetcher(url,{headers:{Authorization:`Bearer ${bearer}`,Accept:'application/json'},signal:AbortSignal.any([signal,AbortSignal.timeout(15000)].filter(Boolean))});
       if(response.status===401&&attempt===0){await response.body?.cancel();token=null;continue;}
-      if(!response.ok){if(response.status===429){const value=response.headers.get('retry-after'),seconds=Number(value),date=Date.parse(value),delay=value&&Number.isFinite(seconds)?seconds*1000:Number.isFinite(date)?date-now():60000;rateLimits.set(key,now()+Math.max(1000,Math.min(3600000,delay)));}await response.body?.cancel();throw tdxError(response.status===403?'TDX_PERMISSION_DENIED':response.status===429?'TDX_RATE_LIMITED':'TDX_SERVICE_FAILED',`TDX 服務無法取得資料（HTTP ${response.status}）${response.status===403?'；請確認此服務的訂閱權限':response.status===429?'；已達服務頻率或用量限制，請稍後重試':''}`,response.status===403||response.status===429?response.status:502);}
+      if(!response.ok)throw await serviceError(response,url);
       const data=await readJson(response);abort(signal);
       if(data&&typeof data==='object'&&!Array.isArray(data))data._tdxFetchedAt=new Date(now()).toISOString();
       return ttl?store(key,data):data;
@@ -62,7 +73,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
   async function api(url,{ttl=0,signal,refresh=false}={}){
     abort(signal);const key=`${fingerprint()}:${url}`;
     if(!refresh&&ttl){const hit=cached(key,ttl);if(hit!==null)return hit;}
-    if((rateLimits.get(key)||0)>now())throw tdxError('TDX_RATE_LIMITED','TDX 已要求暫緩此來源查詢，請稍後重試；已驗證票價仍可使用。',429);
+    checkLimit(url);
     let task=pendingApi.get(key);
     if(!task){task=fetchApi(url,{ttl,refresh,signal:AbortSignal.timeout(30000)});pendingApi.set(key,task);task.finally(()=>{if(pendingApi.get(key)===task)pendingApi.delete(key);}).catch(()=>{});}
     if(!signal)return structuredClone(await task);
@@ -279,7 +290,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
   async function handle(data,{signal,onProgress}={}){
     if(!data||typeof data!=='object')throw tdxError('INVALID_REQUEST','請提供大眾運輸請求');abort(signal);
     switch(data.action){
-      case 'status':return {configured:configured(),clientIdPresent:!!credential('TDX_CLIENT_ID'),clientSecretPresent:!!credential('TDX_CLIENT_SECRET'),authenticated:!!(token?.identity===fingerprint()&&token.expires>now()),storage:'windows-dpapi',capabilities:{routing:'TDX MaaS',geocode:'TomTom / Photon / TDX 車站',fare:'獨立 Fare Engine；六類運具逐段官方核實、乘客／車廂偏好、已驗證本機快取',realtime:'公車及臺鐵部分即時資料',geometry:'TDX Shape 依確切路線與站點核實；步行／自行車使用既有 TomTom Key'},notices:['TDX 服務依會員訂閱權限與頻率限制；本程式不購買或升級方案。']};
+      case 'status':return {configured:configured(),clientIdPresent:!!credential('TDX_CLIENT_ID'),clientSecretPresent:!!credential('TDX_CLIENT_SECRET'),authenticated:!!(token?.identity===fingerprint()&&token.expires>now()),storage:'windows-dpapi',limits:limits(),lastError:lastServiceError,capabilities:{routing:'TDX MaaS',geocode:'TomTom / Photon / TDX 車站',fare:'獨立 Fare Engine；六類運具逐段官方核實、乘客／車廂偏好、已驗證本機快取',realtime:'公車及臺鐵部分即時資料',geometry:'TDX Shape 依確切路線與站點核實；步行／自行車使用既有 TomTom Key'},notices:['TDX 服務依會員訂閱權限與頻率限制；本程式不購買或升級方案。']};
       case 'test':await accessToken(signal);return {ok:true,authenticated:true,source:'TDX OAuth2',notices:['權杖取得成功；不代表 MaaS、票價或加值服務權限均已開放。']};
       case 'resolve':return resolveLocation(data.query,{signal});
       case 'plan':{const result=await plan(data.request,{signal,refresh:data.refresh===true});result.comparisons=fareComparison(result.plans||[]);if(result.plans?.length){result.offerId=randomUUID();if(offers.size>=12)offers.delete(offers.keys().next().value);offers.set(result.offerId,{at:now(),identity:fingerprint(),result:structuredClone(result)});}return result;}
@@ -304,6 +315,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
         }
         finalizePlan(selected);result.plans=[selected];result.conclusion=true;result.executedPlanIndex=index;result.comparisons=[];return result;
       }
+      case 'official-fare-info':return fares.sources({signal,modes:Array.isArray(data.request?.allowedModes)?data.request.allowedModes.filter(m=>['TRA','HSR','BUS','METRO','LRT','BIKE','WALK'].includes(m)):['TRA','HSR']});
       case 'fare-options':return fares.metadata({signal,refresh:data.refresh===true});
       case 'fare-status':return fares.status();
       case 'fare-update':return fares.update({signal});

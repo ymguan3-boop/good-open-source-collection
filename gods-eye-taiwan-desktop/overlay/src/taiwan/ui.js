@@ -1,3 +1,4 @@
+import {transitMessageIntent,rateLimitText} from './transitAssistant.js';
 import {createJourneyCard} from './journeyCard.js';
 import {createTransitPanel} from './transitPanel.js';
 import {SEAT_NAMES} from './farePreference.js';
@@ -322,12 +323,25 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     journeyInfo.body.innerHTML=info.html;journeyInfo.restore();
   }});
   journeyCard=createJourneyCard({manager:floatingPanels,controller:journey,onError:error=>toast(error.message)});
-  const transit=createTransitPanel({manager:floatingPanels,viewer,getDrivingColor:()=>navigation.routeStyle.color,onPlan:async(plan,options)=>{await journey.load(plan,options);journey.setView('overview');if(options.execute){journeyCard.show(plan);try{journey.play();return {animationStarted:true};}catch(error){toast(error.message);return {animationStarted:false,animationNotice:error.message};}}},onExplain:async (result,{signal}={})=>{
-    chatMessages.push({role:'assistant',content:transitSummary(result),tripResult:result});showAssistant();chatStatus(result.needsClarification?'請先確認車種或旅程條件，再繼續規劃。':result.plans?.length?'已取得公共運輸規劃，可繼續修改旅程或儲存對話。':'目前沒有符合條件的可靠方案，請調整需求後重查。');
+  let transitProgressMessage=null;
+  function transitProgress({busy,message}){
+    if(busy){if(!transitProgressMessage){transitProgressMessage={role:'assistant',content:message};chatMessages.push(transitProgressMessage);}else transitProgressMessage.content=message;showAssistant();}
+    else {if(transitProgressMessage){transitProgressMessage.content=message;transitProgressMessage=null;}renderChatMessages();}
+    chatStatus(message);
+  }
+  async function runTransitInteraction(action,content){
+    if(chatBusy||transit.busy){chatStatus('目前運輸查詢仍在執行，完成或失敗會自動回報。');return;}
+    chatBusy=true;chatMessages.push({role:'user',content});renderChatMessages();
+    try{const result=await action();if(result?.needsConfirmation)chatStatus('請點選下方建議，或回覆「按你建議執行／採用建議1、2、3」。');}
+    catch(error){chatMessages.push({role:'system',content:'旅程執行未完成：'+error.message});chatStatus(error.message);}
+    finally{if(transitProgressMessage){transitProgressMessage.content=transit.recovery?'查核已完成，請確認下方修正建議。':'本次查詢已結束，結果已自動回報。';transitProgressMessage=null;}chatBusy=false;renderChatMessages();}
+  }
+  const transit=createTransitPanel({manager:floatingPanels,viewer,getDrivingColor:()=>navigation.routeStyle.color,onPlan:async(plan,options)=>{await journey.load(plan,options);journey.setView('overview');if(options.execute){journeyCard.show(plan);try{journey.play();return {animationStarted:true};}catch(error){toast(error.message);return {animationStarted:false,animationNotice:error.message};}}},onProgress:transitProgress,onExplain:async (result,{signal}={})=>{
+    const message={role:'assistant',content:result.assistantContent||transitSummary(result),tripResult:result,serviceLimits:result.serviceStatus?.limits|| (result.serviceError?.rateLimit?[result.serviceError.rateLimit]:[])};const prior=result.conclusion&&result.offerId?chatMessages.findLast(m=>m.tripResult?.conclusion&&m.tripResult.offerId===result.offerId):null;if(prior)Object.assign(prior,message);else chatMessages.push(message);showAssistant();chatStatus(result.needsClarification?'請先確認車種或旅程條件，再繼續規劃。':result.plans?.length?'已取得公共運輸規劃，可繼續修改旅程或儲存對話。':'目前沒有符合條件的可靠方案，請調整需求後重查。');
     // The verified plan is usable immediately; optional model commentary does
     // not hold the main planning button. Editing/closing aborts this signal.
     if(result.question&&!result.conclusion)void explainTransit(result,{signal}).catch(()=>{});
-  },onRecovery:proposal=>{chatMessages.push({role:'assistant',content:proposal.content,transitRecovery:proposal});showAssistant();renderChatMessages();chatStatus('請確認三點修正建議之一，確認前不會重新規劃。');},onError:error=>{toast(error.message||String(error));}});
+  },onRecovery:proposal=>{if(transitProgressMessage){transitProgressMessage.content='查核已完成，請確認下方修正建議。';transitProgressMessage=null;}chatMessages.push({role:'assistant',content:proposal.content,transitRecovery:proposal});showAssistant();renderChatMessages();chatStatus('請確認三點修正建議之一，確認前不會重新規劃。');},onError:error=>{toast(error.message||String(error));}});
   transit.setJourneyController(journey);
   function transitSummary(result){
     const fareInfo=s=>{
@@ -526,7 +540,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
       if (a === 'shortcuts') return renderShortcuts();
       if (a === 'model-refresh') return await refreshFreeModels();
       if (a === 'chat-toggle') return toggleChat();
-      if(a==='transit-recovery'){btn.disabled=true;chatMessages.push({role:'user',content:`採用建議${Number(btn.dataset.recoveryIndex)+1}：${btn.textContent.trim()}`});renderChatMessages();try{const work=transit.confirmRecovery(btn.dataset.recoveryId,Number(btn.dataset.recoveryIndex));renderChatMessages();await work;}catch(error){chatStatus(error.message);}finally{renderChatMessages();}return;}
+      if(a==='transit-recovery'){const id=btn.dataset.recoveryId,index=Number(btn.dataset.recoveryIndex),label=btn.textContent.trim();await runTransitInteraction(()=>transit.confirmRecovery(id,index),`採用建議${index+1}：${label}`);return;}
       if (a === 'chat-send') return await sendChat();
       if (a === 'chat-clear') {chatGeneration++;chatController?.abort();chatController=null;chatBusy=false;aiPending=false;aiStreaming=false;chatMessages.length=0;chatContextStartIndex=0;chatUnread=0;root.querySelector('#tw-chat-input').value='';syncChatUnread();renderChatMessages();return chatStatus('已清除當前所有對話內容');}
       if (a === 'chat-style') {await responseStyleReady;const panel=chatPanel.querySelector('.tw-chat-style');panel.hidden=!panel.hidden;if(!panel.hidden)panel.querySelector('textarea').value=responseStyle;return;}
@@ -1516,11 +1530,13 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     const thread = chatPanel.querySelector('#tw-chat-thread');
     if (!thread) return;
     thread.innerHTML = chatMessages.length
-      ? chatMessages.map(message => `<div class="tw-chat-bubble ${message.role === 'user' ? 'user' : message.role === 'system' ? 'system' : 'assistant'}"><small>${message.role === 'user' ? '你' : message.role === 'system' ? '系統' : 'AI'}</small>${message.cctvResult ? cctvFrameHtml(message.cctvResult) : message.cctvFrame ? `<figure class="tw-cctv-analysis-frame"><img src="${esc(message.cctvFrame.image)}" alt="AI 分析的 CCTV 截圖"><figcaption>${esc(message.cctvFrame.cameraName)} · ${esc(new Date(message.cctvFrame.observedAt).toLocaleString('zh-TW'))}</figcaption></figure>` : ''}<div class="tw-chat-content">${message.role === 'assistant' ? renderChatMarkdown(message.content) : esc(message.content)}</div>${message.transitRecovery?`<div class="tw-transit-recovery-actions">${message.transitRecovery.suggestions.map((s,i)=>`<button data-act="transit-recovery" data-recovery-id="${esc(message.transitRecovery.id)}" data-recovery-index="${i}" ${transit.recovery?.id!==message.transitRecovery.id?'disabled':''}>${i+1}｜${esc(s.label)}</button>`).join('')}</div>`:''}</div>`).join('')
+      ? chatMessages.map(message => `<div class="tw-chat-bubble ${message.role === 'user' ? 'user' : message.role === 'system' ? 'system' : 'assistant'}"><small>${message.role === 'user' ? '你' : message.role === 'system' ? '系統' : 'AI'}</small>${message.cctvResult ? cctvFrameHtml(message.cctvResult) : message.cctvFrame ? `<figure class="tw-cctv-analysis-frame"><img src="${esc(message.cctvFrame.image)}" alt="AI 分析的 CCTV 截圖"><figcaption>${esc(message.cctvFrame.cameraName)} · ${esc(new Date(message.cctvFrame.observedAt).toLocaleString('zh-TW'))}</figcaption></figure>` : ''}<div class="tw-chat-content">${message.role === 'assistant' ? renderChatMarkdown(message.content) : esc(message.content)}</div>${message.transitRecovery?`<div class="tw-transit-recovery-actions">${message.transitRecovery.suggestions.map((s,i)=>`<button data-act="transit-recovery" data-recovery-id="${esc(message.transitRecovery.id)}" data-recovery-index="${i}" ${transit.recovery?.id!==message.transitRecovery.id||transit.busy||chatBusy?'disabled':''}>${i+1}｜${esc(s.label)}</button>`).join('')}</div>`:''}${(message.serviceLimits?.length?message.serviceLimits:message.transitRecovery?.rateLimit?[message.transitRecovery.rateLimit]:[]).map(limit=>`<p class="tw-transit-countdown" data-transit-limit="${esc(JSON.stringify(limit))}">${esc(rateLimitText(limit))}</p>`).join('')}</div>`).join('')
       : '<div class="tw-chat-empty">你可以直接詢問地圖、圖資或分析做法。</div>';
     if (chatBusy && !aiStreaming) thread.insertAdjacentHTML('beforeend', '<div class="tw-chat-bubble assistant pending">AI 正在輸入…</div>');
     thread.scrollTop = thread.scrollHeight;
   }
+
+  const transitCountdownTimer=setInterval(()=>{for(const node of chatPanel.querySelectorAll('[data-transit-limit]'))try{node.textContent=rateLimitText(JSON.parse(node.dataset.transitLimit));}catch{/* Invalid displayed metadata is ignored. */}},1000);
 
   function chatStatus(message) {
     const status = chatPanel.querySelector('#tw-chat-status');
@@ -1540,10 +1556,8 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
       catch(error){if(generation!==chatGeneration)return;chatMessages.push({role:'system',content:error.message});chatStatus('地標搜尋失敗');}
       finally{if(generation===chatGeneration){chatBusy=false;renderChatMessages();}}return;
     }
-    if(transit.recovery||transit.results?.needsClarification&&/(?:車種|自強|莒光|區間|普悠瑪|太魯閣|不限|都可以)/.test(content)||transit.results?.plans?.length && /(?:改成|不要搭|不搭|只搭|便宜|少走|走路少|少轉乘|晚\s*\d+|錯過|重新規劃|現在出發)/.test(content)){
-      input.value='';chatBusy=true;chatMessages.push({role:'user',content});renderChatMessages();
-      try{const result=await transit.handleMessage(content);if(result.needsConfirmation)chatStatus('請回覆採用建議1、2或3；也可以直接修改旅程表單。');}catch(error){chatMessages.push({role:'system',content:`旅程修改失敗：${error.message}`});}finally{chatBusy=false;renderChatMessages();}return;
-    }
+    const transitIntent=transitMessageIntent(content,{hasRequest:transit.active,active:!!transit.recovery||!!transit.results});
+    if(transit.recovery||transitIntent){input.value='';await runTransitInteraction(()=>transit.handleMessage(content),content);return;}
     if (!await hasApiKey('openrouter')) { chatStatus('請先在「服務與 API」設定 OpenRouter 金鑰。'); return; }
     if(generation!==chatGeneration)return;
     const latestCctv=chatMessages.filter(message=>message.cctvResult).at(-1)?.cctvResult;
@@ -1784,7 +1798,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     voiceSubtitles.destroy();chatArchive.destroy();labels.destroy();
     drawing.destroy();
     geminiLive.stop().catch(()=>{});
-    transit.destroy();journey.destroy();drivingPanel?.destroy();
+    clearInterval(transitCountdownTimer);transit.destroy();journey.destroy();drivingPanel?.destroy();
     navigation.destroy();
     chatController?.abort();
     window.removeEventListener('resize', refreshGlobeViewport);
