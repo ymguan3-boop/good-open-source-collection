@@ -1,9 +1,10 @@
 /** Operational transit messages are handled by the workflow, never by a text-only model. */
 export function transitMessageIntent(text,{hasRequest=false,active=false}={}){
  const value=String(text||'').trim();
+ if(/Gemini|OpenRouter|語音/i.test(value)&&!/TDX|大眾運輸|運輸/i.test(value))return null;
  if(/^(?:請)?(?:按|照|依)(?:照)?\s*(?:你(?:的)?|AI(?:的)?|目前(?:的)?)?\s*建議(?:方案)?(?:執行|做|辦|規劃)?[。！!\s]*$/i.test(value)||/^(?:請)?(?:採用|確認|選擇|使用)?\s*(?:建議)?\s*([123一二三])[。！!\s]*$/.test(value))return hasRequest||active?'confirm':null;
- if(/爬蟲|爬取|擷取|抓取|查(?:詢|核).*(?:官方|票價)|更新.*票價/.test(value))return /票價|交通|班次|TDX|官方/.test(value)||hasRequest||active?'sources':null;
- if(/TDX|額度|配額|金鑰|串接|串聯|服務狀態/i.test(value)&&(/運輸|交通|票價|TDX|額度|配額/i.test(value)))return 'service';
+ if(/爬蟲|爬取|擷取|抓取|查(?:詢|核).*(?:官方|票價)|更新.*票價/.test(value))return /票價|交通|班次|TDX|運輸/.test(value)?'sources':null;
+ if(/TDX|額度|配額|金鑰|串接|串聯|服務狀態/i.test(value)&&(/運輸|交通|票價|TDX/i.test(value)||(hasRequest||active)&&/額度|配額/i.test(value)))return 'service';
  if((hasRequest||active)&&/^(?:請問)?(?:好了嗎|完成了嗎|完成沒|好了沒|結果呢|有結果嗎|執行結果|規劃結論|規劃結果|目前進度|進度|怎麼沒(?:結果|回覆))[？?。\s]*$/.test(value))return 'status';
  if((hasRequest||active)&&/(?:改成|不要搭|不搭|只搭|便宜|少走|走路少|少轉乘|晚\s*\d+|錯過|重新規劃|現在出發|自強|莒光|區間|不限|都可以)/.test(value))return 'modify';
  if((hasRequest||active)&&/班次|轉乘|抵達|車種|旅程.*規劃|交通.*規劃/.test(value))return 'modify';
