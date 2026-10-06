@@ -275,7 +275,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
     rankTransitPlans(plans,request.preference,request.departureTime||new Date(now()).toISOString());
     return {plans,request,sourceStatus:{tdx:plans.length?'ready':'no-route',geometry:plans.length&&plans.every(p=>p.geometryStatus==='ready')?'ready':plans.some(p=>p.geometryStatus!=='missing')?'partial':'missing',realtime:plans.some(p=>p.segments.some(s=>s.realtimeStatus==='dynamic'))?'partial':'scheduled'},notices:plans.length?['逐段採指定偏好的 TDX 候選串接；非全網窮舉最優解。','車站時刻規劃非裝置實際位置；交通變動請再查營運單位。',...(request.preference==='lowest-delay'?['只有部分車次有即時延誤資料，未知延誤不當作零延誤；無法保證延誤最低。']:[])]:['TDX 未回傳符合模式、出發時間及抵達期限的可靠方案。']};
   }
-  async function handle(data,{signal}={}){
+  async function handle(data,{signal,onProgress}={}){
     if(!data||typeof data!=='object')throw tdxError('INVALID_REQUEST','請提供大眾運輸請求');abort(signal);
     switch(data.action){
       case 'status':return {configured:configured(),clientIdPresent:!!credential('TDX_CLIENT_ID'),clientSecretPresent:!!credential('TDX_CLIENT_SECRET'),authenticated:!!(token?.identity===fingerprint()&&token.expires>now()),storage:'windows-dpapi',capabilities:{routing:'TDX MaaS',geocode:'TomTom / Photon / TDX 車站',fare:'獨立 Fare Engine；六類運具逐段官方核實、乘客／車廂偏好、已驗證本機快取',realtime:'公車及臺鐵部分即時資料',geometry:'TDX Shape 依確切路線與站點核實；步行／自行車使用既有 TomTom Key'},notices:['TDX 服務依會員訂閱權限與頻率限制；本程式不購買或升級方案。']};
@@ -286,7 +286,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
       case 'fare-status':return fares.status();
       case 'fare-update':return fares.update({signal});
       case 'fare-config':await fares.configure(Number(data.ttlMs));return fares.status();
-      case 'parse':return parseTransitText(data.text,data.request,{signal,credential,fetcher,now});
+      case 'parse':return parseTransitText(data.text,data.request,{signal,credential,fetcher,now,onProgress});
       default:throw tdxError('INVALID_ACTION','不支援的大眾運輸操作');
     }
   }

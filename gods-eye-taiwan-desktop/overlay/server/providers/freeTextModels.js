@@ -8,3 +8,18 @@ export async function freeTextModels(signal){
   const value=await response.json(),models=(value.data || []).filter(isFreeTextModel);
   cache={at:Date.now(),models};return models;
 }
+
+/** Classifier verdicts are not assistant answers, regardless of the router ID. */
+export const isClassificationOnly = text => /^(?:user\s+safety|(?:user\s+)?(?:safety|moderation|classification)(?:\s+verdict)?|safe|unsafe)(?:\s*[:：]|\s*$)/i.test(String(text||'').trim()) || /^(?:safe|unsafe)\s*(?:[.,]|$)/i.test(String(text||'').trim());
+export const isClassifierModel = id => /safety|guard|moderation|embedding|lyria/i.test(String(id||''));
+
+/** Hidden reasoning consumes the same completion budget; prefer final answers. */
+export function finalTextOptions(model){
+ const r=model?.reasoning,params=model?.supported_parameters||[];let reasoning;
+ if(params.includes('reasoning')){
+  if(!r?.mandatory)reasoning={enabled:false,exclude:true};
+  else if(r.supports_max_tokens)reasoning={max_tokens:512,exclude:true};
+  else {const efforts=r.supported_efforts,effort=['minimal','low','medium','high','xhigh','max'].find(v=>!Array.isArray(efforts)||efforts.includes(v));reasoning=effort?{effort,exclude:true}:{exclude:true};}
+ }
+ return {max_tokens:4096,...(reasoning?{reasoning}:{})};
+}

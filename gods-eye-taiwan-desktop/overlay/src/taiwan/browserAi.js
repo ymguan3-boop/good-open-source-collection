@@ -9,12 +9,12 @@ export async function browserAi(path, { method='GET', data, signal } = {}) {
     credentials:'same-origin',
   });
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || `本機 AI 服務 ${response.status}`);
+  if (!response.ok) throw Object.assign(new Error(result.error || `本機 AI 服務 ${response.status}`),{code:result.code,status:response.status});
   return result;
 }
 
-export async function streamBrowserChat(data,{signal,onDelta=()=>{},onStatus=()=>{}}={}) {
-  const response = await fetch(`${BASE}/chat-stream`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal,cache:'no-store',credentials:'same-origin'});
+export async function streamBrowserChat(data,{signal,onDelta=()=>{},onStatus=()=>{},path='/chat-stream'}={}) {
+  const response = await fetch(`${BASE}${path}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal,cache:'no-store',credentials:'same-origin'});
   if (!response.ok) { const value = await response.json(); throw new Error(value.error || `本機 AI 服務 ${response.status}`); }
   const reader = response.body.getReader(); const decoder = new TextDecoder(); let pending = ''; let content = ''; let answer;
   try {
@@ -31,8 +31,8 @@ export async function streamBrowserChat(data,{signal,onDelta=()=>{},onStatus=()=
         if (event === 'status') onStatus(value.message);
         if (event === 'reset') {content='';answer=undefined;onDelta('');}
         if (event === 'delta') { content += value.text; onDelta(content); }
-        if (event === 'error') throw new Error(value.message);
-        if (event === 'done') answer = {content,model:value.model};
+        if (event === 'error') throw Object.assign(new Error(value.message),{code:value.code});
+        if (event === 'done') answer = value.result ?? {content,model:value.model};
       }
       if (chunk.done) break;
     }
@@ -40,3 +40,5 @@ export async function streamBrowserChat(data,{signal,onDelta=()=>{},onStatus=()=
     return answer;
   } finally { await reader.cancel().catch(() => {}); }
 }
+
+export const streamTransitParse=(data,options={})=>streamBrowserChat(data,{...options,path:'/tdx-parse-stream'});

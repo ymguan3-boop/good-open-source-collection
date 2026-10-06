@@ -1,8 +1,9 @@
-import {browserAi} from './browserAi.js';
+import {browserAi,streamTransitParse} from './browserAi.js';
 import {PASSENGER_NAMES,SEAT_NAMES,vehicleAllowed,groupOfficialVehicleTypes} from './farePreference.js';
 import {TRA_TRAIN_TYPES} from './transitPlanning.js';
 import {TRANSIT_MODES,TRANSIT_PREFERENCES,TRANSIT_EXAMPLES,normalizeTripRequest,patchTripRequest,validateTripRequest,tripLocationEntries,setTripLocation,moveWaypoint,locationName,hasCoordinates,taiwanDateTime,localDateTime,describeTripRequest,normalizeTransitStyle,fareText,timeText} from './transitPlanning.js';
 
+import {buildTransitRecovery} from './transitRecovery.js';
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const STATUS={scheduled:'表定資料',dynamic:'動態／近即時資料',unknown:'資料狀態未提供',historical:'歷史資料'};
 const storageKey='gev.tw.transitStyle';
@@ -12,15 +13,25 @@ const distance=value=>Number.isFinite(value)?value>=1000?`${(value/1000).toFixed
 function readStyle(){try{return normalizeTransitStyle(JSON.parse(localStorage.getItem(storageKey)||'{}'));}catch{return normalizeTransitStyle();}}
 
 /** One TripPlanningRequest powers both inputs; no map-based trip input exists. */
-export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{},onError=()=>{}}) {
+export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{},onError=()=>{},onRecovery=()=>{}}) {
   if(!manager?.create)throw new Error('大眾運輸視窗需要共用浮動視窗管理器');
-  let request=normalizeTripRequest(),tab='form',style=readStyle(),results=null,selectedPlan=null,journey=null,journeyState={},pending=null,busy=false,destroyed=false,operation=0,abort=null,revision=0,dragIndex=null,parsed=false,parsedRefresh=false,naturalDirty=false,questions=[],waypointSequence=0;
+  let request=normalizeTripRequest(),tab='form',style=readStyle(),results=null,selectedPlan=null,journey=null,journeyState={},pending=null,busy=false,destroyed=false,operation=0,abort=null,revision=0,dragIndex=null,parsed=false,parsedRefresh=false,naturalDirty=false,questions=[],waypointSequence=0,recovery=null,recoverySequence=0;
   let fareOptions={vehicleTypes:[],hsrSeatClasses:[],passengerTypes:[{id:'adult',name:PASSENGER_NAMES.adult}],notices:[]},fareLoaded=false;
   const panel=manager.create({id:'transit-planning',title:'AI 智慧大眾運輸',width:450,height:650,onClose:()=>{cancel();return journey?.stop?.();},onHelp:()=>{panel.restore();panel.body.querySelector('[data-transit-help]').open=true;}});
   panel.body.classList.add('tw-transit');
   function status(message){if(destroyed)return;panel.body.querySelector('[data-transit-status]').textContent=message;panel.setSummary(busy?'規劃中':selectedPlan?.label||'旅程規劃');}
-  function fail(error){if(destroyed||error?.name==='AbortError')return;status(error?.message||String(error));try{onError(error);}catch{}}
-  function cancel(){operation++;abort?.abort();abort=null;busy=false;pending=null;if(!destroyed)panel.body.querySelector('[data-transit-candidates]').hidden=true;renderBusy();}
+  function fail(error){if(destroyed||error?.name==='AbortError')return;proposeRecovery(error);}
+  function proposeRecovery(issue){
+    if(destroyed)return;busy=false;recovery={...buildTransitRecovery(request,issue),id:String(++recoverySequence),revision};status('已整理三點修正建議，請在 AI 空間助理確認後繼續。');renderBusy();onRecovery(clone(recovery));
+  }
+  async function confirmRecovery(id,index){
+    if(!recovery||recovery.id!==String(id)||recovery.revision!==revision)throw new Error('此建議已失效，請依目前旅程條件重新規劃。');
+    const suggestion=recovery.suggestions[index];if(!suggestion)throw new Error('請選擇建議1、2或3');recovery=null;
+    if(suggestion.action==='edit'){tab='form';renderForm();renderTabs();panel.restore();status('請修改已保留的旅程條件，再按規劃。');return {handled:true,editing:true};}
+    request=patchTripRequest(request,suggestion.patch||{});revision++;questions=[];renderForm();renderTabs();
+    try{if(suggestion.action==='parse')return await parse(request.userNaturalLanguage,{followup:true,refresh:true});naturalDirty=false;return await plan(true);}catch(error){fail(error);return {handled:true,error:error.message};}
+  }
+  function cancel(){recovery=null;operation++;abort?.abort();abort=null;busy=false;pending=null;if(!destroyed)panel.body.querySelector('[data-transit-candidates]').hidden=true;renderBusy();}
   function start(message){abort?.abort();abort=new AbortController();const token=++operation;busy=true;status(message);renderBusy();return {token,signal:abort.signal,revision};}
   function live(work){return !destroyed&&!work.signal.aborted&&operation===work.token&&revision===work.revision;}
   function finish(work){if(operation===work.token){busy=false;renderBusy();}}
@@ -79,7 +90,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
     if(!text.trim())throw new Error('請輸入旅程描述');
     const work=start('正在理解旅程條件…');
     try{
-      const response=await browserAi('/tdx',{method:'POST',data:{action:'parse',text,request:clone(request)},signal:work.signal});
+      const response=await streamTransitParse({text,request:clone(request)},{signal:work.signal,onStatus:message=>{if(live(work))status(message);}});
       if(!live(work))return {cancelled:true};
       if(response.intent==='explain') {await onExplain({...clone(results||{}),request:clone(request),question:text},{signal:work.signal});return {intent:'explain'};}
       if(!response.request&&!response.patch&&!response.needsClarification)throw new Error('AI 未回傳可確認的旅程條件，請改用表單或重新描述');
@@ -88,12 +99,13 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
       if(response.needsClarification&&!questions.length)questions=['請補充起終點或時間條件，再重新規劃。'];
       renderForm();renderTabs();
        status(questions.length?'AI 需要補充條件；請修改表單或描述後再規劃。':'AI 已理解您的需求，接續查詢最新運輸資訊。');
+      if(questions.length){proposeRecovery(new Error(questions.join('；')));return clone(response);}
       if(followup&&!questions.length){finish(work);return plan(refresh||response.intent==='replan');}
       return clone(response);
     }finally{finish(work);}
   }
   async function plan(refresh=false){
-    const errors=validateTripRequest(request);if(errors.length)throw new Error(errors.join('；'));
+    const errors=validateTripRequest(request);if(request.departureTime&&Date.parse(request.departureTime)<Date.now())errors.push('指定出發時間已過，請確認新的出發日期。');if(errors.length)throw new Error(errors.join('；'));
     const work=start('正在解析地點與查詢運輸方案…');
     try{
       for(const item of tripLocationEntries(request)){
@@ -110,7 +122,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
       if(!live(work))return {cancelled:true};
       if(response.needsClarification){
         results={...response,plans:[]};questions=(response.questions||[]).map(String);parsed=true;renderUnderstanding();
-        status(questions.join('；')||'請先補充旅程需求。');await onExplain(clone(results),{signal:work.signal});return clone(results);
+        proposeRecovery(new Error(questions.join('；')||'請先補充旅程需求。'));return clone(results);
       }
       if(response.needsSelection){
         const unresolved=response.unresolvedLocations?.find(item=>Array.isArray(item.results)&&item.results.some(hasCoordinates));
@@ -121,7 +133,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
       results={...response,request:clone(request),plans:Array.isArray(response.plans)?response.plans:[]};
       if(response.request)request=normalizeTripRequest(response.request);
       pending=null;root.querySelector('[data-transit-candidates]').hidden=true;renderForm();renderUnderstanding();renderResults();
-      if(!results.plans.length){status((response.notices||[]).join('；')||'目前查不到符合條件的公共運輸方案；可調整時間或運具後重新規劃。');await onExplain(clone(results),{signal:work.signal});return clone(results);}
+      if(!results.plans.length){proposeRecovery(new Error((response.notices||[]).join('；')||'目前查不到符合條件的官方運輸方案。'));return clone(results);}
       await choosePlan(0);if(!live(work))return {cancelled:true};
       await onExplain(clone(results),{signal:work.signal});if(live(work))status(`已取得 ${results.plans.length} 個可靠資料方案，結果已送至 AI 空間助理。`);
       return clone(results);
@@ -202,7 +214,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
   renderForm();renderTabs();
   return {
     show(){void loadFareOptions();panel.show();panel.bringToFront();return this;},hide(){panel.hide();},minimize(){panel.minimize();},restore(){panel.restore();},bringToFront(){panel.bringToFront();},
-    get element(){return panel.element;},get state(){return clone(request);},get results(){return clone(results);},get style(){return clone(style);},get active(){return !!results?.plans?.length;},
+    get element(){return panel.element;},get state(){return clone(request);},get results(){return clone(results);},get style(){return clone(style);},get active(){return !!results?.plans?.length||!!recovery;},get recovery(){return clone(recovery);},confirmRecovery,
     setRequest(value){edit(value);renderForm();renderTabs();},
     cancel,
     setJourneyController,updateJourney(value){
@@ -210,7 +222,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
       const simulatedTime=value.simulatedTime||(Number.isFinite(from)&&Number.isFinite(to)&&Number.isFinite(value.fraction)?new Date(from+(to-from)*Math.min(1,Math.max(0,value.fraction))).toISOString():undefined);
       journeyState={...journeyState,...value,simulatedTime,segmentIndex:value.segmentIndex??value.index??journeyState.segmentIndex,status:value.status??(value.running?'播放中':value.label||'行程模擬')};renderJourney();
     },
-    async handleMessage(text){if(!results?.plans?.length&&!results?.needsClarification)return {handled:false};panel.show();try{const response=await parse(text,{followup:true,refresh:/錯過|重新|最新/.test(text)});return {handled:true,...response};}catch(error){fail(error);return {handled:true,error:error.message};}},
+    async handleMessage(text){if(recovery){const choice=text.trim().match(/^(?:請)?(?:採用|確認|選擇|使用)?\s*(?:建議)?\s*([123一二三])[。！!\s]*$/);if(choice){const index={'1':0,'2':1,'3':2,'一':0,'二':1,'三':2}[choice[1]];return confirmRecovery(recovery.id,index);}return {handled:true,needsConfirmation:true};}if(!results?.plans?.length&&!results?.needsClarification)return {handled:false};panel.show();try{const response=await parse(text,{followup:true,refresh:/錯過|重新|最新/.test(text)});return {handled:true,...response};}catch(error){fail(error);return {handled:true,error:error.message};}},
     async plan({refresh=false}={}){try{return await plan(refresh);}catch(error){fail(error);return {error:error.message};}},
     destroy(){if(destroyed)return;cancel();destroyed=true;root.removeEventListener('click',click);root.removeEventListener('input',input);root.removeEventListener('change',input);root.removeEventListener('dragstart',dragStart);root.removeEventListener('dragover',dragOver);root.removeEventListener('drop',drop);root.removeEventListener('dragend',dragEnd);panel.destroy();},
   };

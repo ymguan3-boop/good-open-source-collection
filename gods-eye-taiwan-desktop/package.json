@@ -15,6 +15,7 @@
     "preview": "npm --prefix .work/upstream run preview",
     "start": "node scripts/start-gods-eye-browser.mjs",
     "check:boundaries": "npm --prefix .work/upstream run check:boundaries",
-    "test:fare": "node --test tests/fare-engine.test.mjs"
+    "test:fare": "node --test tests/fare-engine.test.mjs",
+    "test:assistant-transit": "node --test tests/assistant-transit-recovery.test.mjs tests/transit-recovery-panel.test.mjs"
   }
 }

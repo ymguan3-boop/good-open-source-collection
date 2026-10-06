@@ -87,3 +87,5 @@
 #tw-shell .tw-transit .tw-fare-vehicle-group{border-bottom:1px solid #244858;padding:3px 0;}
 #tw-shell .tw-transit .tw-fare-vehicle-group details{margin:3px 0 8px 22px;font-size:12px;}
 #tw-shell .tw-transit .tw-fare-vehicle-group .tw-fare-check small{margin:0;color:#88a9b7;}
+
+#tw-chat-thread .tw-transit-recovery-actions {display:flex;flex-direction:column;gap:8px;margin-top:12px}#tw-chat-thread .tw-transit-recovery-actions button{padding:10px;text-align:left;color:#eafff5;background:#164e43;border:1px solid #47b49a;border-radius:7px}#tw-chat-thread .tw-transit-recovery-actions button:nth-child(2){background:#263e64;border-color:#759bde}#tw-chat-thread .tw-transit-recovery-actions button:nth-child(3){background:#55406a;border-color:#b589cf}#tw-chat-thread .tw-transit-recovery-actions button:disabled{opacity:.45;cursor:default}

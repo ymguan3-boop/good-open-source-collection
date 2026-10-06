@@ -1,5 +1,5 @@
 import {fareComparison} from './fareEngine.js';
-import { freeTextModels } from './freeTextModels.js';
+import { freeTextModels,isClassificationOnly,isClassifierModel,finalTextOptions } from './freeTextModels.js';
 import {AERIAL_FORMAT,parseAerialParameters,aerialProviderFormat} from './aerialPlanningOutput.js';
 const cooldown=new Map();let lastSuccessfulModel='';
 // SSE keeps long provider responses observable and stops work on disconnect.
@@ -34,14 +34,14 @@ export async function streamTaiwanChat(res, key, data) {
   try {
     let models=[];
     try{models=await freeTextModels(abort.signal);}catch{if(abort.signal.aborted)return;}
-    const preferred=data.model || 'openrouter/free';
+    const preferred=isClassifierModel(data.model)?'openrouter/free':data.model || 'openrouter/free';
     // All fallbacks come from a current zero-price catalog. The free router is
     // retained if catalog discovery is unavailable; never guess paid models.
     const rank=model=>aerial?(model.supported_parameters?.includes('structured_outputs')?0:model.supported_parameters?.includes('response_format')?1:3):(model.id===lastSuccessfulModel?0:/qwen|gemma/i.test(model.id)?1:2);
     const fallback=models.filter(model=>model.id!==preferred && (cooldown.get(model.id)||0)<=Date.now()).sort((a,b)=>rank(a)-rank(b)||a.id.localeCompare(b.id));
-    const candidates=[...new Set((aerial||transit)&&preferred==='openrouter/free'?[...fallback.map(model=>model.id),preferred]:[preferred,...fallback.map(model=>model.id),'openrouter/free'])];
-    const deadline=Date.now()+(aerial?120000:transit?90000:240000);let failures=0;
-    for (let attempt=0;attempt<Math.min(candidates.length,aerial?6:transit?3:Infinity);attempt++) {
+    const candidates=[...new Set(preferred==='openrouter/free'?[...fallback.map(model=>model.id),preferred]:[preferred,...fallback.map(model=>model.id),'openrouter/free'])];
+    const deadline=aerial?Date.now()+120000:Infinity;let failures=0;
+    for (let attempt=0;attempt<Math.min(candidates.length,aerial?6:Infinity);attempt++) {
       if(res.destroyed||res.writableEnded)abort.abort();
       if(abort.signal.aborted)return;
       if(Date.now()>=deadline)break;
@@ -60,15 +60,15 @@ export async function streamTaiwanChat(res, key, data) {
         const provider={...(data.allowPaid===true&&attempt===0?{}:{max_price:{prompt:0,completion:0,request:0}}),...(format?{require_parameters:true}:{})};
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',signal:requestAbort.signal,
           headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json','X-OpenRouter-Title':'Gods Eye Taiwan'},
-          body:JSON.stringify({model,provider,...(format?{response_format:format}:{}),messages,stream:true,max_tokens:aerial?1000:1800,reasoning:{effort:'low',exclude:true}})});
+          body:JSON.stringify({model,provider,...(format?{response_format:format}:{}),messages,stream:true,...(aerial?{max_tokens:1000,reasoning:{effort:'low',exclude:true}}:finalTextOptions(metadata))})});
         if (!response.ok) {
           const error = await response.json().catch(() => ({}));
           const problem = new Error(error.error?.message || `OpenRouter HTTP ${response.status}`);
-          problem.noRetry = response.status===401;problem.status=response.status;
+          problem.noRetry = response.status===401;problem.status=response.status;problem.retryAfter=Number(response.headers.get('retry-after'))||60;
           throw problem;
         }
         reader = response.body.getReader();
-        const decoder = new TextDecoder(); let pending = ''; let actualModel = model; let finished = false;let completed=false;
+        const decoder = new TextDecoder(); let pending = ''; let actualModel = model; let finished = false;let completed=false;let finishReason='';let released=0;
         while (!finished) {
           const chunk = await reader.read();
           pending += decoder.decode(chunk.value || new Uint8Array(),{stream:!chunk.done}).replace(/\r/g,'');
@@ -83,16 +83,18 @@ export async function streamTaiwanChat(res, key, data) {
             if (value.error) throw new Error(value.error.message || '模型回覆中斷');
             actualModel = value.model || actualModel;
             const delta = value.choices?.[0]?.delta?.content;
-            if (typeof delta === 'string' && delta) { clearTimeout(firstTimer); partial += delta; send('delta',{text:delta}); }
-            const reason=value.choices?.[0]?.finish_reason;
+            if (typeof delta === 'string' && delta) { clearTimeout(firstTimer); partial += delta; if(!isClassificationOnly(partial)&&!isClassifierModel(actualModel)&&partial.length>=40){send('delta',{text:partial.slice(released)});released=partial.length;} }
+            const reason=value.choices?.[0]?.finish_reason;if(reason)finishReason=reason;
             if(reason==='error' || reason==='content_filter')throw new Error('模型未完成可用回覆');
             if(reason==='stop' || reason==='length')completed=true;
           }
           if (chunk.done) { if (!finished && !completed) throw new Error('模型連線提前關閉'); break; }
         }
         const usable=partial.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi,'').replace(/<analysis>[\s\S]*?(?:<\/analysis>|$)/gi,'').trim();
+        if(finishReason==='length')throw new Error('模型回覆被截斷，正在改用其他模型');
         if (!usable) throw new Error('模型沒有回傳文字');
-        if(transit&&/^(?:User\s+Safety|Safety|unsafe|safe)(?:\s*[:：]|\s*$)/i.test(usable))throw new Error('模型只回傳分類結果，無法比較旅程');
+        if(isClassificationOnly(usable)||isClassifierModel(actualModel))throw new Error('模型只回傳安全分類結果，正在改用文字助理模型');
+        if(!aerial&&released<partial.length){send('delta',{text:partial.slice(released)});}
         if(aerial){const normalized=JSON.stringify(parseAerialParameters(usable,data.context?.defaultParameters));send('reset',{});send('delta',{text:normalized});partial=normalized;}
         if(!aerial&&usable!==partial.trim()){send('reset',{});send('delta',{text:usable});}
         lastSuccessfulModel=model;cooldown.delete(model);
@@ -100,7 +102,7 @@ export async function streamTaiwanChat(res, key, data) {
         return;
       } catch (error) {
         if (abort.signal.aborted) return;
-        failures++;cooldown.set(model,Date.now()+(error.status===429?60000:30000));
+        failures++;cooldown.set(model,Date.now()+(error.status===429?Math.max(1000,error.retryAfter*1000):30000));
         if(error.noRetry){send('reset',{});send('error',{message:'AI 金鑰無效，請重新儲存金鑰'});return;}
 
       } finally { clearTimeout(firstTimer); clearTimeout(overallTimer); abort.signal.removeEventListener('abort',stop); try{await reader?.cancel();}catch{}try{reader?.releaseLock?.();}catch{} }

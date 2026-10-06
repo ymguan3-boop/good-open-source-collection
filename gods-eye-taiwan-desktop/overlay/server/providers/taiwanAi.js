@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { keySetupStatus } from '../../src/keySetupCore.mjs';
 import { refreshCredentials, getCredential, saveCredential, credentialPresence } from './taiwanCredentialStore.js';
+import {freeTextModels} from './freeTextModels.js';
 import { streamTaiwanChat } from './taiwanChat.js';
 import { analyzeCctvImage,planInspectionRoute,getFreeVisionModels } from './taiwanVisualAnalysis.js';
 
@@ -92,13 +93,22 @@ export function taiwanAiProxy() {
           if (route==='/response-style' && req.method==='GET')return json(res,200,{setting:await readResponseStyle()});
           if (route==='/response-style' && req.method==='POST')return json(res,200,{setting:await writeResponseStyle(await body(req))});
           if (!(route === '/keys' && req.method === 'POST')) await refreshCredentials();
+          if(route==='/tdx-parse-stream' && req.method==='POST'){
+            const data=await body(req),controller=new AbortController(),cancel=()=>controller.abort();res.once('close',cancel);
+            res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-store','X-Accel-Buffering':'no'});
+            const send=(event,value)=>{if(!res.destroyed&&!res.writableEnded)res.write(`event: ${event}\ndata: ${JSON.stringify(value)}\n\n`);};
+            const heartbeat=setInterval(()=>{if(!res.destroyed)res.write(': waiting\n\n');},10000);
+            try{const result=await tdxService.handle({action:'parse',text:data.text,request:data.request},{signal:controller.signal,onProgress:message=>send('status',{message})});if(!controller.signal.aborted)send('done',{result});}
+            catch(error){if(!controller.signal.aborted)send('error',{message:error.code?error.message:'需求解析連線中斷，原條件已保留。',code:error.code||'TRANSIT_PARSE_FAILED'});}
+            finally{clearInterval(heartbeat);res.removeListener('close',cancel);if(!res.destroyed)res.end();}return;
+          }
           if(route==='/tdx' && req.method==='POST'){
             const controller=new AbortController(),cancel=()=>controller.abort();
             res.once('close',cancel);
             try{
               if(req.aborted||res.destroyed)controller.abort();
               const data=await body(req);controller.signal.throwIfAborted();
-              const result=await tdxService.handle(data,{signal:AbortSignal.any([controller.signal,AbortSignal.timeout(90000)])});
+              const result=await tdxService.handle(data,{signal:data.action==='parse'?controller.signal:AbortSignal.any([controller.signal,AbortSignal.timeout(90000)])});
               if(!res.destroyed)return json(res,200,result);
             }catch(error){if(!res.destroyed)return json(res,error.status||400,{error:error.code?'TDX 大眾運輸服務：'+error.message:'大眾運輸查詢中斷或逾時；請重新查詢',code:error.code||'TRANSIT_REQUEST_FAILED'});}
             finally{res.removeListener('close',cancel);}
@@ -201,8 +211,7 @@ export function taiwanAiProxy() {
           }
           if(route==='/planning-models'&&req.method==='GET')return json(res,200,await planningModels());
           if (route === '/models' && req.method === 'GET') {
-            const value = await provider('https://openrouter.ai/api/v1/models');
-            const models = value.data.filter(model => Number(model.pricing?.prompt) === 0 && Number(model.pricing?.completion) === 0 && (!model.architecture?.output_modalities || (model.architecture.output_modalities.includes('text') && model.architecture.output_modalities.every(type => type === 'text')))).map(({ id, name }) => ({ id, name }));
+            const models = (await freeTextModels()).map(({ id, name }) => ({ id, name }));
             return json(res, 200, models);
           }
           if (route === '/status' && req.method === 'GET') {
