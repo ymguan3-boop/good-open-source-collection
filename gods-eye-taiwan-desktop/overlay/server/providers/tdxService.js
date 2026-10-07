@@ -7,6 +7,7 @@ import {normalizeTripRequest,normalizeMaaSRoute,finalizePlan,taipeiTime,tdxError
 import {parseTransitText} from './tdxParse.js';
 import {createTdxGeometry} from './tdxGeometry.js';
 import {createOfficialFareLookup,TRA_TRAIN_TYPES,TRA_FARE_URL,traClass,selectTraFare} from './tdxFareWeb.js';
+import {createOfficialTransit} from './officialTransit.js';
 
 const AUTH='https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token';
 const BASE='https://tdx.transportdata.tw/api/basic';
@@ -82,6 +83,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
   const basic=(path,ttl,signal,query={},refresh=false)=>{const url=new URL(`${BASE}${path}`);Object.entries({'$format':'JSON',...query}).forEach(([k,v])=>url.searchParams.set(k,String(v)));return api(url.href,{ttl,signal,refresh});};
   const stations=(mode,signal)=>basic(`/v2/Rail/${mode==='HSR'?'THSR':'TRA'}/Station`,TDX_TTL.stations,signal,{'$top':500});
   const fares=createFareService({basic,stations,fetcher,now,cacheFile,checkPolicy:checkFarePolicy});
+  const official=createOfficialTransit({fetcher,credential,now,checkPolicy:checkFarePolicy}),attempts=new Map();
 
   async function resolveLocation(query,{signal}={}){
     abort(signal);query=String(query||'').trim();if(!query||query.length>200)throw tdxError('INVALID_LOCATION','請輸入 1–200 字地點名稱');
@@ -92,6 +94,9 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
         const lat=Number(s.StationPosition?.PositionLat),lon=Number(s.StationPosition?.PositionLon);if(!Number.isFinite(lat)||!Number.isFinite(lon))continue;
         results.push({id:`${mode}:${s.StationID}`,name,lat,lon,address:s.StationAddress||'',type:mode,source:`TDX ${mode==='HSR'?'高鐵':'臺鐵'}車站`});
       }}catch(e){abort(signal);notices.push(e.message);}}
+    }
+    if(/站|台鐵|臺鐵/.test(query)&&!results.some(r=>r.type==='TRA')){
+      try{for(const s of await official.stations(signal))if(norm(s.name)===norm(query.replace(/^台鐵|^臺鐵/,'')))results.push({...s,type:'TRA'});}catch{abort(signal);}
     }
     // A uniquely named official station with an explicit rail system needs no
     // second POI search or choice among unrelated nearby businesses.
@@ -182,7 +187,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
     for(const s of plan.segments){if(s.geometrySource&&!plan.sources.includes(s.geometrySource))plan.sources.push(s.geometrySource);if(s.fare?.source&&!plan.sources.includes(s.fare.source))plan.sources.push(s.fare.source);}
     return finalizePlan(plan);
   }
-  async function routing(from,to,request,time,arrival,signal,gc,current=false,refresh=false){
+  async function routing(from,to,request,time,arrival,signal,gc,current=false,refresh=false,trace=()=>{}){
     const transit=request.allowedModes.map(m=>MODE_CODES[m]).filter(Boolean);if(!transit.length)throw tdxError('TDX_MODES_UNSUPPORTED','TDX MaaS 規劃須包含公共運輸；僅步行／自行車的實際路線尚無可靠服務',422);
     const url=new URL(ROUTING);Object.entries({origin:`${from.lat},${from.lon}`,destination:`${to.lat},${to.lon}`,gc,top:3,transit:transit.join(','),transfer_time:'5,60',first_mile_mode:0,last_mile_mode:0,first_mile_time:30,last_mile_time:30,[arrival?'arrival':'depart']:taipeiTime(time).slice(0,19)}).forEach(([k,v])=>url.searchParams.set(k,String(v)));
     // MaaS may expand its search before the ideal time. A 10-minute planning window keeps useful future candidates; past departures are still rejected.
@@ -191,7 +196,8 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
     const data=await api(url.href,{ttl:TDX_TTL.route,signal,refresh});
     if(data.result&&data.result!=='success')throw tdxError('TDX_NO_ROUTE','TDX 未找到符合條件的公共運輸方案',422);
     const rows=data.data?.routes||data.routes||[];
-    return rows.map((r,i)=>{try{const plan=normalizeMaaSRoute(r,i);if(plan){for(const segment of plan.segments)segment.sourceTime=data._tdxFetchedAt||null;if(plan.segments[0].from.name==='未命名站點')plan.segments[0].from.name=from.name;if(plan.segments.at(-1).to.name==='未命名站點')plan.segments.at(-1).to.name=to.name;}return plan;}catch{return null;}}).filter(Boolean).filter(p=>p.segments.every(s=>request.allowedModes.includes(s.mode)||(s.mode==='WALK'&&!request.excludedModes.includes('WALK')))).filter(p=>arrival?Date.parse(p.arrivalTime)<=Date.parse(time):Date.parse(p.departureTime)>=Date.parse(time));
+    const normalized=rows.map((r,i)=>{try{const plan=normalizeMaaSRoute(r,i);if(plan){for(const segment of plan.segments)segment.sourceTime=data._tdxFetchedAt||null;if(plan.segments[0].from.name==='未命名站點')plan.segments[0].from.name=from.name;if(plan.segments.at(-1).to.name==='未命名站點')plan.segments.at(-1).to.name=to.name;}return plan;}catch{return null;}}).filter(Boolean),allowed=normalized.filter(p=>p.segments.every(s=>request.allowedModes.includes(s.mode)||(s.mode==='WALK'&&!request.excludedModes.includes('WALK')))),timed=allowed.filter(p=>arrival?Date.parse(p.arrivalTime)<=Date.parse(time):Date.parse(p.departureTime)>=Date.parse(time));
+    trace(`${from.name} → ${to.name}：官方回傳 ${rows.length} 個候選，格式／時間順序可驗證 ${normalized.length} 個，符合運具 ${allowed.length} 個，符合指定${arrival?'抵達':'出發'}時間 ${timed.length} 個。`);return timed;
   }
   async function directTra(request,signal,refresh=false,allowAlternativeModes=false){
     if(request.waypoints.length||!request.allowedModes.includes('TRA')||!allowAlternativeModes&&request.allowedModes.some(m=>!['TRA','WALK'].includes(m)))return null;
@@ -220,7 +226,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
     rankTransitPlans(chosen,request.preference,request.departureTime||new Date(now()).toISOString());
     return {plans:chosen.slice(0,3),request,sourceStatus:{tdx:chosen.length?'ready':'no-matching-train',geometry:chosen.every(p=>p.geometryStatus==='ready')&&chosen.length?'ready':chosen.some(p=>p.segments.some(s=>s.geometry))?'partial':'missing',realtime:'scheduled'},notices:chosen.length?['起訖已確認為臺鐵車站，直接以官方起迄站班表查詢符合所選車種的最多三班；非即時定位。']:['指定日期與時間沒有取得符合所選車種的班次；請調整時間或車種。未套用其他車種票價。']};
   }
-  async function plan(input,{signal,refresh=false}={}){
+  async function planTdx(input,{signal,refresh=false}={}){
     await accessToken(signal);const request=normalizeTripRequest(input,now()),points=[request.origin,...request.waypoints.map(w=>w.location),request.destination],unresolved=[];
     for(let i=0;i<points.length;i++){
       const p=points[i];if(p&&typeof p==='object'&&Number.isFinite(p.lat)&&Number.isFinite(p.lon))continue;
@@ -251,7 +257,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
       rankTransitPlans(valid,request.preference,request.departureTime||new Date(now()).toISOString());
       return {plans:valid.slice(0,3),request,sourceStatus:{tdx:valid.length?'ready':'no-route',geometry:valid.length&&valid.every(p=>p.geometryStatus==='ready')?'ready':valid.some(p=>p.segments.some(s=>s.geometry))?'partial':'missing',realtime:valid.some(p=>p.segments.some(s=>s.realtimeStatus==='dynamic'))?'partial':'scheduled'},notices:[...(!valid.length?['TDX 未回傳符合時間與運具條件的可行班次；請調整出發時間或交通工具後再查詢。']:[]),'單次查詢取得 TDX 官方最多三個候選，依指定時間／成本偏好；非全網窮舉。',...(request.timeMode==='now'?['現在出發以 10 分鐘後為理想搜尋時間；TDX 可能前後擴大搜尋，只保留尚未出發的方案，以各方案實際時刻為準。']:[]),'行程示意非即時車輛位置；沒有核實線形的路段不造直線。',...(request.preference==='lowest-delay'?['部分班次無即時延誤資料，無法保證延誤最低。']:[])]};
     }
-    const reverse=request.timeMode==='arrival',gcs=[request.preference==='fastest'?1:request.preference==='cheapest'?0:.5],plans=[];
+    const reverse=request.timeMode==='arrival',gcs=[request.preference==='fastest'?1:request.preference==='cheapest'?0:.5],plans=[],checks=[];
     // Sequential legs use the actual previous route arrival + required stay.
     // Reverse planning propagates the latest departure backwards from deadline.
     for(const gc of gcs){
@@ -263,7 +269,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
           if(reverse){time=taipeiTime(new Date(Date.parse(time)-waypoint.stayDurationMinutes*60000).toISOString());if(waypoint.arrivalTime&&Date.parse(waypoint.arrivalTime)<Date.parse(time))time=waypoint.arrivalTime;}
           else{time=taipeiTime(new Date(Date.parse(time)+waypoint.stayDurationMinutes*60000).toISOString());if(waypoint.departureTime&&Date.parse(waypoint.departureTime)>Date.parse(time))time=waypoint.departureTime;}
         }
-        const candidates=await routing(points[i],points[i+1],request,time,reverse,signal,gc,request.timeMode==='now'&&i===0&&!reverse,refresh);
+        const candidates=await routing(points[i],points[i+1],request,time,reverse,signal,gc,request.timeMode==='now'&&i===0&&!reverse,refresh,message=>checks.push(message));
         const viable=candidates.filter(p=>!(request.waypoints[i]?.arrivalTime&&Date.parse(p.arrivalTime)>Date.parse(request.waypoints[i].arrivalTime))&&!(request.waypoints[i-1]?.departureTime&&Date.parse(p.departureTime)<Date.parse(request.waypoints[i-1].departureTime)));
         if(request.preference==='fewest-transfers')viable.sort((a,b)=>a.transfers-b.transfers);
         else if(request.preference==='least-walking')viable.sort((a,b)=>a.walkDistanceMeters-b.walkDistanceMeters);
@@ -276,16 +282,37 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
       if(failed)continue;if(reverse)parts.reverse();
       const combined={...parts[0],id:`tdx-${plans.length}`,label:gc===1?'偏重最快':gc===0?'偏重成本':'綜合方案',segments:parts.flatMap(p=>p.segments),departureTime:parts[0].departureTime,arrivalTime:parts.at(-1).arrivalTime,notices:[...new Set(parts.flatMap(p=>p.notices))],transfers:parts.reduce((n,p)=>n+p.transfers,0),walkDistanceMeters:parts.reduce((n,p)=>n+p.walkDistanceMeters,0)};
       combined.durationSeconds=Math.round((Date.parse(combined.arrivalTime)-Date.parse(combined.departureTime))/1000);
-      if(request.arrivalDeadline&&Date.parse(combined.arrivalTime)>Date.parse(request.arrivalDeadline)||request.departureTime&&Date.parse(combined.departureTime)<Date.parse(request.departureTime))continue;
+      if(request.arrivalDeadline&&Date.parse(combined.arrivalTime)>Date.parse(request.arrivalDeadline)||request.departureTime&&Date.parse(combined.departureTime)<Date.parse(request.departureTime)){checks.push(`逐段候選串接抵達 ${taipeiTime(combined.arrivalTime)}，期限 ${request.arrivalDeadline||'未指定'}；未符合完整時間窗，已排除。`);continue;}
       const signature=p=>JSON.stringify(p.segments.map(s=>[s.mode,s.routeName,s.departureTime,s.from.name,s.to.name])),key=signature(combined);if(plans.some(p=>signature(p)===key))continue;
       if(!request.traTrainType&&combined.segments.some(s=>s.mode==='TRA'))return trainQuestion(request);
       await enrich(combined,signal,request);
-      if(combined.segments.some(s=>s.mode==='TRA'&&s.trainClassStatus!=='matched'))continue;
+      if(combined.segments.some(s=>s.mode==='TRA'&&s.trainClassStatus!=='matched')){checks.push('串接方案的臺鐵班次／車種未能對應當日官方班表，已排除。');continue;}
       plans.push(combined);
     }
     const score=p=>request.preference==='fewest-transfers'?p.transfers:request.preference==='least-walking'?p.walkDistanceMeters:request.preference==='cheapest'?(p.totalFare??Infinity):request.preference==='lowest-delay'?(p.segments.filter(s=>!['WALK','BIKE'].includes(s.mode)).every(s=>s.delayMinutes!==null&&s.delayMinutes!==undefined)?p.segments.reduce((n,s)=>n+(s.delayMinutes||0),0):Infinity):p.durationSeconds;
     rankTransitPlans(plans,request.preference,request.departureTime||new Date(now()).toISOString());
-    return {plans,request,sourceStatus:{tdx:plans.length?'ready':'no-route',geometry:plans.length&&plans.every(p=>p.geometryStatus==='ready')?'ready':plans.some(p=>p.geometryStatus!=='missing')?'partial':'missing',realtime:plans.some(p=>p.segments.some(s=>s.realtimeStatus==='dynamic'))?'partial':'scheduled'},notices:plans.length?['逐段採指定偏好的 TDX 候選串接；非全網窮舉最優解。','車站時刻規劃非裝置實際位置；交通變動請再查營運單位。',...(request.preference==='lowest-delay'?['只有部分車次有即時延誤資料，未知延誤不當作零延誤；無法保證延誤最低。']:[])]:['TDX 未回傳符合模式、出發時間及抵達期限的可靠方案。']};
+    return {plans,request,sourceStatus:{tdx:plans.length?'ready':'no-route',geometry:plans.length&&plans.every(p=>p.geometryStatus==='ready')?'ready':plans.some(p=>p.geometryStatus!=='missing')?'partial':'missing',realtime:plans.some(p=>p.segments.some(s=>s.realtimeStatus==='dynamic'))?'partial':'scheduled'},notices:plans.length?['逐段採指定偏好的 TDX 候選串接；非全網窮舉最優解。','車站時刻規劃非裝置實際位置；交通變動請再查營運單位。',...(request.preference==='lowest-delay'?['只有部分車次有即時延誤資料，未知延誤不當作零延誤；無法保證延誤最低。']:[])]:['TDX 未回傳符合模式、出發時間及抵達期限的可靠方案。',...checks]};
+  }
+  async function plan(input,{signal,refresh=false,onProgress=()=>{},forceOfficial=false}={}){
+    const request=normalizeTripRequest(input,now()),key=createHash('sha256').update(JSON.stringify(request)).digest('hex');let result,error;
+    const prior=attempts.get(key)||{count:0,diagnostic:null},previous=prior.count;
+    onProgress(forceOfficial?'工作中... 已完成旅程條件整理；正在依您的要求查詢官方公開資料。':'工作中... 已完成旅程條件整理；正在查詢 TDX 班次與路線。');
+    if(!forceOfficial&&previous<2)try{result=await planTdx(request,{signal,refresh});}catch(e){abort(signal);error=e;}
+    if(result?.needsSelection||result?.needsClarification)return result;
+    if(result?.plans?.length){attempts.delete(key);onProgress('工作中... 已完成官方班次、票價與路線查核；正在準備地圖。');return result;}
+    if(error&&!['TDX_NO_ROUTE','TDX_PERMISSION_DENIED','TDX_QUOTA_EXCEEDED','TDX_RATE_LIMITED','TDX_SERVICE_FAILED','TDX_CREDENTIALS_REQUIRED','TDX_AUTH_FAILED'].includes(error.code))throw error;
+    const reason=error?.message||result?.notices?.join('；')||(forceOfficial?`${prior.diagnostic?.message||''} 依您的要求查詢官方公開班表。`:`${prior.diagnostic?.message||''} 相同條件已連續兩次無可靠方案，停止重複相同 TDX 查詢。`);
+    const diagnostic=(forceOfficial&&prior.diagnostic)||(!forceOfficial&&previous>=2)?{...prior.diagnostic,message:reason,failedAttempts:previous}:{code:forceOfficial?'OFFICIAL_REQUESTED':error?.code||'TDX_NO_MATCHING_PLAN',message:reason,upstreamStatus:error?.upstreamStatus||error?.rateLimit?.httpStatus||null,rateLimit:error?.rateLimit||null,failedAttempts:previous+(forceOfficial?0:1),classification:forceOfficial?'requested':error?.code?.includes('QUOTA')?'quota':error?.code?.includes('PERMISSION')?'permission':error?'service':'no-matching-plan'};
+    if(!forceOfficial){attempts.set(key,{count:Math.min(2,previous+1),diagnostic});if(attempts.size>30)attempts.delete(attempts.keys().next().value);}
+    onProgress(`工作中... ${forceOfficial?'已選擇官方公開資料':'TDX 查核已完成'}：${reason} 正在查詢官方公開班表備援。`);
+    let resolved=result?.request||request;
+    const points=[resolved.origin,...resolved.waypoints.map(w=>w.location),resolved.destination];
+    for(let i=0;i<points.length;i++){if(Number.isFinite(points[i]?.lat)&&Number.isFinite(points[i]?.lon))continue;const found=await resolveLocation(typeof points[i]==='string'?points[i]:points[i].name,{signal});if(found.results.length!==1)return {plans:[],request:resolved,needsSelection:true,unresolvedLocations:[{index:i,...found}],diagnostic,notices:['請確認正確起訖地點，避免將同名市區當成車站。']};points[i]=found.results[0];}
+    resolved={...resolved,origin:points[0],destination:points.at(-1),waypoints:resolved.waypoints.map((w,i)=>({...w,location:points[i+1]}))};
+    let backup;try{backup=await official.plan(resolved,{signal,onProgress});}catch(e){abort(signal);return {plans:[],request:resolved,diagnostic,serviceError:diagnostic,notices:[reason,'官方公開班表備援：'+e.message]};}
+    for(const p of backup.plans){for(const segment of p.segments){try{segment.fare=await fares.quoteSegment(segment,resolved.farePreference,{signal,allowEstimates:true,preferCheapest:resolved.preference==='cheapest'});}catch(e){abort(signal);p.notices.push('此段票價未取得，保留缺漏：'+e.message);}}finalizePlan(p);}
+    rankTransitPlans(backup.plans,resolved.preference,resolved.departureTime);
+    backup.diagnostic=diagnostic;backup.serviceError=error?diagnostic:undefined;backup.notices.unshift('TDX 查核原因：'+reason);onProgress(backup.plans.length?'工作中... 已完成備援班次、票價及完整地圖路徑；正在回報規劃結果。':'查核已結束，未取得符合所有條件的可靠方案；詳細原因已回報。');return backup;
   }
   async function handle(data,{signal,onProgress}={}){
     if(!data||typeof data!=='object')throw tdxError('INVALID_REQUEST','請提供大眾運輸請求');abort(signal);
@@ -293,7 +320,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
       case 'status':return {configured:configured(),clientIdPresent:!!credential('TDX_CLIENT_ID'),clientSecretPresent:!!credential('TDX_CLIENT_SECRET'),authenticated:!!(token?.identity===fingerprint()&&token.expires>now()),storage:'windows-dpapi',limits:limits(),lastError:lastServiceError,capabilities:{routing:'TDX MaaS',geocode:'TomTom / Photon / TDX 車站',fare:'獨立 Fare Engine；六類運具逐段官方核實、乘客／車廂偏好、已驗證本機快取',realtime:'公車及臺鐵部分即時資料',geometry:'TDX Shape 依確切路線與站點核實；步行／自行車使用既有 TomTom Key'},notices:['TDX 服務依會員訂閱權限與頻率限制；本程式不購買或升級方案。']};
       case 'test':await accessToken(signal);return {ok:true,authenticated:true,source:'TDX OAuth2',notices:['權杖取得成功；不代表 MaaS、票價或加值服務權限均已開放。']};
       case 'resolve':return resolveLocation(data.query,{signal});
-      case 'plan':{const result=await plan(data.request,{signal,refresh:data.refresh===true});result.comparisons=fareComparison(result.plans||[]);if(result.plans?.length){result.offerId=randomUUID();if(offers.size>=12)offers.delete(offers.keys().next().value);offers.set(result.offerId,{at:now(),identity:fingerprint(),result:structuredClone(result)});}return result;}
+      case 'plan':{const result=await plan(data.request,{signal,refresh:data.refresh===true,onProgress,forceOfficial:data.forceOfficial===true});result.comparisons=fareComparison(result.plans||[]);if(result.plans?.length){result.offerId=randomUUID();if(offers.size>=12)offers.delete(offers.keys().next().value);offers.set(result.offerId,{at:now(),identity:fingerprint(),result:structuredClone(result)});}return result;}
       case 'execute-plan':{
         const offer=offers.get(data.offerId),index=Number(data.index??0);
         if(!offer||now()-offer.at>1800000||offer.identity!==fingerprint())throw tdxError('PLAN_EXPIRED','方案已逾時或服務設定已變更，請重新規劃再確認。',409);

@@ -75,6 +75,8 @@ export function finalizePlan(plan){
   plan.estimatedFare=plan.segments.some(s=>s.fare?.estimated);
   plan.estimatedTotal=plan.budgetComplete&&plan.estimatedFare?plan.segments.reduce((n,s)=>n+s.fare.amount,0):null;
   plan.knownFare=plan.segments.reduce((n,s)=>n+(!s.fare?.estimated?s.fare?.amount||0:0),0);
-  if(!plan.fareComplete)plan.notices.push('部分票價尚無可核實資料；未知票價不以 0 元補齊，也不保證此方案最便宜。');
+  plan.notices=[...new Set((plan.notices||[]).filter(n=>!n.startsWith('部分票價尚無可核實資料；')&&!n.startsWith('部分費用採官方費率估算；')))];
+  if(!plan.budgetComplete)plan.notices.push('部分票價尚無可核實資料；未知票價不以 0 元補齊，也不保證此方案最便宜。');
+  else if(plan.estimatedFare)plan.notices.push('部分費用採官方費率估算；已附估算依據，非正式報價，不保證此方案最便宜。');
   return plan;
 }

@@ -19,6 +19,6 @@
     "test:assistant-transit": "node --test tests/assistant-transit-recovery.test.mjs tests/transit-recovery-panel.test.mjs",
     "test:transit-execution": "node --test tests/transit-execution.test.mjs tests/transit-recovery-panel.test.mjs tests/tdx-execution.test.mjs tests/transit-rail-corridor.test.mjs",
     "test:flight": "node --experimental-vm-modules --test tests/flight-observation.test.mjs",
-    "test:transit-assistant": "node --test tests/transit-assistant-workflow.test.mjs"
+    "test:transit-assistant": "node --test tests/transit-assistant-workflow.test.mjs tests/official-transit.test.mjs"
   }
 }

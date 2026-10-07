@@ -16,6 +16,7 @@ export async function browserAi(path, { method='GET', data, signal } = {}) {
 export async function streamBrowserChat(data,{signal,onDelta=()=>{},onStatus=()=>{},path='/chat-stream'}={}) {
   const response = await fetch(`${BASE}${path}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal,cache:'no-store',credentials:'same-origin'});
   if (!response.ok) { const value = await response.json(); throw new Error(value.error || `本機 AI 服務 ${response.status}`); }
+  if(response.headers.get('content-type')?.includes('application/json'))return response.json();
   const reader = response.body.getReader(); const decoder = new TextDecoder(); let pending = ''; let content = ''; let answer;
   try {
     while (true) {
@@ -31,7 +32,7 @@ export async function streamBrowserChat(data,{signal,onDelta=()=>{},onStatus=()=
         if (event === 'status') onStatus(value.message);
         if (event === 'reset') {content='';answer=undefined;onDelta('');}
         if (event === 'delta') { content += value.text; onDelta(content); }
-        if (event === 'error') throw Object.assign(new Error(value.message),{code:value.code});
+        if (event === 'error') throw Object.assign(new Error(value.message),{code:value.code,status:value.status,rateLimit:value.rateLimit,upstreamStatus:value.upstreamStatus});
         if (event === 'done') answer = value.result ?? {content,model:value.model};
       }
       if (chunk.done) break;
@@ -42,3 +43,4 @@ export async function streamBrowserChat(data,{signal,onDelta=()=>{},onStatus=()=
 }
 
 export const streamTransitParse=(data,options={})=>streamBrowserChat(data,{...options,path:'/tdx-parse-stream'});
+export const streamTransitPlan=(data,options={})=>streamBrowserChat(data,{...options,path:'/tdx-plan-stream'});

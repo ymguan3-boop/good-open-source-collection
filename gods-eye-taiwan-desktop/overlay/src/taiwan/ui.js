@@ -325,8 +325,8 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   journeyCard=createJourneyCard({manager:floatingPanels,controller:journey,onError:error=>toast(error.message)});
   let transitProgressMessage=null;
   function transitProgress({busy,message}){
-    if(busy){if(!transitProgressMessage){transitProgressMessage={role:'assistant',content:message};chatMessages.push(transitProgressMessage);}else transitProgressMessage.content=message;showAssistant();}
-    else {if(transitProgressMessage){transitProgressMessage.content=message;transitProgressMessage=null;}renderChatMessages();}
+    if(busy){if(!transitProgressMessage){transitProgressMessage={role:'assistant',content:message,stages:[]};chatMessages.push(transitProgressMessage);}const stages=transitProgressMessage.stages||(transitProgressMessage.stages=[]);if(stages.at(-1)!==message)stages.push(message);transitProgressMessage.content=stages.slice(-12).join('\n\n');showAssistant();}
+    else {if(transitProgressMessage){transitProgressMessage.content=[...(transitProgressMessage.stages||[]),message].join('\n\n');transitProgressMessage=null;}renderChatMessages();}
     chatStatus(message);
   }
   async function runTransitInteraction(action,content){
@@ -341,7 +341,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     // The verified plan is usable immediately; optional model commentary does
     // not hold the main planning button. Editing/closing aborts this signal.
     if(result.question&&!result.conclusion)void explainTransit(result,{signal}).catch(()=>{});
-  },onRecovery:proposal=>{if(transitProgressMessage){transitProgressMessage.content='查核已完成，請確認下方修正建議。';transitProgressMessage=null;}chatMessages.push({role:'assistant',content:proposal.content,transitRecovery:proposal});showAssistant();renderChatMessages();chatStatus('請確認三點修正建議之一，確認前不會重新規劃。');},onError:error=>{toast(error.message||String(error));}});
+  },onRecovery:proposal=>{if(transitProgressMessage){transitProgressMessage.content=[...(transitProgressMessage.stages||[]),'本階段查核已結束，請確認下方修正建議。'].join('\n\n');transitProgressMessage=null;}chatMessages.push({role:'assistant',content:proposal.content,transitRecovery:proposal});showAssistant();renderChatMessages();chatStatus('請確認三點修正建議之一，確認前不會重新規劃。');},onError:error=>{toast(error.message||String(error));}});
   transit.setJourneyController(journey);
   function transitSummary(result){
     const fareInfo=s=>{
@@ -569,7 +569,12 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
       if (a === 'project') return renderProject();
       if (a === 'settings') return renderSettings();
       if (a === 'resources') return renderResources();
-      if (a === 'ai-status'){await voiceSettingsReady;return renderAI();}
+      if (a === 'ai-status'){await voiceSettingsReady;return renderAI('home');}
+      if(a==='ai-help-home')return renderAI('home');
+      if(a==='ai-help-voice')return renderAI('voice');
+      if(a==='ai-help-space')return renderAI('space');
+      if(a==='ai-help-chat'){showAssistant();return;}
+      if(a==='ai-help-style'){await responseStyleReady;showAssistant();const stylePanel=chatPanel.querySelector('.tw-chat-style');stylePanel.hidden=false;stylePanel.querySelector('textarea').value=responseStyle;return;}
       if (a === 'ai-status-refresh') return await Promise.all([refreshAiStatus(),refreshGeminiQuota()]);
       if (a === 'notes') return renderDrawing();
       if(a==='label-start'){drawing.cancel();cctvWall.hideMarkers();return labels.start(readLabelOptions());}
@@ -1485,16 +1490,18 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   }
 
   function voiceHelp(){return `<details class="tw-card tw-voice-help"><summary>AI語音助理功能說明與風格</summary><details open><summary>功能與回答範圍</summary><ul><li>協助載入、顯示、隱藏、切換圖資；明確說出圖資與區域就直接執行，未指定才詢問。</li><li>飛往地點、顯示五秒矩形地點標籤、環繞建物；規劃汽車／機車路線與中途點，建立圖層影響範圍。</li><li>介紹本程式功能，回答台灣地理與歷史問題；新聞與輿情透過公開新聞搜尋查詢，區分報導與推論，不代表全體民意。</li><li>可讀取目前圖資及鏡頭狀態。勾選分享地圖後，可要求觀看當下地圖；不包含其他應用程式、金鑰或對話畫面。</li><li>CCTV 影像辨識、標註及量測請使用工具列。圖資依來源涵蓋範圍載入；建物只串流官方服務圖磚，不代表每一棟建物。</li></ul></details><details><summary>提問範例</summary><ul><li>這個程式可以做哪些事？道路中心線可以如何分析？</li><li>介紹宜蘭平原的地形與發展歷史。</li><li>查詢宜蘭最近的交通新聞，列出來源與日期，再分析報導重點。</li><li>看目前地圖，說明我載入的圖資與可以進行的分析。</li></ul></details><details><summary>畫面操作範例</summary><ul><li>載入宜蘭縣的 3D 建物圖資。</li><li>載入全台灣道路中心線；隱藏飛機即時動態。</li><li>帶我到宜蘭縣審計室並顯示地點標籤。</li><li>從宜蘭縣審計室，經宜蘭國小，規劃到羅東國小的汽車路線。</li></ul></details><section class="tw-chat-style tw-voice-style"><label>回覆角色<select id="tw-voice-role">${VOICE_ROLES.map(role=>`<option value="${role.id}" ${voiceSettings.role===role.id?'selected':''}>${esc(role.name)}</option>`).join('')}</select></label><small>兒童角色使用較輕快的聲線與語氣模擬；非特定真人或原生專用兒童聲音。</small><label>自訂 AI 語音回答風格<textarea id="tw-voice-style" rows="3" maxlength="1400" placeholder="例如：用繁體中文、先說結論，補充三項具體建議。">${esc(voiceSettings.style)}</textarea></label><div class="tw-actions"><button data-act="voice-style-save">儲存風格</button><button data-act="voice-style-reset">重訂風格</button></div><small>保存於瀏覽器及本機使用者設定；儲存後立即套用，重啟後沿用此風格，資料正確性規則仍適用。</small></section><label class="tw-inline-option"><input id="tw-voice-clear-place" type="checkbox" ${voiceSettings.clearPlaceOnNext?'checked':''}>下一個語音指令開始時清除暫時地點標籤</label><label class="tw-inline-option"><input id="tw-voice-share-map" type="checkbox" ${voiceSettings.shareMap?'checked':''}>允許語音助理在要求時取得目前地圖畫面</label><p class="tw-note">勾選設定會隨「儲存風格」一併保存；語音連線自動重新啟動以套用新設定。地點名稱以深色矩形白字標示，緩慢閃爍，五秒後消失；同一地點不重複新增。</p></details>`;}
-  function renderAI() {
-    open('AI 服務狀態與額度', `${voiceHelp()}<article class="tw-card"><b>Gemini Live（僅供語音助理）</b><label>語音模型<select id="tw-voice-model"><option value="gemini-3.8-live" ${voiceSettings.model==='gemini-3.8-live'?'selected':''}>gemini-3.8-live（預設）</option><option value="gemini-3.1-flash-live-preview" ${voiceSettings.model==='gemini-3.1-flash-live-preview'?'selected':''}>gemini-3.1-flash-live-preview</option></select></label><div class="tw-actions"><button data-act="voice-model-save">儲存語音模型</button></div><p id="tw-gemini-quota" class="tw-note">剩餘額度：查詢中</p><a href="https://aistudio.google.com/usage" target="_blank" rel="noopener noreferrer">查看 Google AI Studio 專案額度</a><div id="tw-voice-sources" class="tw-voice-sources"></div><p id="tw-live-status-banner" class="tw-note">${esc(lastGeminiStatus)}</p><p id="tw-gemini-connection" class="tw-note">尚未檢查</p><p class="tw-note">實際免費用量依 Google AI Studio 顯示。</p><p class="tw-note">可說：「載入飛機即時動態」、「隱藏道路中心線」、「切換到 NLSC 臺灣通用正射影像」、「一鍵載入所有內建圖資」、「一鍵隱藏所有圖資」。</p></article>
-      <article class="tw-card"><b>OpenRouter</b><p id="tw-openrouter-connection" class="tw-note">尚未檢查</p><p id="tw-openrouter-usage" class="tw-note"></p></article>
-      <div class="tw-actions"><button data-act="ai-status-refresh">檢查連線與額度</button><button data-act="open-original-keys">服務與 API 金鑰設定</button></div>
-      <p class="tw-note">本程式不限制對話次數；供應商的免費額度與速率限制仍適用。</p>
-      <p id="tw-chat-count" class="tw-note"></p><p class="tw-note">OpenRouter 金鑰用量由服務商回報；Gemini 額度請在 Google AI Studio 查詢。</p>`);
-    localStorage.setItem('gev.tw.chatLimit','unlimited');
-    updateChatCount();
-    void refreshAiStatus();
-    void refreshGeminiQuota();
+  let aiHelpView='home';
+  function renderAI(view=aiHelpView) {
+    aiHelpView=view;
+    const back='<button class="tw-ai-back" data-act="ai-help-home">← AI 功能說明</button>';
+    if(view==='home'){open('AI 功能說明',`<div class="tw-ai-help-menu"><button class="tw-ai-voice-entry" data-act="ai-help-voice"><b>AI語音助理說明</b><small>語音操作、回覆角色與風格、Gemini Live 連線及額度</small></button><button class="tw-ai-space-entry" data-act="ai-help-space"><b>AI空間助理說明</b><small>空間分析、交通規劃、官方資料擷取、對話風格與 OpenRouter 額度</small></button></div>`);return;}
+    if(view==='voice'){
+      open('AI語音助理說明',`<section class="tw-ai-voice-help">${back}${voiceHelp()}<article class="tw-card"><b>Gemini Live（僅供語音助理）</b><label>語音模型<select id="tw-voice-model"><option value="gemini-3.8-live" ${voiceSettings.model==='gemini-3.8-live'?'selected':''}>gemini-3.8-live（預設）</option><option value="gemini-3.1-flash-live-preview" ${voiceSettings.model==='gemini-3.1-flash-live-preview'?'selected':''}>gemini-3.1-flash-live-preview</option></select></label><div class="tw-actions"><button data-act="voice-model-save">儲存語音模型</button></div><p id="tw-gemini-quota" class="tw-note">剩餘額度：查詢中</p><a href="https://aistudio.google.com/usage" target="_blank" rel="noopener noreferrer">查看 Google AI Studio 專案額度</a><div id="tw-voice-sources" class="tw-voice-sources"></div><p id="tw-live-status-banner" class="tw-note">${esc(lastGeminiStatus)}</p><p id="tw-gemini-connection" class="tw-note">尚未檢查</p><p class="tw-note">實際免費用量依 Google AI Studio 顯示。</p><p class="tw-note">可說：「載入飛機即時動態」、「隱藏道路中心線」、「切換到 NLSC 臺灣通用正射影像」、「一鍵載入所有內建圖資」、「一鍵隱藏所有圖資」。</p></article><div class="tw-actions"><button data-act="ai-status-refresh">檢查語音連線與額度</button><button data-act="open-original-keys">服務與 API 金鑰設定</button></div></section>`);
+      body.querySelector('.tw-voice-help').open=true;
+      void refreshGeminiQuota();void refreshAiStatus();return;
+    }
+    open('AI空間助理說明',`<section class="tw-ai-space-help">${back}<article class="tw-card"><b>功能與設計</b><p>以目前專案、可見圖資與結構化計算結果回答；區分既有資料、計算結果與推論。</p><p>大眾運輸直接查詢 TDX；查無可靠方案、權限不足或用量限制時，改查已登錄的官方公開班表及票價來源，保留日期、停留、車種與乘客限制。班表與示意路線不代表即時車輛位置或餘票。</p><p>執行期間顯示「工作中...」及各階段查核結果；確認建議後自動回報結論、顯示完整路徑並開始 3D 示意。外部資料無法驗證時明示原因，不由文字模型猜班次或金額。</p><div class="tw-actions"><button data-act="ai-help-chat">開啟 AI 空間助理</button><button data-act="ai-help-style">自訂對話風格</button><button data-act="transit-panel">AI 智慧大眾運輸</button></div></article><article class="tw-card"><b>OpenRouter 連線與額度</b><p id="tw-openrouter-connection" class="tw-note">尚未檢查</p><p id="tw-openrouter-usage" class="tw-note"></p><p class="tw-note">本程式不限制對話次數；免費模型逐一嘗試，無可用模型時保留條件並回報服務原因。供應商的免費額度與速率限制仍適用。</p><p id="tw-chat-count" class="tw-note"></p></article><div class="tw-actions"><button data-act="ai-status-refresh">檢查空間助理連線與額度</button><button data-act="open-original-keys">服務與 API 金鑰設定</button></div></section>`);
+    localStorage.setItem('gev.tw.chatLimit','unlimited');updateChatCount();void refreshAiStatus();
   }
 
   let chatSentCount = 0;

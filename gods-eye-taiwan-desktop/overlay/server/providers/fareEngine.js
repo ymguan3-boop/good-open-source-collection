@@ -128,7 +128,7 @@ export function createFareService({basic,stations,fetcher=fetch,now=Date.now,cac
   }
   async function quoteSegment(segment,preference={},options={}){
     const pref=normalizeFarePreference(preference),p=pref.modePreferences[segment.mode]||{};
-    if(segment.mode==='WALK')return {amount:0,currency:'TWD',ticketType:'步行免票',source:'步行',quotes:pref.passengerProfiles.map(x=>({...x,passengerType:x.type,amount:0,currency:'TWD'})),complete:true};
+    if(segment.mode==='WALK')return {amount:0,currency:'TWD',ticketType:'步行免票',source:'步行',quotes:pref.passengerProfiles.map(x=>({...x,passengerType:x.type,ticketType:`${PASSENGER_NAMES[x.type]}／步行免票`,amount:0,currency:'TWD'})),complete:true};
     if(segment.mode==='TRA'&&p.seatClasses.length===1&&p.seatClasses[0]==='premium'&&!/^自強\s*[(（]?3000/.test(segment.transportType))return {amount:null,complete:false,notice:'此班次沒有核實提供騰雲座艙'};
     if(segment.mode==='TRA'&&!vehicleAllowed(segment.transportType,segment.trainTypeId,p))return {amount:null,complete:false,notice:'班次車種不符合乘車偏好'};
     const seats=segment.mode==='HSR'?(p.seatClasses.length?p.seatClasses:['standard']):segment.mode==='TRA'?(p.seatClasses.length?p.seatClasses:['normal']):[null];
@@ -136,10 +136,12 @@ export function createFareService({basic,stations,fetcher=fetch,now=Date.now,cac
     const fm=['BUS','METRO','LRT'].includes(segment.mode)?pref.fareMedia[0]||'single':'single';
     const choices=[];for(const seat of seats){if(segment.mode==='TRA'&&seat==='premium'&&!/3000/.test(segment.transportType))continue;const quotes=[];for(const profile of pref.passengerProfiles){options.signal?.throwIfAborted();let unit=await unitQuote(segment,profile,seat,fm,options);
       if(options.allowEstimates&&unit.amount===null){
-        if(segment.mode==='TRA'&&seat!=='premium')try{const html=await webPage(TRA_FARE_URL,options);unit=estimateTraFare(segment,profile,seat,parseTraRateRules(html),{now:now()})||unit;}catch(error){options.signal?.throwIfAborted();}
+        if(segment.mode==='TRA'&&seat!=='premium')try{const html=await webPage(TRA_FARE_URL,options),rules=parseTraRateRules(html);unit=estimateTraFare(segment,profile,seat,rules,{now:now()})||unit;
+          if(unit.amount===null&&!['adult','child'].includes(profile.type)){const reference=estimateTraFare(segment,{type:'adult'},seat,rules,{now:now()});if(reference)unit={...reference,passengerType:profile.type,calculationMethod:'official-rate-adult-budget',estimateBasis:reference.estimateBasis+' 此乘客票種優惠未核實，暫按同段成人估算全票編列保守預算，不假設優惠資格。',notice:'估算預算，非此票種正式報價；實際票價及優惠資格以業者驗證為準。'};}
+        }catch(error){options.signal?.throwIfAborted();}
         if(unit.amount===null&&profile.type!=='adult'){const adult=await unitQuote(segment,{type:'adult',quantity:1},seat,fm,options);unit=estimateFromAdult(adult,profile)||unit;}
       }
-      quotes.push({...unit,quantity:profile.quantity,unitAmount:unit.amount,amount:unit.amount===null?null:Math.round(unit.amount*profile.quantity*100)/100});}const budgetComplete=quotes.every(q=>Number.isFinite(q.amount)),estimated=quotes.some(q=>q.estimated),complete=budgetComplete&&!estimated;choices.push({seatClass:seat,quotes,estimated,budgetComplete,complete,amount:budgetComplete?quotes.reduce((a,q)=>a+q.amount,0):null});}
+      quotes.push({...unit,ticketType:unit.estimated?`${PASSENGER_NAMES[profile.type]}${seat&&SEAT_NAMES[seat]?`／${SEAT_NAMES[seat]}`:''}`:unit.ticketType,quantity:profile.quantity,unitAmount:unit.amount,amount:unit.amount===null?null:Math.round(unit.amount*profile.quantity*100)/100});}const budgetComplete=quotes.every(q=>Number.isFinite(q.amount)),estimated=quotes.some(q=>q.estimated),complete=budgetComplete&&!estimated;choices.push({seatClass:seat,quotes,estimated,budgetComplete,complete,amount:budgetComplete?quotes.reduce((a,q)=>a+q.amount,0):null});}
     if(!choices.length)return {amount:null,complete:false,notice:'此班次未核實提供所選車廂，不套用不存在的票價'};
     const selected=options.preferCheapest?choices.filter(c=>c.complete).sort((a,b)=>a.amount-b.amount)[0]||choices[0]:choices[0],q=selected.quotes.find(q=>q.confidence==='verified')||{},notices=[...new Set(selected.quotes.map(q=>q.notice).filter(Boolean))];
     if(pref.passengerProfiles.some(p=>p.type!=='adult'))notices.push('實際優惠資格仍以運輸業者規定及現場驗證為準。');

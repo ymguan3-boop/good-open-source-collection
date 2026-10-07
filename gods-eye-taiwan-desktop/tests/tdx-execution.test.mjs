@@ -41,3 +41,15 @@ test('unmatched MaaS rail schedule falls back to the same confirmed stations off
  }});
  const result=await f.service.plan(request());assert.equal(result.plans.length,1);const train=result.plans[0].segments[0];assert.equal(train.trainNumber,'test-101');assert.equal(train.transportType,'區間');assert.equal(train.trainClassStatus,'matched');assert.equal(train.geometryStatus,'ready');assert.equal(train.departureTime,'2026-10-05T10:20:00+08:00');assert(result.notices.some(n=>n.includes('當日官方班表')));
 });
+
+test('two unsuccessful identical TDX queries use official fallback without repeating MaaS forever',async()=>{
+ const f=fixture({fetch:async url=>url.includes('/maas/routing')?response({result:'success',data:{routes:[]}}):null});
+ const r=request({allowedModes:['BUS']});
+ const stages=[];for(let i=0;i<3;i++){const outcome=await f.service.plan(r,{refresh:true,onProgress:m=>stages.push(m)});assert.equal(outcome.plans.length,0);assert.equal(outcome.request.allowedModes[0],'BUS');assert.equal(outcome.diagnostic.classification,'no-matching-plan');}
+ assert.equal(f.calls.filter(c=>c.url.includes('/maas/routing')).length,2);assert.ok(stages.some(s=>s.includes('連續兩次')));
+});
+test('quota diagnosis survives the fallback threshold and no fictional reset time is added',async()=>{
+ const f=fixture({fetch:async url=>url.includes('/maas/routing')?new Response('monthly quota exceeded',{status:429}):null});
+ const r=request({allowedModes:['BUS']});let outcome;for(let i=0;i<3;i++)outcome=await f.service.plan(r);
+ assert.equal(outcome.diagnostic.classification,'quota');assert.equal(outcome.diagnostic.upstreamStatus,429);assert.equal(outcome.diagnostic.rateLimit.resetAt,null);assert.equal(outcome.plans.length,0);const forced=await f.service.plan(r,{forceOfficial:true});assert.equal(forced.diagnostic.classification,'quota');assert.match(forced.diagnostic.message,/用量/);
+});

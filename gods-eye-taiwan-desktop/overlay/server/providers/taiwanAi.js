@@ -93,13 +93,13 @@ export function taiwanAiProxy() {
           if (route==='/response-style' && req.method==='GET')return json(res,200,{setting:await readResponseStyle()});
           if (route==='/response-style' && req.method==='POST')return json(res,200,{setting:await writeResponseStyle(await body(req))});
           if (!(route === '/keys' && req.method === 'POST')) await refreshCredentials();
-          if(route==='/tdx-parse-stream' && req.method==='POST'){
+          if(['/tdx-parse-stream','/tdx-plan-stream'].includes(route) && req.method==='POST'){
             const data=await body(req),controller=new AbortController(),cancel=()=>controller.abort();res.once('close',cancel);
             res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-store','X-Accel-Buffering':'no'});
             const send=(event,value)=>{if(!res.destroyed&&!res.writableEnded)res.write(`event: ${event}\ndata: ${JSON.stringify(value)}\n\n`);};
             const heartbeat=setInterval(()=>{if(!res.destroyed)res.write(': waiting\n\n');},10000);
-            try{const result=await tdxService.handle({action:'parse',text:data.text,request:data.request},{signal:controller.signal,onProgress:message=>send('status',{message})});if(!controller.signal.aborted)send('done',{result});}
-            catch(error){if(!controller.signal.aborted)send('error',{message:error.code?error.message:'需求解析連線中斷，原條件已保留。',code:error.code||'TRANSIT_PARSE_FAILED'});}
+            try{const result=await tdxService.handle(route==='/tdx-plan-stream'?{...data,action:'plan'}:{action:'parse',text:data.text,request:data.request},{signal:route==='/tdx-plan-stream'?AbortSignal.any([controller.signal,AbortSignal.timeout(180000)]):controller.signal,onProgress:message=>send('status',{message})});if(!controller.signal.aborted)send('done',{result});}
+            catch(error){if(!controller.signal.aborted)send('error',{message:error.code?error.message:'運輸查詢連線中斷或逾時，原條件已保留。',code:error.code||'TRANSIT_REQUEST_FAILED',status:error.status,rateLimit:error.rateLimit||null,upstreamStatus:error.upstreamStatus||null});}
             finally{clearInterval(heartbeat);res.removeListener('close',cancel);if(!res.destroyed)res.end();}return;
           }
           if(route==='/tdx' && req.method==='POST'){
