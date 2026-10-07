@@ -763,3 +763,5 @@ body.gev-tw-aerial-capture .tw-aerial-hud,body.gev-tw-aerial-capture .tw-aerial-
 .tw-ai-space-help button[data-act="transit-show"]{background:#26534a!important;border-color:#62c29d!important}.tw-ai-back{margin-bottom:14px}
 
 .tw-ai-help-menu button,.tw-ai-voice-help button,.tw-ai-space-help button{color:#edf8ff!important}
+
+#tw-shell .tw-analysis-primary{background:#244a70;color:#f3f9ff;border:1px solid #8ac9ff}#tw-shell .tw-analysis-secondary{background:#59396e;color:#fff2ff;border:1px solid #d9a5eb}

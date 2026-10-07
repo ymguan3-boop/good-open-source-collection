@@ -42,31 +42,35 @@ export function createOfficialTransit({fetcher=fetch,credential,now=Date.now,ttl
  }
  async function plan(request,{signal,onProgress=()=>{}}={}){
   if(!request.allowedModes.includes('TRA'))return {plans:[],request,notices:['官方公開班表備援目前支援臺鐵與步行接駁；所選運具不含臺鐵。']};
-  if(request.timeMode==='arrival'&&!request.departureTime)return {plans:[],request,notices:['官方班表備援需要出發時間，才能核實中繼停留與抵達期限。']};
   onProgress('工作中... 已完成條件檢查；正在擷取臺鐵官方公開班表與車站資料。');
-  const start=Date.parse(request.departureTime),deadline=request.arrivalDeadline?Date.parse(request.arrivalDeadline):null,list=await stations(signal),data=await timetable(taipeiTime(new Date(start).toISOString()).slice(0,10),signal),points=[request.origin,...request.waypoints.map(w=>w.location),request.destination],stationMap=new Map(list.map(s=>[s.id,s]));
+  const reverse=request.timeMode==='arrival',deadline=request.arrivalDeadline?Date.parse(request.arrivalDeadline):null,date=taipeiTime(reverse?request.arrivalDeadline:request.departureTime).slice(0,10),dayStart=Date.parse(`${date}T00:00:00+08:00`),start=request.departureTime?Date.parse(request.departureTime):Math.max(now(),dayStart),list=await stations(signal),data=await timetable(date,signal),points=[request.origin,...request.waypoints.map(w=>w.location),request.destination],stationMap=new Map(list.map(s=>[s.id,s]));
   const candidates=p=>{const exact=list.filter(s=>normal(s.name)===normal(p.name)&&distance(s,p)<250);if(exact.length===1)return exact;return list.map(s=>({s,d:distance(s,p)})).filter(x=>x.d<=3500).sort((a,b)=>a.d-b.d).slice(0,3).map(x=>x.s);};
-  let states=[{time:start,segments:[],legs:0}];const routeCache=new Map();
-  for(let index=0;index<points.length-1;index++){
+  let states=[{time:reverse?deadline:start,segments:[],legs:0}];const routeCache=new Map(),order=Array.from({length:points.length-1},(_,i)=>i);if(reverse)order.reverse();
+  for(const index of order){
    signal?.throwIfAborted();onProgress(`工作中... 已取得官方班表；正在串接第 ${index+1}/${points.length-1} 段與車站接駁路線。`);
    const next=[],from=points[index],to=points[index+1],origins=candidates(from),destinations=candidates(to);
    for(const a of origins)for(const b of destinations){if(a.id===b.id)continue;
     let before,after;try{before=await walking(from,a,signal);after=await walking(b,to,signal);}catch(error){signal?.throwIfAborted();continue;}
     if((before||after)&&request.excludedModes.includes('WALK'))continue;
-    for(const state of states){const earliest=state.time+(before?.durationSeconds||0)*1000+300000,latest=deadline?deadline-(after?.durationSeconds||0)*1000:null;
-     for(const rail of connections(data,a,b,request,earliest,latest).slice(0,3)){
+    for(const state of states){const waypoint=reverse?request.waypoints[index]:null,limit=reverse?Math.min(state.time-(waypoint?.stayDurationMinutes||0)*60000,waypoint?.arrivalTime?Date.parse(waypoint.arrivalTime):Infinity):deadline;
+     const earliest=reverse?Math.max(start,dayStart):state.time+(before?.durationSeconds||0)*1000+300000,latest=limit?limit-(after?.durationSeconds||0)*1000:null;
+     let options=connections(data,a,b,request,earliest,latest);if(reverse)options.sort((a,b)=>Date.parse(b.departureTime)-Date.parse(a.departureTime));
+     if(request.preference==='cheapest')options=options.filter((r,i)=>options.findIndex(x=>x.transportType===r.transportType)===i).slice(0,8);else options=options.slice(0,3);
+     for(const rail of options){
       if(rail.stopIds.some(id=>!stationMap.has(id)))continue;
       let fields;const shapeKey=JSON.stringify([a.id,b.id,rail.stopIds]);try{if(!routeCache.has(shapeKey))routeCache.set(shapeKey,await railGeometry.route(a,b,rail.stopIds.map(id=>stationMap.get(id)),signal));fields=routeCache.get(shapeKey);}catch(error){signal?.throwIfAborted();}if(!fields)continue;
       const segments=[];const addWalk=(walk,time)=>{if(!walk)return;segments.push({...walk,mode:'WALK',routeName:'步行接駁',departureTime:taipeiTime(new Date(time).toISOString()),arrivalTime:taipeiTime(new Date(time+walk.durationSeconds*1000).toISOString()),fare:{amount:0,currency:'TWD',complete:true},realtimeStatus:'scheduled',source:'TomTom 實際道路',sourceTime:new Date(now()).toISOString()});};
-      addWalk(before,state.time);segments.push({...rail,...fields,mode:'TRA',routeName:`${rail.transportType} ${rail.trainNumber}`,agency:'國營臺灣鐵路股份有限公司',durationSeconds:(Date.parse(rail.arrivalTime)-Date.parse(rail.departureTime))/1000,trainClass:traClass(rail.transportType),trainClassStatus:'matched',intermediateStops:rail.stopIds.map(id=>stationMap.get(id)),source:'臺鐵官方 ODS 每日班表',trainTypeSource:TRA_ODS_MANUAL,realtimeStatus:'scheduled',fare:{amount:null,complete:false}});addWalk(after,Date.parse(rail.arrivalTime));
+      const leave=reverse?Date.parse(rail.departureTime)-(before?.durationSeconds||0)*1000-300000:state.time;if(leave<now()||leave<start||reverse&&request.waypoints[index-1]?.departureTime&&leave<Date.parse(request.waypoints[index-1].departureTime))continue;
+      addWalk(before,leave);segments.push({...rail,...fields,mode:'TRA',routeName:`${rail.transportType} ${rail.trainNumber}`,agency:'國營臺灣鐵路股份有限公司',durationSeconds:(Date.parse(rail.arrivalTime)-Date.parse(rail.departureTime))/1000,trainClass:traClass(rail.transportType),trainClassStatus:'matched',intermediateStops:rail.stopIds.map(id=>stationMap.get(id)),source:'臺鐵官方 ODS 每日班表',trainTypeSource:TRA_ODS_MANUAL,realtimeStatus:'scheduled',fare:{amount:null,complete:false}});addWalk(after,Date.parse(rail.arrivalTime));
       const arrival=Date.parse(rail.arrivalTime)+(after?.durationSeconds||0)*1000,w=request.waypoints[index];if(w?.arrivalTime&&arrival>Date.parse(w.arrivalTime))continue;
-      const time=Math.max(arrival+(w?.stayDurationMinutes||0)*60000,w?.departureTime?Date.parse(w.departureTime):0);if(deadline&&time>deadline)continue;next.push({time,segments:[...state.segments,...segments],arrival,legs:state.legs+1});
+      const time=reverse?leave:Math.max(arrival+(w?.stayDurationMinutes||0)*60000,w?.departureTime?Date.parse(w.departureTime):0);if(!reverse&&deadline&&time>deadline)continue;next.push({time,segments:reverse?[...segments,...state.segments]:[...state.segments,...segments],arrival,legs:state.legs+1});
      }
     }
    }
-   const signature=s=>JSON.stringify(s.segments.map(x=>[x.mode,x.trainNumber,x.from.id,x.to.id,x.departureTime]));states=[...new Map(next.sort((a,b)=>a.time-b.time).map(s=>[signature(s),s])).values()].slice(0,3);if(!states.length)break;
+   const signature=s=>JSON.stringify(s.segments.map(x=>[x.mode,x.trainNumber,x.from.id,x.to.id,x.departureTime]));states=[...new Map(next.sort((a,b)=>reverse?b.time-a.time:a.time-b.time).map(s=>[signature(s),s])).values()].slice(0,request.preference==='cheapest'?8:3);if(!states.length)break;
   }
   const plans=states.filter(s=>s.segments.length&&s.legs===points.length-1).map((s,index)=>finalizePlan({id:`official-${index}`,label:index?'官方班表備援 '+(index+1):'官方班表推薦方案',segments:s.segments,departureTime:s.segments[0].departureTime,arrivalTime:s.segments.at(-1).arrivalTime,durationSeconds:(Date.parse(s.segments.at(-1).arrivalTime)-Date.parse(s.segments[0].departureTime))/1000,transfers:s.segments.filter(x=>x.mode==='TRA').length-1,walkDistanceMeters:s.segments.filter(x=>x.mode==='WALK').reduce((n,x)=>n+x.distanceMeters,0),geometryStatus:'ready',sources:['臺鐵官方 ODS 每日班表',TRA_ODS_LIST,TRA_ODS_STATIONS,'https://data.gov.tw/dataset/73220','TomTom 實際步行路線'],notices:['以指定日期官方公開班表及核實道路串接；保留中繼點、停留時間與乘客設定。','備援比較臺鐵直達班次及步行接駁，未窮舉其他運具或鐵路轉乘；班表不是即時餘票、延誤或營運股道。']}));
+  if(reverse)for(const [i,p]of plans.entries()){p.departureTime=taipeiTime(new Date(states[i].time).toISOString());p.latestLeaveTime=p.departureTime;p.durationSeconds=(Date.parse(p.arrivalTime)-Date.parse(p.departureTime))/1000;p.notices.push('以指定日期官方班表反向核實抵達期限；步行接駁預留 5 分鐘進站時間，非即時延誤保證。');}
   onProgress(plans.length?'工作中... 已完成班次、停留與完整路線查核；正在核實乘客票價。':'官方班表查核已結束，目前條件沒有取得可核實完整路徑。');
   return {plans,request,sourceStatus:{tdx:'fallback',officialTimetable:'ready',geometry:plans.length?'ready':'missing',realtime:'scheduled'},notices:plans.length?['已改用臺鐵官方公開班表備援。']:['公開班表備援未取得符合期限及完整線型的方案；未自行放寬您的限制。']};
  }

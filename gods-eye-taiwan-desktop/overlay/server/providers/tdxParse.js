@@ -27,16 +27,29 @@ export function explicitFarePatch(text){
   if(/最便宜|最省錢/.test(text))patch.preference='cheapest';
   return patch;
 }
+export function explicitTransportPatch(text){
+  const patch={},excluded=[];
+  for(const [name,mode]of [['高鐵','HSR'],['台鐵|臺鐵','TRA'],['公車|巴士|客運','BUS'],['捷運','METRO'],['輕軌','LRT'],['自行車','BIKE']])if(new RegExp(`(?:不要|不|排除|避免)\\s*(?:搭乘|搭|坐)?\\s*(?:${name})`).test(text))excluded.push(mode);
+  if(excluded.length)patch.excludedModes=excluded;
+  if(/公車和(?:台鐵|臺鐵)都可以|(?:台鐵|臺鐵)和公車都可以/.test(text))patch.allowedModes=['WALK','BUS','TRA'];
+  if(/最快/.test(text))patch.preference='fastest';else if(/最少轉乘|少轉乘|转乘次數越少|轉乘次數越少/.test(text))patch.preference='fewest-transfers';else if(/少走路|少步行/.test(text))patch.preference='least-walking';
+  return patch;
+}
 
 /** Resolve unambiguous literal OD/date/time locally; complex schedules still use AI. */
 export function exactTripTextPatch(text,now=Date.now()){
-  if(/途經|中繼|停留|抵達|最晚|以前|[點:：]\d*分?前|先.{0,30}再|然後|比較/.test(text))return null;
-  const route=text.match(/從(.{1,100}?)(?:出發)?(?:到|前往|至)(.{1,100}?)(?=[，。,.！？!?]|$)/);
-  if(!route)return null;const patch={origin:route[1].trim(),destination:route[2].trim()};if([patch.origin,patch.destination].some(v=>/今天|明天|後天|凌晨|早上|上午|中午|下午|晚上|希望|只搭|不要|\d{1,2}(?:點|[:：])/.test(v)))return null;
-  if(/現在出發|現在從|現在去/.test(text))return {...patch,timeMode:'now',departureTime:null};
-  const day=text.match(/今天|明天|後天/),time=text.match(/(凌晨|早上|上午|中午|下午|晚上)?\s*(\d{1,2})(?:點(?:\s*(半|\d{1,2})\s*分?)?|[:：](\d{2}))/);
-  if(!day||!time)return null;let hour=Number(time[2]),minute=time[3]==='半'?30:Number(time[3]||time[4]||0);if(hour>23||minute>59)return null;if(/下午|晚上/.test(time[1])&&hour<12)hour+=12;if(time[1]==='凌晨'&&hour===12)hour=0;
-  const date=new Date(now+8*3600000);date.setUTCDate(date.getUTCDate()+({今天:0,明天:1,後天:2}[day[0]]));patch.timeMode='departure';patch.departureTime=date.toISOString().slice(0,10)+'T'+String(hour).padStart(2,'0')+':'+String(minute).padStart(2,'0')+':00+08:00';return patch;
+  if(/途經|中繼|停留|先.{0,30}再|然後|比較/.test(text))return null;
+  const route=text.match(/從(.{1,100}?)(?:出發)?(?:到|前往|至)(.{1,100}?)(?=[，。,.！？!?]|$)/),origin=route?.[1]||text.match(/從([^，。,.！？!?]{1,100}?)出發/)?.[1],destination=route?.[2]||text.match(/(?:一定要到|要到|抵達)([^，。,.！？!?]{1,100})/)?.[1];
+  if(!origin||!destination)return null;const patch={origin:origin.trim(),destination:destination.trim(),waypoints:[],arrivalDeadline:null,departureTime:null,excludedModes:[],allowedModes:[...TRANSIT_MODES],preference:'recommended'};if([patch.origin,patch.destination].some(v=>/今天|明天|後天|凌晨|早上|上午|中午|下午|晚上|希望|只搭|不要|\d{1,2}(?:點|[:：])/.test(v)))return null;
+  if(/現在出發|現在從|現在去/.test(text))return {...patch,timeMode:'now'};
+  const day=text.match(/今天|明天|後天/),times=[...text.matchAll(/(凌晨|早上|上午|中午|下午|晚上)?\s*(\d{1,2})(?:點(?:\s*(半|\d{1,2})\s*分?)?|[:：](\d{2}))/g)];
+  if(!day||!times.length||times.length>2)return null;
+  const date=new Date(now+8*3600000);date.setUTCDate(date.getUTCDate()+({今天:0,明天:1,後天:2}[day[0]]));
+  for(const time of times){let hour=Number(time[2]),minute=time[3]==='半'?30:Number(time[3]||time[4]||0);if(hour>23||minute>59)return null;if(/下午|晚上/.test(time[1])&&hour<12)hour+=12;if(time[1]==='凌晨'&&hour===12)hour=0;
+    const at=date.toISOString().slice(0,10)+'T'+String(hour).padStart(2,'0')+':'+String(minute).padStart(2,'0')+':00+08:00',after=text.slice(time.index+time[0].length,time.index+time[0].length+18);
+    if(/^(?:以前|前|之前).*?(?:到|抵達)|^(?:一定)?要到/.test(after))patch.arrivalDeadline=at;else if(!patch.departureTime)patch.departureTime=at;else return null;
+  }
+  patch.timeMode=patch.departureTime?'departure':'arrival';return patch;
 }
 
 /** Unmentioned fare settings keep their previous values, even if an LLM fills defaults. */
@@ -74,7 +87,7 @@ function parseOutput(text){
 }
 export async function parseTransitText(text,request={}, {signal,credential,fetcher=fetch,now=Date.now,onProgress=()=>{}}={}){
   signal?.throwIfAborted();if(typeof text!=='string'||!text.trim()||text.length>4000)throw tdxError('TRANSIT_TEXT_INVALID','請輸入 1–4000 字行程需求');
-  const explicit=explicitFarePatch(text);
+  const explicit={...explicitFarePatch(text),...explicitTransportPatch(text)};
   const stopover=literalStopoverPatch(text,now());
   const literal=stopover?.patch||exactTripTextPatch(text,now());
   if(literal){const patch={...literal,...explicit},next={...request,...patch,farePreference:farePreferenceFromRequest({...request,...patch}),userNaturalLanguage:text};next.resolvedLocations=[];for(const field of ['preferredVehicleTypes','excludedVehicleTypes','preferredSeatClass','passengerTypes','passengerCounts'])delete next[field];return {patch,request:next,intent:'plan',needsClarification:stopover?.needsClarification||false,questions:stopover?.questions||[],explanation:'起訖、日期與時間已明確，直接依條件查詢官方運輸資料。',source:'本機明確行程解析'};}

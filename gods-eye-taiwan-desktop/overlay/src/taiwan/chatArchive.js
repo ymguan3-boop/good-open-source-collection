@@ -6,7 +6,7 @@ export function recordTimestamp(date=new Date()) {
   const parts=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(date);
   return parts.replace(' ','_').replace(/:/g,'-')+`-${String(date.getMilliseconds()).padStart(3,'0')}`;
 }
-export function createChatArchive({root,open,download,onStatus,manager}) {
+export function createChatArchive({root,open,download,onStatus,manager,onAnalyze=()=>{}}) {
   let preview=null,lastSavedTime=0,releasePreview=null;
   async function save(messages,{title="AI 空間助理對話紀錄",frames=[],media=null,attachments=[]}={}){
     if(!messages.length)throw new Error('目前沒有對話可儲存');
@@ -40,7 +40,7 @@ export function createChatArchive({root,open,download,onStatus,manager}) {
   }
   async function render(){
     const records=await db.chatRecords.orderBy('createdAt').reverse().toArray();
-    open('記錄',`<div class="tw-actions"><button data-archive="export-selected">匯出勾選紀錄</button><button data-archive="export-all">匯出全部紀錄</button></div><p class="tw-note">AI 空間助理「儲存對話」或電影空拍「儲存至記錄」後，Markdown 檔會暫存在目前瀏覽器。點檔名可查看；清除網站資料將刪除暫存，請另行匯出。</p>${records.map(record=>`<article class="tw-card tw-record-row"><div class="tw-record-heading"><input type="checkbox" aria-label="勾選 ${escape(record.filename)}" data-record-select value="${record.id}"><button class="tw-record-filename" data-archive="view" data-id="${record.id}">${escape(record.filename)}</button></div><div class="tw-record-summary"><p>${escape(new Date(record.createdAt).toLocaleString('zh-TW'))} · ${record.messageCount} 則訊息</p><div class="tw-actions"><button data-archive="export-one" data-id="${record.id}">匯出紀錄</button><button data-archive="delete" data-id="${record.id}">刪除紀錄</button></div></div></article>`).join('') || '<p>尚無對話紀錄。</p>'}`);
+    open('記錄',`<div class="tw-actions"><button data-archive="export-selected">匯出勾選紀錄</button><button data-archive="export-all">匯出全部紀錄</button><button class="tw-analysis-primary" data-archive="analyze-selected">依勾選紀錄進行AI分析</button><button class="tw-analysis-secondary" data-archive="analyze-all">依全部紀錄進行AI分析</button></div><p class="tw-note">AI 空間助理「儲存對話」或電影空拍「儲存至記錄」後，Markdown 檔會暫存在目前瀏覽器。點檔名可查看；清除網站資料將刪除暫存，請另行匯出。</p>${records.map(record=>`<article class="tw-card tw-record-row"><div class="tw-record-heading"><input type="checkbox" aria-label="勾選 ${escape(record.filename)}" data-record-select value="${record.id}"><button class="tw-record-filename" data-archive="view" data-id="${record.id}">${escape(record.filename)}</button></div><div class="tw-record-summary"><p>${escape(new Date(record.createdAt).toLocaleString('zh-TW'))} · ${record.messageCount} 則訊息</p><div class="tw-actions"><button data-archive="export-one" data-id="${record.id}">匯出紀錄</button><button data-archive="delete" data-id="${record.id}">刪除紀錄</button></div></div></article>`).join('') || '<p>尚無對話紀錄。</p>'}`);
   }
   async function view(id){
     const record=await db.chatRecords.get(id);if(!record)throw new Error('找不到對話紀錄');
@@ -67,6 +67,11 @@ export function createChatArchive({root,open,download,onStatus,manager}) {
       if(action==='export-one')await exportRecords([id]);
       if(action==='export-all')await exportRecords();
       if(action==='export-selected')await exportRecords([...root.querySelectorAll('[data-record-select]:checked')].map(input=>Number(input.value)));
+      if(action==='analyze-selected'||action==='analyze-all'){
+        const records=action==='analyze-all'?await db.chatRecords.orderBy('createdAt').toArray():(await db.chatRecords.bulkGet([...root.querySelectorAll('[data-record-select]:checked')].map(input=>Number(input.value)))).filter(Boolean);
+        if(!records.length)throw Error('請先勾選紀錄，或儲存對話後再分析。');
+        await onAnalyze(records);
+      }
     }catch(error){onStatus(error.message);}
   };
   root.addEventListener('click',click);

@@ -163,7 +163,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
   }
   function renderResults(){
     // One shared assistant presents the plans; this window keeps only trip input and style.
-    root.querySelector('[data-transit-results]').innerHTML=results?.plans?.length?`<p class="tw-transit-result-note">規劃結果已送至 AI 空間助理，推薦方案已顯示於地圖。</p><div class="tw-transit-grid"><label>旅程路線顏色<input type="color" data-transit-style="color" value="${style.color}"></label><label>旅程路線粗細<input type="range" min="1" max="12" step="1" data-transit-style="width" value="${style.width}"><output data-transit-width>${style.width} px</output></label></div>`:'';
+    root.querySelector('[data-transit-results]').innerHTML=results?.plans?.length?`<p class="tw-transit-result-note">${journeyState.routeVisible===false?'已關閉旅程路線顯示，規劃結果仍保留於 AI 空間助理。':'規劃結果已送至 AI 空間助理，推薦方案已顯示於地圖。'}</p><div class="tw-transit-grid"><label>旅程路線顏色<input type="color" data-transit-style="color" value="${style.color}"></label><label>旅程路線粗細<input type="range" min="1" max="12" step="1" data-transit-style="width" value="${style.width}"><output data-transit-width>${style.width} px</output></label></div>`:'';
   }
   async function choosePlan(index,{execute=false}={}){
     const plan=results?.plans?.[index];if(!plan)throw new Error('此方案不存在，請重新規劃');
@@ -198,7 +198,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
   const click=event=>{
     const target=event.target.closest('button');if(!target)return;
     if(target.dataset.transitTab){tab=target.dataset.transitTab;renderForm();renderTabs();return;}
-    if(target.hasAttribute('data-transit-example')){edit({userNaturalLanguage:TRANSIT_EXAMPLES[Number(target.dataset.transitExample)][1]});root.querySelector('[data-transit-nlp]').value=request.userNaturalLanguage;status('範例已填入，可修改後按「依最新交通資訊進行AI規劃」。');return;}
+    if(target.hasAttribute('data-transit-example')){request=normalizeTripRequest({farePreference:request.farePreference});results=null;selectedPlan=null;lastIssue=null;edit({userNaturalLanguage:TRANSIT_EXAMPLES[Number(target.dataset.transitExample)][1]});journey?.clear?.();renderForm();renderResults();root.querySelector('[data-transit-nlp]').value=request.userNaturalLanguage;status('範例已填入，可修改後按「依最新交通資訊進行AI規劃」。');return;}
     if(target.hasAttribute('data-transit-candidate')){const selection=pending;if(!selection||selection.revision!==revision)return;request=setTripLocation(request,selection.key,selection.candidates[Number(target.dataset.transitCandidate)]);pending=null;root.querySelector('[data-transit-candidates]').hidden=true;renderForm();renderUnderstanding();void plan(selection.refresh).catch(fail);return;}
     if(target.dataset.transitAction)void execute(target.dataset.transitAction,Number(target.dataset.index)).catch(fail);
   };
@@ -237,6 +237,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
     setRequest(value){edit(value);renderForm();renderTabs();},
     cancel,
     setJourneyController,updateJourney(value){
+      if(Object.hasOwn(value,'routeVisible')){journeyState.routeVisible=value.routeVisible;renderResults();}
       const segment=value.segment,from=Date.parse(segment?.departureTime),to=Date.parse(segment?.arrivalTime);
       const simulatedTime=value.simulatedTime||(Number.isFinite(from)&&Number.isFinite(to)&&Number.isFinite(value.fraction)?new Date(from+(to-from)*Math.min(1,Math.max(0,value.fraction))).toISOString():undefined);
       journeyState={...journeyState,...value,simulatedTime,segmentIndex:value.segmentIndex??value.index??journeyState.segmentIndex,status:value.status??(value.running?'播放中':value.label||'行程模擬')};renderJourney();

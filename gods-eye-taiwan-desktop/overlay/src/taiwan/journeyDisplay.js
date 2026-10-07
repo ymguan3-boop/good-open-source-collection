@@ -2,6 +2,7 @@ import * as Cesium from 'cesium';
 import * as turf from '@turf/turf';
 import {SEAT_NAMES} from './farePreference.js';
 import { illustrativeModelPlacement } from './navigationDisplay.js';
+import { attachRoutePicker, markRouteEntity, routePickInfo } from './routePick.js';
 
 export const JOURNEY_MODELS = Object.freeze({
   WALK:{file:'person',pixels:56,diameter:2.0}, BUS:{file:'bus',pixels:80,diameter:12.5},
@@ -22,7 +23,7 @@ export function createJourneyDisplay({viewer,governor,beforeCamera=()=>{},onStat
   const releaseGovernor=governor?.subscribe(snapshot=>{pressured=!!snapshot.pressured;});
   const stop=()=>{running=false;if(raf!==null)cancelAnimationFrame(raf);raf=null;emit();};
   const segment=()=>plan?.segments?.[index];
-  function emit(){if(!plan)return;onStatus({running,notice:missingPathNotice,index,fraction,mode:segment()?.mode,speed,view,total:plan.segments.length,label:`行程模擬｜${index+1}/${plan.segments.length} ${names[segment()?.mode]||''}`,segment:segment(),remainingDistanceMeters:paths.slice(index).reduce((n,p,i)=>n+(p?.length||0)*1000*(i?1:1-fraction),0)});}
+  function emit(){if(!plan)return;onStatus({running,routeVisible:source?.show!==false,notice:missingPathNotice,index,fraction,mode:segment()?.mode,speed,view,total:plan.segments.length,label:`行程模擬｜${index+1}/${plan.segments.length} ${names[segment()?.mode]||''}`,segment:segment(),remainingDistanceMeters:paths.slice(index).reduce((n,p,i)=>n+(p?.length||0)*1000*(i?1:1-fraction),0)});}
   function retire(target){if(!target)return;retired.push(target);if(retired.length>20)retired.shift();source?.entities.remove(target);}
   function clear(){stop();generation++;if(entity){retired.push(entity);if(retired.length>20)retired.shift();}if(source)viewer.dataSources.remove(source,true);source=null;entity=null;plan=null;paths=[];missingPathNotice='';missing.clear();surface=null;lastCamera=null;onPick(null);}
   function setStyle(patch){style={...style,...patch};style.width=Math.max(.5,Math.min(16,Number(style.width)||2));if(!/^#[0-9a-f]{6}$/i.test(style.color))style.color='#369cff';for(const e of source?.entities.values||[])if(e.polyline){e.polyline.width=style.width;e.polyline.material=new Cesium.PolylineDashMaterialProperty({color:Cesium.Color.fromCssColorString(style.color),dashLength:16});}viewer.scene.requestRender();}
@@ -33,17 +34,17 @@ export function createJourneyDisplay({viewer,governor,beforeCamera=()=>{},onStat
       const coordinates=s.geometry?.coordinates;
       if(s.geometry?.type!=='LineString'||!Array.isArray(coordinates)||coordinates.length<2 || !coordinates.every(p=>p.length>=2&&p.slice(0,2).every(Number.isFinite)&&Math.abs(p[0])<=180&&Math.abs(p[1])<=90))return null;
       const line=turf.lineString(coordinates),length=turf.length(line);
-      source.entities.add({id:`transit-leg-${i}`,name:`${names[s.mode]||s.mode}｜${s.routeName||''}`,description:journeySegmentDescription(s),polyline:{positions:Cesium.Cartesian3.fromDegreesArray(coordinates.flatMap(p=>p.slice(0,2))),width:style.width,clampToGround:true,material:new Cesium.PolylineDashMaterialProperty({color:Cesium.Color.fromCssColorString(style.color),dashLength:16})}});
+      markRouteEntity(source.entities.add({id:`transit-leg-${i}`,name:`${names[s.mode]||s.mode}｜${s.routeName||''}`,description:journeySegmentDescription(s),polyline:{positions:Cesium.Cartesian3.fromDegreesArray(coordinates.flatMap(p=>p.slice(0,2))),width:style.width,clampToGround:true,material:new Cesium.PolylineDashMaterialProperty({color:Cesium.Color.fromCssColorString(style.color),dashLength:16})}}),'transit');
       return {line,length};
     });
     plan.segments.forEach((s,i)=>{for(const [key,p]of [['from',s.from],['to',s.to]]){
       if(!Number.isFinite(p?.lat)||!Number.isFinite(p?.lon))continue;const id=`${p.lon},${p.lat},${p.name}`;if(nodes.has(id))continue;nodes.set(id,p);
-      source.entities.add({name:p.name,position:Cesium.Cartesian3.fromDegrees(p.lon,p.lat),point:{pixelSize:9,color:i===0&&key==='from'?Cesium.Color.LIME:Cesium.Color.GOLD,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Infinity},label:{text:p.name,font:'14px sans-serif',showBackground:true,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,2500),pixelOffset:new Cesium.Cartesian2(0,-20),heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Infinity},description:journeySegmentDescription(s)+`<p>資料狀態：${escape(s.realtimeStatus)}；下一段：${escape(names[plan.segments[i+1]?.mode]||'抵達終點')}</p>`});
+      markRouteEntity(source.entities.add({name:p.name,position:Cesium.Cartesian3.fromDegrees(p.lon,p.lat),point:{pixelSize:9,color:i===0&&key==='from'?Cesium.Color.LIME:Cesium.Color.GOLD,heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Infinity},label:{text:p.name,font:'14px sans-serif',showBackground:true,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,2500),pixelOffset:new Cesium.Cartesian2(0,-20),heightReference:Cesium.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Infinity},description:journeySegmentDescription(s)+`<p>資料狀態：${escape(s.realtimeStatus)}；下一段：${escape(names[plan.segments[i+1]?.mode]||'抵達終點')}</p>`}),'transit');
     }});
     if(nextStyle)setStyle(nextStyle);update();emit();viewer.scene.requestRender();
   }
   function update(){
-    const s=segment(),path=paths[index];if(!source||!s)return;
+    const s=segment(),path=paths[index];if(!source||source.show===false||!s)return;
     if(!path){if(entity){retire(entity);entity=null;}return;}
     if(entity)entity.description=journeySegmentDescription(s);
     const coordinates=turf.along(path.line,path.length*fraction).geometry.coordinates;
@@ -63,7 +64,7 @@ export function createJourneyDisplay({viewer,governor,beforeCamera=()=>{},onStat
     const orientation=Cesium.Transforms.headingPitchRollQuaternion(placed.position,new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(bearing)-Math.PI/2,0,0));
     if(!entity || entity.properties?.mode?.getValue()!==s.mode){
       if(entity)retire(entity);
-      entity=source.entities.add({id:'transit-simulation',name:'行程模擬',description:journeySegmentDescription(s),position:placed.position,orientation,properties:{mode:s.mode},model:{uri:`/models/taiwan-${def.file}.glb`,scale:placed.scale,minimumPixelSize:def.pixels,shadows:Cesium.ShadowMode.DISABLED}});
+      entity=markRouteEntity(source.entities.add({id:'transit-simulation',name:'行程模擬',description:journeySegmentDescription(s),position:placed.position,orientation,properties:{mode:s.mode},model:{uri:`/models/taiwan-${def.file}.glb`,scale:placed.scale,minimumPixelSize:def.pixels,shadows:Cesium.ShadowMode.DISABLED}}),'transit');
       const candidate=entity,epoch=generation;
       // Model availability check is lazy and independent of planning/API requests.
       if(missing.has(s.mode))fallback(candidate,s.mode);else fetch(`/models/taiwan-${def.file}.glb`,{method:'HEAD'}).then(r=>{if(!r.ok)throw Error();}).catch(()=>{if(epoch===generation&&entity===candidate){missing.add(s.mode);fallback(candidate,s.mode);}});
@@ -83,18 +84,24 @@ export function createJourneyDisplay({viewer,governor,beforeCamera=()=>{},onStat
     if(fraction>=1){if(index<plan.segments.length-1){index++;fraction=0;if(!paths[index]){missingPathNotice='此段缺少可核實線型，已停止行進示意；班次及票價結論仍保留。';stop();}}else{fraction=1;stop();}}
     if(now-frameAt>=(pressured?100:33)){frameAt=now;update();emit();viewer.scene.requestRender();}if(running)raf=requestAnimationFrame(frame);
   }
-  const projection=()=>{if(!plan||running)return;const camera=viewer.camera.positionWC,viewport=`${viewer.canvas.clientWidth},${viewer.canvas.clientHeight}`;
+  const projection=()=>{if(!plan||source?.show===false||running)return;const camera=viewer.camera.positionWC,viewport=`${viewer.canvas.clientWidth},${viewer.canvas.clientHeight}`;
     if(!lastCamera||Cesium.Cartesian3.distance(camera,lastCamera)>.1||viewport!==lastViewport){lastCamera=Cesium.Cartesian3.clone(camera);lastViewport=viewport;update();}
   };
   const releaseRender=viewer.scene.postRender.addEventListener(projection);
   // This viewer intentionally disables Cesium's InfoBox. Reuse the application's
   // floating window for our own journey entities without replacing other picks.
-  const pickHandler=new Cesium.ScreenSpaceEventHandler(viewer.canvas);
-  pickHandler.setInputAction(click=>{
-    if(!source)return;const hits=viewer.scene.drillPick(click.position,8);
-    const picked=hits.map(hit=>hit.id||hit.primitive?.id).find(item=>item&&source.entities.contains(item));
-    if(picked)onPick({title:picked.name||'旅程路段',html:picked.description?.getValue(viewer.clock.currentTime)||''});
-  },Cesium.ScreenSpaceEventType.LEFT_CLICK);
+  const releasePick=attachRoutePicker({viewer,type:'transit',getSource:()=>source,onPick:picked=>{
+    onPick(routePickInfo('transit',{title:picked.name||'旅程路段',html:picked.description?.getValue(viewer.clock.currentTime)||'',routeId:generation}));
+  }});
+  function hideRoute(expectedRouteId){
+    if(expectedRouteId!==undefined&&String(expectedRouteId)!==String(generation))return {ok:false,stale:true};
+    if(!source)return {ok:false,hidden:false};
+    stop();view='free';source.show=false;onPick(null);emit();viewer.scene.requestRender();return {ok:true,hidden:true};
+  }
+  function showRoute(){
+    if(!source||!plan)return {ok:false};
+    source.show=true;update();emit();viewer.scene.requestRender();return {ok:true};
+  }
   const releaseError=viewer.scene.renderError?.addEventListener((_scene,error)=>{if(entity&&/model|gltf|glb/i.test(error?.message||''))fallback(entity,segment()?.mode);});
   function overview(){
     // Display-scaled vehicles are intentionally lifted. They must never enlarge
@@ -108,5 +115,5 @@ export function createJourneyDisplay({viewer,governor,beforeCamera=()=>{},onStat
     const sphere=Cesium.BoundingSphere.fromPoints(points);
     beforeCamera();viewer.camera.flyToBoundingSphere(sphere,{duration:1,offset:new Cesium.HeadingPitchRange(0,Cesium.Math.toRadians(-55),Math.max(600,sphere.radius*3))});
   }
-  return {load,setStyle,stop,clear,play(){if(!plan)throw Error('請先規劃旅程');if(!paths[index])throw Error('此段缺少可靠路徑資料，仍可查看班次與切換下一段');if(!running){if(index===plan.segments.length-1&&fraction>=1){index=0;fraction=0;update();}beforeCamera();running=true;last=0;raf=requestAnimationFrame(frame);emit();}},pause:stop,previous(){stop();index=Math.max(0,index-1);fraction=0;update();emit();viewer.scene.requestRender();},next(){stop();index=Math.min((plan?.segments.length||1)-1,index+1);fraction=0;update();emit();viewer.scene.requestRender();},setSpeed(value){speed=[1,2,5,10].includes(Number(value))?Number(value):1;emit();},setView(value){view=value;if(value==='overview'&&source){overview();}else if(value==='next'&&segment()?.to){beforeCamera();const p=segment().to;viewer.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(p.lon,p.lat,500)});}update();emit();viewer.scene.requestRender();},destroy(){if(destroyed)return;clear();destroyed=true;pickHandler.destroy();retired.length=0;releaseGovernor?.();releaseRender();releaseError?.();},get plan(){return plan;}};
+  return {load,setStyle,stop,clear,hideRoute,showRoute,play(){if(!plan)throw Error('請先規劃旅程');if(!paths[index])throw Error('此段缺少可靠路徑資料，仍可查看班次與切換下一段');if(!running){showRoute();if(index===plan.segments.length-1&&fraction>=1){index=0;fraction=0;update();}beforeCamera();running=true;last=0;raf=requestAnimationFrame(frame);emit();}},pause:stop,previous(){stop();index=Math.max(0,index-1);fraction=0;update();emit();viewer.scene.requestRender();},next(){stop();index=Math.min((plan?.segments.length||1)-1,index+1);fraction=0;update();emit();viewer.scene.requestRender();},setSpeed(value){speed=[1,2,5,10].includes(Number(value))?Number(value):1;emit();},setView(value){showRoute();view=value;if(value==='overview'&&source){overview();}else if(value==='next'&&segment()?.to){beforeCamera();const p=segment().to;viewer.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(p.lon,p.lat,500)});}update();emit();viewer.scene.requestRender();},destroy(){if(destroyed)return;clear();destroyed=true;releasePick();retired.length=0;releaseGovernor?.();releaseRender();releaseError?.();},get plan(){return plan;}};
 }

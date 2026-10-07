@@ -100,23 +100,38 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
     }
     // A uniquely named official station with an explicit rail system needs no
     // second POI search or choice among unrelated nearby businesses.
-    const explicitSystem=/^高鐵/.test(query)?'HSR':/^台鐵|^臺鐵|火車站$/.test(query)?'TRA':null;
+    const explicitSystem=/^高鐵/.test(query)?'HSR':/^台鐵|^臺鐵|(?:火車站|車站)$/.test(query)?'TRA':null;
     const exactStations=results.filter(r=>r.type===explicitSystem);
     if(exactStations.length===1)return {results:exactStations,needsSelection:false,notices};
-    const cacheKey=`search:${query}:${!!credential('TOMTOM_API_KEY')}`,hit=cached(cacheKey,TDX_TTL.search);
+    const area=/^(?:臺北|台北|新北|桃園|臺中|台中|臺南|台南|高雄|宜蘭|羅東|礁溪|蘇澳|花蓮|臺東|台東|新竹|基隆|嘉義)(?:市|鎮|鄉)?$/.test(query);
+    const areaQuery=area&&!/[市鎮鄉]$/.test(query)?`${query}${/羅東|蘇澳/.test(query)?'鎮':query==='礁溪'?'鄉':'市'}`:query;
+    const cacheKey=`search:${area?'area:':''}${query}:${!!credential('TOMTOM_API_KEY')}`,hit=cached(cacheKey,TDX_TTL.search);
     let publicResults=hit;
     if(!publicResults){
       const tt=credential('TOMTOM_API_KEY');let url;
-      if(tt){url=new URL(`https://api.tomtom.com/search/2/search/${encodeURIComponent(query)}.json`);Object.entries({key:tt,language:'zh-TW',limit:5,countrySet:'TW'}).forEach(([k,v])=>url.searchParams.set(k,v));}
+      if(tt){url=new URL(`https://api.tomtom.com/search/2/${area?'geocode':'search'}/${encodeURIComponent(areaQuery)}.json`);Object.entries({key:tt,language:'zh-TW',limit:5,countrySet:'TW',...(area?{entityTypeSet:'Municipality,MunicipalitySubdivision'}:{})}).forEach(([k,v])=>url.searchParams.set(k,v));}
       else{url=new URL('https://photon.komoot.io/api/');Object.entries({q:query,limit:5,bbox:'117,20,123.5,27'}).forEach(([k,v])=>url.searchParams.set(k,v));}
       try{
         const response=await fetcher(url.href,{signal:AbortSignal.any([signal,AbortSignal.timeout(12000)].filter(Boolean))});if(!response.ok){await response.body?.cancel();throw tdxError('GEOCODE_FAILED','地點搜尋服務暫時無法使用',502);}
-        const data=await readJson(response);publicResults=tt?(data.results||[]).map(r=>({id:r.id,name:r.poi?.name||r.address?.freeformAddress,lat:r.position?.lat,lon:r.position?.lon,address:r.address?.freeformAddress||'',source:'TomTom 地點搜尋',type:r.type})): (data.features||[]).map((r,i)=>({id:r.properties?.osm_id?`osm:${r.properties.osm_type}:${r.properties.osm_id}`:`photon:${i}`,name:r.properties?.name||query,lat:r.geometry?.coordinates?.[1],lon:r.geometry?.coordinates?.[0],address:[r.properties?.city,r.properties?.street,r.properties?.housenumber].filter(Boolean).join(' '),source:'Photon / OpenStreetMap',type:r.properties?.osm_value||'place'}));
+        const data=await readJson(response);publicResults=tt?(data.results||[]).filter(r=>!area||(r.type==='Geography'&&[r.address?.municipality,r.address?.municipalitySubdivision].some(name=>norm(name)===norm(areaQuery)))).map(r=>({id:r.id,name:area?`${areaQuery}（地區中心）`:r.poi?.name||r.address?.freeformAddress,lat:r.position?.lat,lon:r.position?.lon,address:r.address?.freeformAddress||'',source:area?'TomTom 行政地區地理編碼':'TomTom 地點搜尋',type:r.type})): (data.features||[]).map((r,i)=>({id:r.properties?.osm_id?`osm:${r.properties.osm_type}:${r.properties.osm_id}`:`photon:${i}`,name:r.properties?.name||query,lat:r.geometry?.coordinates?.[1],lon:r.geometry?.coordinates?.[0],address:[r.properties?.city,r.properties?.street,r.properties?.housenumber].filter(Boolean).join(' '),source:'Photon / OpenStreetMap',type:r.properties?.osm_value||'place'}));
         publicResults=publicResults.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lon)&&r.lat>=20&&r.lat<=27&&r.lon>=117&&r.lon<=123.5);store(cacheKey,publicResults);
       }catch(e){abort(signal);notices.push('地點搜尋失敗；請稍後重試或選擇已確認車站。');publicResults=[];}
     }
     for(const r of publicResults)if(!results.some(x=>norm(x.name)===norm(r.name)&&Math.abs(x.lat-r.lat)<.002&&Math.abs(x.lon-r.lon)<.002))results.push(r);
+    const exact=results.filter(r=>norm(r.name)===norm(query));if(exact.length===1)return {results:exact,needsSelection:false,notices};
     return {results:results.slice(0,8),needsSelection:results.length>1,notices};
+  }
+  async function confirmedLocation(point,signal){
+    if(Number.isFinite(point?.lat)&&Number.isFinite(point?.lon)){
+      // A text edit can carry old coordinates from a previously selected POI.
+      // Explicit station names must agree with the authoritative station point.
+      if(/^(?:台鐵|臺鐵|高鐵)|(?:火車站|車站)$/.test(point.name||'')){
+        const found=await resolveLocation(point.name,{signal});if(found.results.length===1)return found.results[0];
+        if(found.results.some(r=>['TRA','HSR'].includes(r.type)))return found;
+      }
+      return point;
+    }
+    const found=await resolveLocation(typeof point==='string'?point:point.name,{signal});return found.results.length===1?found.results[0]:found;
   }
   async function enrich(plan,signal,request){
     const parentSignal=signal;signal=AbortSignal.any([signal,AbortSignal.timeout(25000)].filter(Boolean));
@@ -229,9 +244,8 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
   async function planTdx(input,{signal,refresh=false}={}){
     await accessToken(signal);const request=normalizeTripRequest(input,now()),points=[request.origin,...request.waypoints.map(w=>w.location),request.destination],unresolved=[];
     for(let i=0;i<points.length;i++){
-      const p=points[i];if(p&&typeof p==='object'&&Number.isFinite(p.lat)&&Number.isFinite(p.lon))continue;
-      const resolved=await resolveLocation(typeof p==='string'?p:p.name,{signal});
-      if(resolved.results.length!==1)unresolved.push({index:i,query:typeof p==='string'?p:p.name,...resolved});else points[i]=resolved.results[0];
+      const p=points[i],resolved=await confirmedLocation(p,signal);
+      if(resolved.results)unresolved.push({index:i,query:typeof p==='string'?p:p.name,...resolved});else points[i]=resolved;
     }
     if(unresolved.length)return {plans:[],request,needsSelection:true,unresolvedLocations:unresolved,sourceStatus:{tdx:'ready',geocode:'needs-confirmation'},notices:['請先確認候選地點，避免規劃到錯誤車站或同名地點。']};
     request.origin=points[0];request.destination=points.at(-1);request.waypoints.forEach((w,i)=>w.location=points[i+1]);
@@ -299,20 +313,27 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
     onProgress(forceOfficial?'工作中... 已完成旅程條件整理；正在依您的要求查詢官方公開資料。':'工作中... 已完成旅程條件整理；正在查詢 TDX 班次與路線。');
     if(!forceOfficial&&previous<2)try{result=await planTdx(request,{signal,refresh});}catch(e){abort(signal);error=e;}
     if(result?.needsSelection||result?.needsClarification)return result;
-    if(result?.plans?.length){attempts.delete(key);onProgress('工作中... 已完成官方班次、票價與路線查核；正在準備地圖。');return result;}
+    const complete=p=>p.geometryStatus==='ready'&&p.segments?.length&&p.segments.every(s=>s.geometry?.type==='LineString'&&s.geometry.coordinates?.length>=2);
+    const partialPlans=result?.plans?.filter(p=>!complete(p))||[];
+    if(result?.plans?.some(complete)){attempts.delete(key);result.plans.sort((a,b)=>Number(!!complete(b))-Number(!!complete(a)));for(const p of result.plans)p.hasCompletePath=!!complete(p);onProgress('工作中... 已完成可展示方案班次與完整路線查核；正在準備地圖。');return result;}
     if(error&&!['TDX_NO_ROUTE','TDX_PERMISSION_DENIED','TDX_QUOTA_EXCEEDED','TDX_RATE_LIMITED','TDX_SERVICE_FAILED','TDX_CREDENTIALS_REQUIRED','TDX_AUTH_FAILED'].includes(error.code))throw error;
-    const reason=error?.message||result?.notices?.join('；')||(forceOfficial?`${prior.diagnostic?.message||''} 依您的要求查詢官方公開班表。`:`${prior.diagnostic?.message||''} 相同條件已連續兩次無可靠方案，停止重複相同 TDX 查詢。`);
+    const reason=error?.message||(partialPlans.length?'TDX 候選班次已取得，但部分路段缺少可核實線型；接續查詢完整官方備援。':result?.notices?.[0])||(forceOfficial?'依您的要求查詢官方公開班表。':'相同條件已連續兩次無可靠方案，停止重複相同 TDX 查詢。');
     const diagnostic=(forceOfficial&&prior.diagnostic)||(!forceOfficial&&previous>=2)?{...prior.diagnostic,message:reason,failedAttempts:previous}:{code:forceOfficial?'OFFICIAL_REQUESTED':error?.code||'TDX_NO_MATCHING_PLAN',message:reason,upstreamStatus:error?.upstreamStatus||error?.rateLimit?.httpStatus||null,rateLimit:error?.rateLimit||null,failedAttempts:previous+(forceOfficial?0:1),classification:forceOfficial?'requested':error?.code?.includes('QUOTA')?'quota':error?.code?.includes('PERMISSION')?'permission':error?'service':'no-matching-plan'};
     if(!forceOfficial){attempts.set(key,{count:Math.min(2,previous+1),diagnostic});if(attempts.size>30)attempts.delete(attempts.keys().next().value);}
     onProgress(`工作中... ${forceOfficial?'已選擇官方公開資料':'TDX 查核已完成'}：${reason} 正在查詢官方公開班表備援。`);
     let resolved=result?.request||request;
     const points=[resolved.origin,...resolved.waypoints.map(w=>w.location),resolved.destination];
-    for(let i=0;i<points.length;i++){if(Number.isFinite(points[i]?.lat)&&Number.isFinite(points[i]?.lon))continue;const found=await resolveLocation(typeof points[i]==='string'?points[i]:points[i].name,{signal});if(found.results.length!==1)return {plans:[],request:resolved,needsSelection:true,unresolvedLocations:[{index:i,...found}],diagnostic,notices:['請確認正確起訖地點，避免將同名市區當成車站。']};points[i]=found.results[0];}
+    for(let i=0;i<points.length;i++){const point=points[i],found=await confirmedLocation(point,signal);if(found.results)return {plans:[],request:resolved,needsSelection:true,unresolvedLocations:[{index:i,query:typeof point==='string'?point:point.name,...found}],diagnostic,notices:['請確認正確起訖地點，避免將同名市區當成車站。']};points[i]=found;}
     resolved={...resolved,origin:points[0],destination:points.at(-1),waypoints:resolved.waypoints.map((w,i)=>({...w,location:points[i+1]}))};
-    let backup;try{backup=await official.plan(resolved,{signal,onProgress});}catch(e){abort(signal);return {plans:[],request:resolved,diagnostic,serviceError:diagnostic,notices:[reason,'官方公開班表備援：'+e.message]};}
+    let backup;try{backup=await official.plan(resolved,{signal,onProgress});}catch(e){abort(signal);return {plans:partialPlans,partialPlans,request:resolved,diagnostic,serviceError:diagnostic,notices:[reason,'官方公開班表備援：'+e.message]};}
     for(const p of backup.plans){for(const segment of p.segments){try{segment.fare=await fares.quoteSegment(segment,resolved.farePreference,{signal,allowEstimates:true,preferCheapest:resolved.preference==='cheapest'});}catch(e){abort(signal);p.notices.push('此段票價未取得，保留缺漏：'+e.message);}}finalizePlan(p);}
     rankTransitPlans(backup.plans,resolved.preference,resolved.departureTime);
-    backup.diagnostic=diagnostic;backup.serviceError=error?diagnostic:undefined;backup.notices.unshift('TDX 查核原因：'+reason);onProgress(backup.plans.length?'工作中... 已完成備援班次、票價及完整地圖路徑；正在回報規劃結果。':'查核已結束，未取得符合所有條件的可靠方案；詳細原因已回報。');return backup;
+    if(resolved.timeMode==='arrival'&&resolved.preference==='recommended')backup.plans.sort((a,b)=>Date.parse(b.latestLeaveTime||b.departureTime)-Date.parse(a.latestLeaveTime||a.departureTime));
+    backup.plans=backup.plans.slice(0,3);backup.partialPlans=partialPlans;
+    for(const p of [...backup.plans,...partialPlans])p.hasCompletePath=!!complete(p);
+    if(!backup.plans.length&&partialPlans.length){backup.plans=partialPlans;backup.notices.push('目前只有線型缺漏的候選班次；不能當作完整可展示路線。');}
+    else if(partialPlans.length)backup.notices.push('原 TDX 線型未完整候選已另存 partialPlans；優先呈現可展示完整官方備援。');
+    backup.diagnostic=diagnostic;backup.serviceError=error?diagnostic:undefined;backup.notices=[...new Set(['TDX 查核原因：'+reason,...backup.notices])];onProgress(backup.plans.some(complete)?'工作中... 已完成備援班次、票價及完整地圖路徑；正在回報規劃結果。':backup.plans.length?'已查核候選班次；部分路線缺漏，未視為完整可展示成果。':'查核已結束，未取得符合所有條件的可靠方案；詳細原因已回報。');return backup;
   }
   async function handle(data,{signal,onProgress}={}){
     if(!data||typeof data!=='object')throw tdxError('INVALID_REQUEST','請提供大眾運輸請求');abort(signal);

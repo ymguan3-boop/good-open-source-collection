@@ -1,12 +1,14 @@
 import * as Cesium from 'cesium';
 import * as turf from '@turf/turf';
 import { addGeoJSON } from './dataImport.js';
-import { listLayers, removeLayer } from './layerRegistry.js';
+import { listLayers, removeLayer, setLayerVisible } from './layerRegistry.js';
 import { browserAi } from './browserAi.js';
 import { resolvePlace } from './places.js';
 import { attachNavigationCard, vehicleDisplayPolicy, VEHICLE_COLORS, illustrativeModelPlacement } from './navigationDisplay.js';
 
-export function createNavigationController({ viewer, beforeCamera=()=>{}, onStatus=()=>{},onRoute=()=>{} }) {
+import { attachRoutePicker, markRouteEntity, routePickInfo, escapeRouteText } from './routePick.js';
+
+export function createNavigationController({ viewer, beforeCamera=()=>{}, onStatus=()=>{},onRoute=()=>{},onPick=()=>{} }) {
   let vehicleColors={car:'blue',motorcycle:'red'};
   try{const saved=JSON.parse(localStorage.getItem('gev.tw.vehicleColors')||'{}');for(const mode of ['car','motorcycle'])if(VEHICLE_COLORS.some(color=>color.id===saved[mode]))vehicleColors[mode]=saved[mode];}catch{}
   function setVehicleColor(mode,color){
@@ -34,6 +36,13 @@ export function createNavigationController({ viewer, beforeCamera=()=>{}, onStat
   let previewTimer=null;
   let driveMode=false,driveHeights=[];
   let releaseCard=null,attachedCard=null;
+  const releasePick=attachRoutePicker({viewer,type:'driving',getSource:()=>listLayers().find(layer=>layer.id===routeLayerId)?.dataSource,onPick:picked=>{
+    if(!currentRoute)return;
+    const summary=routeSummary(currentRoute),escape=escapeRouteText;
+    const title=picked.name||`${summary.travelMode==='motorcycle'?'機車':'汽車'}導航路線`;
+    const html=`<b>${escape(summary.travelMode==='motorcycle'?'機車':'汽車')}路線</b><p>起點：${escape(summary.origin)} → 終點：${escape(summary.destination)}</p>${summary.waypoints.length?`<p>中途點：${summary.waypoints.map(p=>escape(p.name)).join(' → ')}</p>`:''}<p>${(summary.lengthMeters/1000).toFixed(1)} 公里｜預估 ${Math.max(1,Math.ceil(summary.travelTimeSeconds/60))} 分鐘${summary.trafficDelaySeconds?`｜交通延誤約 ${Math.ceil(summary.trafficDelaySeconds/60)} 分鐘`:''}</p><p>來源：TomTom Routing API；行進示意為規劃路線模擬，非裝置實際位置。</p>`;
+    onPick(routePickInfo('driving',{title,html,routeId:routeLayerId}));
+  }});
   function attachCard(card){
     if(card===attachedCard)return;
     releaseCard?.();attachedCard=card;
@@ -127,8 +136,9 @@ export function createNavigationController({ viewer, beforeCamera=()=>{}, onStat
     currentRoute.cumulative=[0];for(let i=1;i<currentRoute.coordinates.length;i++)currentRoute.cumulative.push(currentRoute.cumulative[i-1]+turf.distance(currentRoute.coordinates[i-1],currentRoute.coordinates[i]));
     currentRoute.lengthKm=currentRoute.cumulative.at(-1);
     for(const [place,label,color] of [[start,'起點','#35e586'],...stops.map((stop,index)=>[stop,`中途 ${index+1}`,'#b39dff']),[end,'終點','#ffbf35']])layer.dataSource.entities.add({position:Cesium.Cartesian3.fromDegrees(place.lon,place.lat,12),point:{pixelSize:11,color:Cesium.Color.fromCssColorString(color),outlineColor:Cesium.Color.BLACK,outlineWidth:2,disableDepthTestDistance:Infinity},label:{text:`${label}：${place.label}`,font:'14px IBM Plex Sans TC',fillColor:Cesium.Color.WHITE,showBackground:true,backgroundColor:Cesium.Color.fromCssColorString('#071a2b').withAlpha(.9),pixelOffset:new Cesium.Cartesian2(0,label==='起點' ? -26 : 26),disableDepthTestDistance:Infinity}});
-    layer.setVisibility=visible=>{if(!visible)stopMotion();onRoute(visible ? routeSummary(currentRoute) : null);};
-    layer.dispose=()=>{stopMotion();positionEntity=null;currentRoute=null;routeLayerId=null;onRoute(null);};
+    for(const entity of layer.dataSource.entities.values)markRouteEntity(entity,'driving');
+    layer.setVisibility=visible=>{if(!visible){stopMotion();onPick(null);}onRoute(visible ? routeSummary(currentRoute) : null);};
+    layer.dispose=()=>{stopMotion();positionEntity=null;currentRoute=null;routeLayerId=null;onRoute(null);onPick(null);};
     onRoute(routeSummary(currentRoute));
     onStatus(summaryText(currentRoute));
     startPreview();
@@ -140,7 +150,7 @@ export function createNavigationController({ viewer, beforeCamera=()=>{}, onStat
     following=false;driveMode=false;
     const layer = routeLayerId ? listLayers().find(l => l.id === routeLayerId) : null;
     if (!layer?.dataSource) throw new Error('尚未規劃行車路線');
-    layer.visible=true;layer.dataSource.show=true;onRoute(routeSummary(currentRoute));
+    setLayerVisible(routeLayerId,true);
     await viewer.flyTo(layer.dataSource, { duration:1.2 });
     onStatus(summaryText(currentRoute));
     return routeSummary(currentRoute);
@@ -160,16 +170,24 @@ export function createNavigationController({ viewer, beforeCamera=()=>{}, onStat
     cancelAnimationFrame(previewTimer);previewTimer=null;
     if(positionEntity){listLayers().find(l=>l.id===routeLayerId)?.dataSource?.entities.remove(positionEntity);positionEntity=null;}
   }
+  function hideRoute(expectedRouteId){
+    if(expectedRouteId!==undefined&&String(expectedRouteId)!==String(routeLayerId))return {ok:false,stale:true};
+    if(!routeLayerId)return {ok:false,hidden:false};
+    ++planEpoch;stopMotion();
+    const hidden=setLayerVisible(routeLayerId,false);
+    onStatus('行車路線顯示已關閉；可按「整條路線」重新顯示');viewer.scene.requestRender();
+    return {ok:hidden,hidden};
+  }
   function clearRoute(){
     ++planEpoch;stopMotion();
     if(routeLayerId)removeLayer(routeLayerId);
-    currentRoute=null;routeLayerId=null;onRoute(null);onStatus('路線已關閉');
+    currentRoute=null;routeLayerId=null;onRoute(null);onPick(null);onStatus('路線已關閉');
     return { ok:true };
   }
   function startPreview({follow=false,durationSeconds=60}={}){
     if(!currentRoute)throw new Error('請先規劃路線');
     stopMotion();lastSurface={at:-Infinity,height:0};driveHeights=follow?driveHeights:[];const layer=listLayers().find(l=>l.id===routeLayerId);if(!layer)throw new Error('路線圖層已移除');
-    layer.visible=true;layer.dataSource.show=true;onRoute(routeSummary(currentRoute));
+    setLayerVisible(routeLayerId,true);
     following=follow;driveMode=follow;viewer.camera.cancelFlight();
     const started=performance.now();
     const tick=()=>{if(!currentRoute || !layer.visible){stopMotion();return;}const fraction=Math.min(1,(performance.now()-started)/(durationSeconds*1000)),distance=currentRoute.lengthKm*fraction,distances=currentRoute.cumulative;
@@ -236,10 +254,10 @@ export function createNavigationController({ viewer, beforeCamera=()=>{}, onStat
     const orientation=Cesium.Transforms.headingPitchRollQuaternion(position,new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(headingDegrees)-Math.PI/2,0,0));
     if(!positionEntity){
       const display=vehicleDisplayPolicy(currentRoute.travelMode,vehicleColors[currentRoute.travelMode]);
-      positionEntity=listLayers().find(l=>l.id===routeLayerId).dataSource.entities.add({
+      positionEntity=markRouteEntity(listLayers().find(l=>l.id===routeLayerId).dataSource.entities.add({
         name:currentRoute.travelMode==='motorcycle'?'機車路線示意':'汽車路線示意',position,orientation,properties:{illustrativeVehicle:true,routeSurfaceHeight:height,displayLift},
         model:{uri:display.uri,scale:displayScale,minimumPixelSize:display.minimumPixelSize,heightReference:Cesium.HeightReference.NONE,shadows:Cesium.ShadowMode.DISABLED},
-      });
+      }),'driving');
     }else{positionEntity.position=position;positionEntity.orientation=orientation;positionEntity.model.scale=displayScale;positionEntity.properties.routeSurfaceHeight=height;positionEntity.properties.displayLift=displayLift;}
     const routeDistance=currentRoute.lengthKm*fraction;
     if(following){
@@ -275,7 +293,7 @@ export function createNavigationController({ viewer, beforeCamera=()=>{}, onStat
 
   return {
     attachCard,
-    destroy(){stopNavigation();releaseCard?.();releaseCard=null;attachedCard=null;},
+    destroy(){stopNavigation();releasePick();releaseCard?.();releaseCard=null;attachedCard=null;},
     setRouteStyle,
     setVehicleColor,
     get vehicleColors(){return {...vehicleColors};},
@@ -286,6 +304,7 @@ export function createNavigationController({ viewer, beforeCamera=()=>{}, onStat
     navigationView,
     stopNavigation,
     clearRoute,
+    hideRoute,
     startPreview,
     driveRoute,
     get currentRoute(){ return currentRoute; },
