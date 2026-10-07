@@ -1,3 +1,7 @@
+# v35 工具列與紀錄清單（2026-10-08）
+
+以v34 7e5c4fe為基底，只發布兩個介面來源及本輪文件，不包含使用者紀錄、SQLite、截圖或dist。 詳見 [v35說明](docs/browser-v35-compact-toolbar-20261008.md)。
+
 # v34 批次分析與插話（2026-10-07）
 
 以 v33 `d7d06a2b26535e81f53a99846337e5c56760f089` 為基底；僅发布本輪來源及說明文件與倉庫根 README。排除使用者紀錄、SQLite、圖資、金鑰、快取、.work、dist與截圖。驗收範圍見 [v34 文件](docs/browser-v34-batch-analysis-20261007.md)。

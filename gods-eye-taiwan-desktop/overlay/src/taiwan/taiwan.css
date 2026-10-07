@@ -754,7 +754,7 @@ body.gev-tw-aerial-capture .tw-aerial-hud,body.gev-tw-aerial-capture .tw-aerial-
 .tw-aerial-hud ul{padding-left:18px;margin:6px 0}.tw-aerial-hud span{display:block;color:#daeaf4}
 
 /* AI help keeps voice and spatial settings in separate, vertical entrances. */
-.tw-ai-help-menu{display:flex;flex-direction:column;gap:14px}.tw-ai-help-menu button{display:flex;flex-direction:column;align-items:flex-start;gap:10px;width:100%;padding:18px;text-align:left}.tw-ai-help-menu small{font-size:12px;color:#d3e6ef}
+.tw-ai-help-menu{display:flex;flex-direction:column;gap:8px}.tw-ai-help-menu button{display:flex;flex-direction:column;align-items:flex-start;gap:.35em;width:100%;padding:.65em .8em;text-align:left}.tw-ai-help-menu small{font-size:12px;color:#d3e6ef}
 .tw-ai-voice-entry,.tw-ai-voice-help button[data-act="voice-model-save"],.tw-ai-voice-help button[data-act="voice-style-save"]{background:#194b49!important;border-color:#56cfb7!important}
 .tw-ai-space-entry,.tw-ai-space-help button[data-act="ai-help-chat"]{background:#30426e!important;border-color:#83acf6!important}
 .tw-ai-voice-help button[data-act="voice-style-reset"],.tw-ai-space-help button[data-act="ai-help-style"]{background:#61416e!important;border-color:#c598db!important}
@@ -768,9 +768,15 @@ body.gev-tw-aerial-capture .tw-aerial-hud,body.gev-tw-aerial-capture .tw-aerial-
 
 /* Shared horizontal commands retain readable contrast and equal height. */
 .tw-command-row{display:flex!important;flex-wrap:nowrap!important;align-items:stretch;gap:8px;width:100%;box-sizing:border-box}
-.tw-command-row>button{flex:1 1 0;min-width:0;min-height:42px;margin:0;white-space:normal;line-height:1.35;padding:8px 6px!important;border:1px solid #62bade!important;border-radius:8px!important;background:#133446!important;color:#effaff!important;font:inherit;font-weight:600}
+.tw-command-row>button{flex:1 1 0;min-width:0;min-height:0;margin:0;white-space:normal;padding:.45em .65em!important;border:1px solid #62bade!important;border-radius:8px!important;background:#133446!important;color:#effaff!important;font:inherit;line-height:1.25;font-weight:600}
 .tw-command-row>button.tw-analysis-primary{background:#234f72!important;border-color:#9bcfff!important}
 .tw-command-row>button.tw-analysis-secondary{background:#633b76!important;border-color:#d6ace7!important}
 .tw-shell .tw-row-actions button{background:#133446;color:#effaff;border:1px solid #62bade;border-radius:7px;min-height:32px;padding:6px 10px}
-.tw-record-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
-.tw-record-filters label{margin:0;min-width:0}.tw-record-filters input,.tw-record-filters select{width:100%;box-sizing:border-box;background:#0b2432;color:#eef9ff;border:1px solid #62bade;padding:6px}
+
+/* Text buttons use a font-relative line height; toolbar artwork keeps its existing size. */
+#tw-shell .tw-drawer-body button{line-height:1.25!important}
+#tw-shell .tw-drawer-body button :is(b,small,p){line-height:1.25;margin-block:0}
+#tw-shell .tw-drawer-body :is(.tw-actions,.tw-profile-grid)>button,
+#tw-shell .tw-drawer-body .tw-ai-back{padding:.45em .65em!important}
+#tw-shell .tw-drawer-body .tw-record-filename{padding:2px 0!important}
+#tw-shell .tw-drawer-body .tw-record-summary button{padding:4px 6px!important}
