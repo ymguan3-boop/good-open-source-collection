@@ -58,6 +58,35 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
   }
 
   /** Preserve existing DOM/action handlers while sharing the same window stack. */
+  const helpContent = new WeakMap();
+  function collectHelp(element) {
+    const name=element.querySelector('.tw-drawer-head h2,.tw-floating-header strong,[data-floating-existing-header] h2,[data-aircraft-label]')?.textContent || element.getAttribute('aria-label') || '視窗';
+    let entry=helpContent.get(element);
+    if(!entry || entry.name!==name){entry={name,sections:new Map()};helpContent.set(element,entry);}
+    for(const detail of [...element.querySelectorAll('details')]) {
+      const summary=detail.querySelector(':scope > summary');
+      if(!summary || !/(功能|操作|操控|規劃與安全).*說明|操作方式|操作範例|提問範例|功能與回答範圍/.test(summary.textContent) || detail.querySelector('input,select,textarea,button'))continue;
+      const section=doc.createElement('section'),heading=doc.createElement('h3');heading.textContent=summary.textContent;section.append(heading);
+      for(const child of [...detail.children])if(child!==summary)section.append(child.cloneNode(true));
+      for(const paragraph of [...section.querySelectorAll('p')]){
+        const list=doc.createElement('ul');
+        for(const text of paragraph.textContent.split(/。|；/).map(value=>value.trim()).filter(Boolean)){const item=doc.createElement('li');item.textContent=text;list.append(item);}
+        paragraph.replaceWith(list);
+      }
+      entry.sections.set(heading.textContent,section.innerHTML);detail.remove();
+    }
+    return entry;
+  }
+  function showHelp(element) {
+    const entry=collectHelp(element);
+    const help=create({id:'panel-function-help',title:'功能及說明',width:480,height:540});
+    help.body.replaceChildren();
+    const heading=doc.createElement('h2');heading.textContent=entry.name;help.body.append(heading);
+    const content=doc.createElement('div');content.className='tw-panel-help-content';
+    content.innerHTML=[...entry.sections.values()].join('') || '<ul><li>拖曳標題列可移動視窗；拖曳右下角可調整大小。</li><li>按縮小／展開切換視窗大小，背景工作繼續執行。</li><li>按關閉結束此功能；可從工具列再次開啟。</li></ul>';
+    help.body.append(content);help.restore().bringToFront();
+    return help;
+  }
   function enhanceExisting(element,{id,handle,closeButton,onClose=()=>{element.hidden=true;}}={}) {
     if(!element || !id || !handle)throw new Error('既有視窗需要 element、id 與標題列');
     if(enhanced.has(element))return enhanced.get(element);
@@ -91,12 +120,13 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
       set('max-width',`${Math.max(1,win.innerWidth-16)}px`);set('max-height',`${Math.max(1,win.innerHeight-16)}px`);
       element.dataset.panelMode=mode;save();
     };
-    const minimize=doc.createElement('button');minimize.type='button';minimize.dataset.existingPanelAction='minimize';minimize.textContent='−';minimize.title='縮小視窗（工作繼續）';minimize.setAttribute('aria-label',minimize.title);
-    const restore=doc.createElement('button');restore.type='button';restore.dataset.existingPanelAction='restore';restore.textContent='□';restore.title='展開視窗';restore.setAttribute('aria-label',restore.title);
+    const toggle=doc.createElement('button');toggle.type='button';toggle.dataset.existingPanelAction='toggle';
+    const helpButton=doc.createElement('button');helpButton.type='button';helpButton.dataset.existingPanelAction='help';helpButton.textContent='?';helpButton.title='功能及說明';helpButton.setAttribute('aria-label',helpButton.title);
     let madeClose=false;
     if(!closeButton){madeClose=true;closeButton=doc.createElement('button');closeButton.type='button';closeButton.textContent='×';closeButton.title='關閉視窗';closeButton.setAttribute('aria-label','關閉視窗');handle.append(closeButton);}
-    closeButton.before(restore,minimize);
-    const render=()=>{minimize.hidden=mode==='minimized';restore.hidden=mode!=='minimized';element.dataset.panelMode=mode;clamp();};
+    closeButton.title='關閉視窗';closeButton.setAttribute('aria-label','關閉視窗');closeButton.classList.add('tw-managed-close');
+    closeButton.before(toggle,helpButton);
+    const render=()=>{toggle.textContent=mode==='minimized'?'□':'−';toggle.title=mode==='minimized'?'展開視窗':'縮小視窗（工作繼續）';toggle.setAttribute('aria-label',toggle.title);element.dataset.panelMode=mode;collectHelp(element);clamp();};
     const end=()=>{if(!drag)return;const pointer=drag.id;drag=null;if(handle.hasPointerCapture?.(pointer))handle.releasePointerCapture(pointer);save();};
     const down=event=>{
       if(event.button!==0 || event.target.closest('button,input,select,textarea,a'))return;
@@ -104,7 +134,7 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
       handle.setPointerCapture(event.pointerId);event.preventDefault();event.stopPropagation();event.stopImmediatePropagation?.();
     };
     const move=event=>{if(!drag || event.pointerId!==drag.id)return;bounds.x=drag.left+event.clientX-drag.x;bounds.y=drag.top+event.clientY-drag.y;clamp();};
-    const click=event=>{const button=event.target.closest('[data-existing-panel-action]');if(!button)return;event.stopPropagation();if(button===minimize)api.minimize();else if(button===restore)api.restore();};
+    const click=event=>{const button=event.target.closest('[data-existing-panel-action]');if(!button)return;event.stopPropagation();if(button===toggle){if(mode==='minimized')api.restore();else api.minimize();}else if(button===helpButton)showHelp(element);};
     const closeClick=()=>{end();Promise.resolve(onClose()).catch(()=>{});};
     const api={element,get mode(){return mode;},get state(){return {...bounds,mode};},
       show(){element.hidden=false;render();front(element);return api;},hide(){end();element.hidden=true;return api;},
@@ -114,7 +144,7 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
         handle.removeEventListener('pointerdown',down,true);handle.removeEventListener('pointermove',move);handle.removeEventListener('click',click);
         for(const name of ['pointerup','pointercancel','lostpointercapture'])handle.removeEventListener(name,end);
         win.removeEventListener('resize',clamp);win.removeEventListener('blur',end);if(madeClose){closeButton.removeEventListener('click',closeClick);closeButton.remove();}
-        minimize.remove();restore.remove();element.classList.remove('tw-managed-existing');
+        toggle.remove();helpButton.remove();element.classList.remove('tw-managed-existing');
         if(originalStyle===null)element.removeAttribute('style');else element.setAttribute('style',originalStyle);
         if(originalMode===undefined)delete element.dataset.panelMode;else element.dataset.panelMode=originalMode;
         if(originalHeader===null)handle.removeAttribute('data-floating-existing-header');else handle.setAttribute('data-floating-existing-header',originalHeader);
@@ -132,7 +162,7 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
     enhanced.set(element,api);render();return api;
   }
 
-  function create({ id, title, width = 400, height = 500, onClose = () => {}, minimizedContent, onHelp } = {}) {
+  function create({ id, title, width = 400, height = 500, onClose = () => {}, minimizedContent } = {}) {
     if (disposed) throw new Error('浮動視窗管理器已關閉');
     if (!id) throw new Error('浮動視窗需要固定識別碼');
     if (panels.has(id)) return panels.get(id);
@@ -152,8 +182,7 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
     const heading = doc.createElement('strong'); heading.textContent = title || id;
     const summary = doc.createElement('span'); summary.className = 'tw-floating-summary';
     const actions = doc.createElement('div'); actions.className = 'tw-floating-window-actions';
-    const buttons = [ ['restore', '□', '展開視窗'], ['hide', '◉', '隱藏視窗（工作繼續）'], ['minimize', '−', '縮小視窗（工作繼續）'], ['close', '×', '關閉視窗並停止工作'] ];
-    if (onHelp) buttons.splice(buttons.length - 2, 0, ['help', '?', '功能說明']);
+    const buttons = [ ['toggle', '−', '縮小視窗（工作繼續）'], ['help', '?', '功能及說明'], ['close', '×', '關閉視窗並停止工作'] ];
     for (const [action, text, label] of buttons) {
       const button = doc.createElement('button'); button.type = 'button';
       button.dataset.panelAction = action; button.textContent = text; button.title = label;
@@ -192,8 +221,10 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
     function render() {
       element.hidden = state.mode === 'hidden';
       element.dataset.panelMode = state.mode;
-      header.querySelector('[data-panel-action="minimize"]').hidden = state.mode === 'minimized';
-      header.querySelector('[data-panel-action="restore"]').hidden = state.mode !== 'minimized';
+      const toggle=header.querySelector('[data-panel-action="toggle"]');
+      toggle.textContent=state.mode==='minimized'?'□':'−';
+      toggle.title=state.mode==='minimized'?'展開視窗':'縮小視窗（工作繼續）';toggle.setAttribute('aria-label',toggle.title);
+      collectHelp(element);
       clamp();
     }
     function endDrag() {
@@ -250,7 +281,7 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
       },
       destroy() {
         if (destroyed) return;
-        endDrag(); save(); destroyed = true; observer?.disconnect();
+        endDrag(); save(); destroyed = true; observer?.disconnect(); helpObserver?.disconnect();
         header.removeEventListener('pointerdown', down); header.removeEventListener('pointermove', move);
         for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) header.removeEventListener(name, endDrag);
         element.removeEventListener('pointerdown', focus, true); element.removeEventListener('focusin', focus);
@@ -264,13 +295,16 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
       if (!button || !actions.contains(button)) return;
       const action = button.dataset.panelAction;
       if (action === 'help') {
-        try { Promise.resolve(onHelp?.()).catch(error => element.dispatchEvent(new win.CustomEvent('panelerror', { detail:error }))); }
-        catch (error) { element.dispatchEvent(new win.CustomEvent('panelerror', { detail:error })); }
+        showHelp(element);
+      } else if (action === 'toggle') {
+        if(state.mode==='minimized')api.restore();else api.minimize();
       } else if (action === 'close') {
         try { Promise.resolve(api.close()).catch(error => element.dispatchEvent(new win.CustomEvent('panelerror', { detail: error }))); }
         catch (error) { element.dispatchEvent(new win.CustomEvent('panelerror', { detail: error })); }
       } else api[action]?.();
     }
+    const helpObserver=win.MutationObserver?new win.MutationObserver(()=>collectHelp(element)):null;
+    helpObserver?.observe(body,{childList:true});
     const observer = win.ResizeObserver ? new win.ResizeObserver(() => {
       if (destroyed || element.hidden || state.mode === 'minimized') return;
       const rect = element.getBoundingClientRect();
@@ -288,7 +322,7 @@ export function createFloatingPanelManager({ host = document.body } = {}) {
   const viewport = () => { for (const panel of panels.values()) panel.resize(panel.state.width, panel.state.height); };
   win.addEventListener('resize', viewport);
   return {
-    create, registerExisting, enhanceExisting,
+    create, registerExisting, enhanceExisting, showHelp,
     get(id) { return panels.get(id); },
     destroy() {
       if (disposed) return; disposed = true; win.removeEventListener('resize', viewport);

@@ -40,6 +40,11 @@
 
 .tw-managed-existing [data-existing-panel-action]{background:#0b293b;color:#e3f3fa;border:1px solid #386879;border-radius:6px;cursor:pointer;line-height:26px}
 .tw-managed-existing [data-existing-panel-action]:hover{background:#174354;border-color:#61d1e4}
+.tw-managed-existing .tw-managed-close{background:#0b293b;color:#e3f3fa;border:1px solid #386879;border-radius:6px;width:28px;min-height:28px;padding:0!important;font-size:20px!important;line-height:26px;cursor:pointer}
+.tw-panel-help-content{color:#eaf3fa;font-size:14px;line-height:1.8;overflow-wrap:anywhere}
+.tw-panel-help-content h3{font-size:15px;margin:14px 0 5px;color:#c6ebff}
+.tw-panel-help-content ul,.tw-panel-help-content ol{padding-left:24px;margin:6px 0 16px}
+.tw-panel-help-content li{margin:5px 0}
 
 /* Aerial action colors follow the current mode; window controls stay consistent.
  * The #tw-shell scope deliberately outranks taiwan.css generic floating-button

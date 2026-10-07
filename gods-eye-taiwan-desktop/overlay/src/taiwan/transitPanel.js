@@ -19,7 +19,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
   if(!manager?.create)throw new Error('大眾運輸視窗需要共用浮動視窗管理器');
   let request=normalizeTripRequest(),tab='form',style=readStyle(),results=null,selectedPlan=null,journey=null,journeyState={},pending=null,busy=false,destroyed=false,operation=0,abort=null,revision=0,dragIndex=null,parsed=false,parsedRefresh=false,naturalDirty=false,questions=[],waypointSequence=0,recovery=null,recoverySequence=0,executionRequested=false,lastIssue=null;
   let fareOptions={vehicleTypes:[],hsrSeatClasses:[],passengerTypes:[{id:'adult',name:PASSENGER_NAMES.adult}],notices:[]},fareLoaded=false;
-  const panel=manager.create({id:'transit-planning',title:'AI 智慧大眾運輸',width:450,height:650,onClose:()=>{cancel();return journey?.stop?.();},onHelp:()=>{panel.restore();panel.body.querySelector('[data-transit-help]').open=true;}});
+  const panel=manager.create({id:'transit-planning',title:'AI 智慧大眾運輸',width:450,height:650,onClose:()=>{cancel();return journey?.stop?.();}});
   panel.body.classList.add('tw-transit');
   function status(message){if(destroyed)return;panel.body.querySelector('[data-transit-status]').textContent=message;panel.setSummary(busy?'工作中...':selectedPlan?.label||'旅程規劃');onProgress({message:busy&&!message.startsWith('工作中')?'工作中... '+message:message,busy});}
   function fail(error){if(destroyed||error?.name==='AbortError')return;lastIssue={message:error.message,code:error.code,status:error.status,rateLimit:error.rateLimit};executionRequested=false;proposeRecovery(error);}
