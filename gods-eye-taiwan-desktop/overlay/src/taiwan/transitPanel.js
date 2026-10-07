@@ -18,7 +18,7 @@ function readStyle(){try{return normalizeTransitStyle(JSON.parse(localStorage.ge
 export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{},onError=()=>{},onRecovery=()=>{},onProgress=()=>{},getDrivingColor=()=> '#369cff'}) {
   if(!manager?.create)throw new Error('大眾運輸視窗需要共用浮動視窗管理器');
   let request=normalizeTripRequest(),tab='form',style=readStyle(),results=null,selectedPlan=null,journey=null,journeyState={},pending=null,busy=false,destroyed=false,operation=0,abort=null,revision=0,dragIndex=null,parsed=false,parsedRefresh=false,naturalDirty=false,questions=[],waypointSequence=0,recovery=null,recoverySequence=0,executionRequested=false,lastIssue=null;
-  let fareOptions={vehicleTypes:[],hsrSeatClasses:[],passengerTypes:[{id:'adult',name:PASSENGER_NAMES.adult}],notices:[]},fareLoaded=false;
+  let fareOptions={vehicleTypes:[],hsrSeatClasses:[],passengerTypes:[{id:'adult',name:PASSENGER_NAMES.adult}],notices:[]},fareLoaded=false,fareDate=null,awaitingTripDetails=false;
   const panel=manager.create({id:'transit-planning',title:'AI 智慧大眾運輸',width:450,height:650,onClose:()=>{cancel();return journey?.stop?.();}});
   panel.body.classList.add('tw-transit');
   function status(message){if(destroyed)return;panel.body.querySelector('[data-transit-status]').textContent=message;panel.setSummary(busy?'工作中...':selectedPlan?.label||'旅程規劃');onProgress({message:busy&&!message.startsWith('工作中')?'工作中... '+message:message,busy});}
@@ -30,9 +30,18 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
     if(busy)throw new Error('目前規劃仍在執行，完成後會自動回報。');
     if(!recovery||recovery.id!==String(id)||recovery.revision!==revision)throw new Error('此建議已失效，請依目前旅程條件重新規劃。');
     const suggestion=recovery.suggestions[index];if(!suggestion)throw new Error('請選擇建議1、2或3');recovery=null;
+    if(suggestion.action==='clarify'){
+      awaitingTripDetails=true;executionRequested=true;tab='form';renderForm();renderTabs();panel.restore();
+      const missing=tripLocationEntries(request).filter(item=>!locationName(item.value));
+      const text=missing.length?`已採用「按你建議執行」，目前尚缺${missing.map(item=>item.label).join('、')}。\n\n${missing.length===1?`請直接在此對話回覆${missing[0].label}，例如「宜蘭縣政府」；收到後會沿用其餘條件查詢班次、回報結論與地圖路線。`:'請補充完整起終點，例如「從宜蘭縣政府到台北車站」。'}\n\n同行人數、票種、允許運具與中繼點均已保留。`:validateTripRequest(request).join('；');
+      await onExplain({assistantContent:'## 已採用建議，等待必要條件\n'+text,needsClarification:true,request:clone(request)});
+      status('已回報缺少的旅程條件；可在 AI 空間助理直接補充。');
+      const field=missing[0]?.key;if(field==='origin'||field==='destination')panel.body.querySelector(`[data-trip-field="${field}"]`)?.focus();
+      return {handled:true,needsClarification:true};
+    }
     if(suggestion.action==='execute'&&results?.offerId&&Number.isInteger(suggestion.planIndex))return executeConfirmed(suggestion.planIndex);
     if(suggestion.action==='execute')executionRequested=true;
-    if(suggestion.action==='edit'){tab='form';renderForm();renderTabs();panel.restore();status('請修改已保留的旅程條件，再按規劃。');return {handled:true,editing:true};}
+    if(suggestion.action==='edit'){awaitingTripDetails=true;tab='form';renderForm();renderTabs();panel.restore();await onExplain({assistantContent:'## 已開啟旅程條件表單\n已採用「'+suggestion.label+'」。原起終點、中繼點、乘客與運具設定已保留；可在表單修改，或在此對話直接補充条件。確認完整後會重新查詢官方班次。',needsClarification:true,request:clone(request)});status('已開啟保留的旅程條件，請修改後再按規劃。');return {handled:true,editing:true};}
     request=patchTripRequest(request,suggestion.patch||{});revision++;questions=[];renderForm();renderTabs();
     try{if(suggestion.action==='parse')return await parse(request.userNaturalLanguage,{followup:true,refresh:true});naturalDirty=false;return await plan(true);}catch(error){fail(error);return {handled:true,error:error.message};}
   }
@@ -41,7 +50,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
   function live(work){return !destroyed&&!work.signal.aborted&&operation===work.token&&revision===work.revision;}
   function finish(work){if(operation===work.token){busy=false;renderBusy();onProgress({busy:false,message:panel.body.querySelector('[data-transit-status]').textContent});}}
   function renderBusy(){if(destroyed)return;panel.body.querySelectorAll('[data-transit-busy]').forEach(button=>{button.disabled=busy;});panel.body.querySelector('[data-transit-action="cancel"]').hidden=!busy;}
-  function edit(patch){cancel();revision++;parsed=false;parsedRefresh=false;questions=[];if(Object.hasOwn(patch,'userNaturalLanguage'))naturalDirty=true;request=patchTripRequest(request,patch);renderUnderstanding();}
+  function edit(patch){cancel();awaitingTripDetails=false;revision++;parsed=false;parsedRefresh=false;questions=[];if(Object.hasOwn(patch,'userNaturalLanguage'))naturalDirty=true;request=patchTripRequest(request,patch);renderUnderstanding();if(['departureTime','arrivalDeadline','timeMode'].some(k=>Object.hasOwn(patch,k)))void loadFareOptions();}
   panel.body.innerHTML=`<div class="tw-transit-tabs" role="tablist" aria-label="旅程輸入方式"><button type="button" role="tab" data-transit-tab="form">表單輸入</button><button type="button" role="tab" data-transit-tab="natural">AI 自然語言</button></div>
   <div data-transit-form></div><div data-transit-natural hidden><label>用白話描述旅程<textarea rows="5" data-transit-nlp placeholder="例如：明天下午3點從宜蘭縣政府到台北101，晚上6點以前到，不搭高鐵。"></textarea></label><small>AI 只理解條件；班次、路線與票價由運輸資料服務提供。</small><details><summary>不知道怎麼輸入？可以參考以下範例</summary><div class="tw-transit-examples">${TRANSIT_EXAMPLES.map(([name,text],index)=>`<button type="button" data-transit-example="${index}" title="${escape(text)}">範例 ${index+1}｜${escape(name)}</button>`).join('')}</div></details></div>
    <details data-fare-preferences><summary>乘車與票價偏好（成人／全票 × 1；臺鐵全部可搭）</summary><div data-fare-fields></div></details>
@@ -69,7 +78,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
     const matches=v=>selected.length>0&&vehicleAllowed(v.name,v.id,tra);
     const hasPremium=fareOptions.vehicleTypes.some(v=>matches(v)&&v.seatClasses?.includes('premium'));
     const groups=groupOfficialVehicleTypes(fareOptions.vehicleTypes);
-    const vehicles=groups.map(g=>{const all=g.types.every(matches),ids=g.types.map(v=>v.id).join(',');return `<div class="tw-fare-vehicle-group"><label class="tw-fare-check"><input type="checkbox" data-fare-vehicle="${escape(ids)}" ${all?'checked':''}>${escape(g.name)}</label>${g.types.length>1?`<details><summary>細分官方車種（${g.types.length}）</summary>${g.types.map(v=>`<label class="tw-fare-check"><input type="checkbox" data-fare-vehicle="${escape(v.id)}" ${matches(v)?'checked':''}>${escape(v.name)} <small>${escape(v.id)}</small></label>`).join('')}</details>`:''}</div>`;}).join('');
+    const vehicles=groups.map(g=>{const all=g.types.every(matches),ids=JSON.stringify(g.types.map(v=>'name:'+v.name));return `<div class="tw-fare-vehicle-group"><label class="tw-fare-check"><input type="checkbox" data-fare-vehicle="${escape(ids)}" ${all?'checked':''}>${escape(g.name)}</label>${g.types.length>1?`<details><summary>細分官方車種（${g.types.length}）</summary>${g.types.map(v=>`<label class="tw-fare-check"><input type="checkbox" data-fare-vehicle="${escape(JSON.stringify(['name:'+v.name]))}" ${matches(v)?'checked':''}>${escape(v.name)} <small>${escape(v.id)}</small></label>`).join('')}</details>`:''}</div>`;}).join('');
     root.querySelector('[data-fare-preferences]>summary').textContent=`乘車與票價偏好（${pref.passengerProfiles.map(p=>`${PASSENGER_NAMES[p.type]} × ${p.quantity}`).join('、')}${request.allowedModes.includes('TRA')?selected.length?'；臺鐵已限制車種':'；臺鐵全部可搭':''}）`;
     root.querySelector('[data-fare-fields]').innerHTML=`<fieldset><legend>乘客票種與人數</legend>${pref.passengerProfiles.map((p,i)=>`<div class="tw-fare-passenger"><select data-fare-passenger="type" data-index="${i}" aria-label="乘客票種 ${i+1}">${[...passengers,...(!passengers.some(x=>x.id===p.type)?[{id:p.type,name:PASSENGER_NAMES[p.type]}]:[])].map(t=>`<option value="${t.id}" ${p.type===t.id?'selected':''}>${escape(t.name)}</option>`).join('')}</select><input type="number" min="1" max="99" value="${p.quantity}" data-fare-passenger="quantity" data-index="${i}" aria-label="乘客人數 ${i+1}">${i?`<button type="button" data-transit-action="removePassenger" data-index="${i}" aria-label="刪除乘客票種 ${i+1}">×</button>`:''}</div>`).join('')}<button type="button" data-transit-action="addPassenger" ${pref.passengerProfiles.length>=passengers.length?'disabled':''}>＋不同票種乘客</button><small>票種依官方來源提供；實際優惠資格仍以運輸業者規定及現場驗證為準。</small></fieldset>
     ${request.allowedModes.includes('TRA')?`<fieldset><legend>臺鐵允許列車</legend><label class="tw-fare-check"><input type="checkbox" data-fare-all ${!selected.length?'checked':''}>全部可搭</label><details data-fare-vehicle-list ${selected.length?'open':''}><summary>限制可搭列車（官方清單）</summary><div class="tw-fare-vehicles">${vehicles}</div></details>${!fareOptions.vehicleTypes.length?'<small>正在取得官方車種清單；未取得時全部可搭，指定需求會依實際班次核對。</small>':''}${hasPremium?`<label>臺鐵座位／車廂<select data-fare-seat="TRA"><option value="normal">一般座位</option><option value="premium" ${tra.seatClasses.includes('premium')?'selected':''}>特殊／騰雲座艙</option></select></label>`:''}</fieldset>`:''}
@@ -78,7 +87,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
     ${request.allowedModes.includes('BIKE')?'<small>公共自行車依已核實系統、租借時間與官方費率；不假設會員或地方補助適用。</small>':''}
     ${request.allowedModes.some(m=>['BUS','METRO','LRT'].includes(m))?`<label>公車／捷運／輕軌票證<select data-fare-media>${(fareOptions.fareMedia||[{id:'single',name:'一般單程票'}]).map(m=>`<option value="${escape(m.id)}" ${pref.fareMedia[0]===m.id?'selected':''}>${escape(m.name)}</option>`).join('')}</select></label>`:''}<small>${fareOptions.notices.map(escape).join('；')}</small>`;
   }
-  async function loadFareOptions(){if(fareLoaded)return;fareLoaded=true;try{fareOptions=await browserAi('/tdx',{method:'POST',data:{action:'fare-options'}});if(!destroyed)renderFarePreferences();}catch(error){fareLoaded=false;if(!destroyed){fareOptions.notices=['票種與車種清單尚未取得：'+error.message+'；重新開啟此功能會重試，既有乘客設定保留。'];renderFarePreferences();}}}
+  async function loadFareOptions(refresh=false){const date=localDateTime(request.timeMode==='arrival'?request.arrivalDeadline:request.departureTime)?.slice(0,10)||localDateTime(new Date().toISOString()).slice(0,10);if(fareLoaded&&fareDate===date&&!refresh)return;fareLoaded=true;fareDate=date;try{fareOptions=await browserAi('/tdx',{method:'POST',data:{action:'fare-options',date,refresh}});if(!destroyed)renderFarePreferences();}catch(error){fareLoaded=false;if(!destroyed){fareOptions.notices=['票種與車種清單尚未取得：'+error.message+'；重新開啟此功能會重試，既有乘客設定保留。'];renderFarePreferences();}}}
   function renderUnderstanding(){
     const box=root.querySelector('[data-transit-understanding]');
     box.innerHTML=`<strong>${parsed?'AI 已理解您的需求':'目前旅程條件'}</strong><p>${escape(describeTripRequest(request))}</p>${questions.length?`<p class="tw-transit-warning">${questions.map(escape).join('；')}</p>`:''}`;
@@ -110,7 +119,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
     }finally{finish(work);}
   }
   async function plan(refresh=false,forceOfficial=false){
-    const errors=validateTripRequest(request);if(request.departureTime&&Date.parse(request.departureTime)<Date.now())errors.push('指定出發時間已過，請確認新的出發日期。');if(errors.length)throw new Error(errors.join('；'));
+    await loadFareOptions(refresh);const errors=validateTripRequest(request);if(request.departureTime&&Date.parse(request.departureTime)<Date.now())errors.push('指定出發時間已過，請確認新的出發日期。');if(errors.length)throw new Error(errors.join('；'));
     lastIssue=null;const work=start('正在解析地點與查詢運輸方案…');
     try{
       for(const item of tripLocationEntries(request)){
@@ -198,7 +207,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
   const click=event=>{
     const target=event.target.closest('button');if(!target)return;
     if(target.dataset.transitTab){tab=target.dataset.transitTab;renderForm();renderTabs();return;}
-    if(target.hasAttribute('data-transit-example')){request=normalizeTripRequest({farePreference:request.farePreference});results=null;selectedPlan=null;lastIssue=null;edit({userNaturalLanguage:TRANSIT_EXAMPLES[Number(target.dataset.transitExample)][1]});journey?.clear?.();renderForm();renderResults();root.querySelector('[data-transit-nlp]').value=request.userNaturalLanguage;status('範例已填入，可修改後按「依最新交通資訊進行AI規劃」。');return;}
+    if(target.hasAttribute('data-transit-example')){const index=Number(target.dataset.transitExample),replanning=index===9;request=replanning?normalizeTripRequest({...request,timeMode:'now',departureTime:null}):normalizeTripRequest({farePreference:request.farePreference});results=null;selectedPlan=null;lastIssue=null;edit({userNaturalLanguage:TRANSIT_EXAMPLES[index][1]});journey?.clear?.();renderForm();renderResults();root.querySelector('[data-transit-nlp]').value=request.userNaturalLanguage;status(replanning?'臨時重新規劃已保留上一趟起點、中繼點、期限、乘客與運具，改為現在出發；若尚無起點會在對話請您補充。':'範例已填入，可修改後按「依最新交通資訊進行AI規劃」。');return;}
     if(target.hasAttribute('data-transit-candidate')){const selection=pending;if(!selection||selection.revision!==revision)return;request=setTripLocation(request,selection.key,selection.candidates[Number(target.dataset.transitCandidate)]);pending=null;root.querySelector('[data-transit-candidates]').hidden=true;renderForm();renderUnderstanding();void plan(selection.refresh).catch(fail);return;}
     if(target.dataset.transitAction)void execute(target.dataset.transitAction,Number(target.dataset.index)).catch(fail);
   };
@@ -207,8 +216,8 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
     if(target.hasAttribute('data-transit-nlp')){edit({userNaturalLanguage:target.value});return;}
     if(target.hasAttribute('data-fare-all')||target.hasAttribute('data-fare-vehicle')||target.hasAttribute('data-fare-hsr')||target.dataset.fareSeat||target.hasAttribute('data-fare-media')||target.dataset.farePassenger){
       try{const pref=clone(request.farePreference);
-        if(target.hasAttribute('data-fare-all')){pref.modePreferences.TRA.vehicleTypes=target.checked?[]:fareOptions.vehicleTypes.map(v=>v.id);pref.modePreferences.TRA.excludedVehicleTypes=[];}
-        if(target.hasAttribute('data-fare-vehicle')){const p=pref.modePreferences.TRA,ids=target.dataset.fareVehicle.split(','),chosen=new Set(p.vehicleTypes.length?fareOptions.vehicleTypes.filter(v=>vehicleAllowed(v.name,v.id,p)).map(v=>v.id):[]);for(const id of ids)target.checked?chosen.add(id):chosen.delete(id);if(!chosen.size){target.checked=true;status('請至少選一種列車，或選「全部可搭」。');return;}p.vehicleTypes=[...chosen];p.excludedVehicleTypes=[];}
+        if(target.hasAttribute('data-fare-all')){pref.modePreferences.TRA.vehicleTypes=target.checked?[]:fareOptions.vehicleTypes.map(v=>'name:'+v.name);pref.modePreferences.TRA.excludedVehicleTypes=[];}
+        if(target.hasAttribute('data-fare-vehicle')){const p=pref.modePreferences.TRA,ids=JSON.parse(target.dataset.fareVehicle),chosen=new Set(p.vehicleTypes.length?fareOptions.vehicleTypes.filter(v=>vehicleAllowed(v.name,v.id,p)).map(v=>'name:'+v.name):[]);for(const id of ids)target.checked?chosen.add(id):chosen.delete(id);if(!chosen.size){target.checked=true;status('請至少選一種列車，或選「全部可搭」。');return;}p.vehicleTypes=[...chosen];p.excludedVehicleTypes=[];}
         if(target.hasAttribute('data-fare-hsr')){const selected=[...root.querySelectorAll('[data-fare-hsr]:checked')].map(x=>x.dataset.fareHsr);if(!selected.length){target.checked=true;status('請至少允許一種高鐵車廂。');return;}pref.modePreferences.HSR.seatClasses=selected;}
         if(target.dataset.fareSeat)pref.modePreferences[target.dataset.fareSeat].seatClasses=[target.value];
         if(target.hasAttribute('data-fare-media'))pref.fareMedia=[target.value];
@@ -233,7 +242,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
   if(panel.mode==='expanded'||panel.mode==='minimized')void loadFareOptions();
   return {
     show(){void loadFareOptions();panel.show();panel.bringToFront();return this;},hide(){panel.hide();},minimize(){panel.minimize();},restore(){void loadFareOptions();panel.restore();},bringToFront(){panel.bringToFront();},
-    get element(){return panel.element;},get state(){return clone(request);},get results(){return clone(results);},get style(){return clone(style);},synchronizeColor,get busy(){return busy;},get active(){return !!results?.plans?.length||!!recovery||!!locationName(request.origin)||!!request.userNaturalLanguage;},get recovery(){return clone(recovery);},confirmRecovery,
+    get element(){return panel.element;},get state(){return clone(request);},get results(){return clone(results);},get style(){return clone(style);},synchronizeColor,get busy(){return busy;},get awaitingTripDetails(){return awaitingTripDetails;},get active(){return !!results?.plans?.length||!!recovery||!!locationName(request.origin)||!!request.userNaturalLanguage;},get recovery(){return clone(recovery);},confirmRecovery,
     setRequest(value){edit(value);renderForm();renderTabs();},
     cancel,
     setJourneyController,updateJourney(value){
@@ -245,6 +254,16 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
     async handleMessage(text){
       if(busy){status('目前查詢仍在執行，完成或失敗會自動回報；請勿重複執行。');return {handled:true,busy:true};}
       const intent=transitMessageIntent(text,{hasRequest:!!locationName(request.origin)||!!request.userNaturalLanguage,active:!!recovery||!!results});
+      if(awaitingTripDetails&&!['service','sources','status','diagnose','confirm','fallback'].includes(intent)){
+        panel.show();const missing=tripLocationEntries(request).filter(item=>!locationName(item.value));
+        try{
+          if(missing.length===1&&text.trim().length<=120&&!/[？?\n]|(?:怎麼|為什麼|原因|可以嗎|建議|有沒有)/.test(text)&&!/(?:從|到|出發|抵達).*(?:到|從)/.test(text)){
+            const name=text.trim().replace(/^(?:起點|終點|出發地|目的地)(?:是|為|[:：])?\s*/,'').replace(/^從\s*/,'').replace(/(?:出發|搭車)[。！!]?$/,'').trim();
+            request=setTripLocation(request,missing[0].key,name);revision++;questions=[];naturalDirty=false;awaitingTripDetails=false;renderForm();renderTabs();return {handled:true,...await plan(true)};
+          }
+          return {handled:true,...await parse(text,{followup:true,refresh:true})};
+        }catch(error){fail(error);return {handled:true,error:error.message};}
+      }
       if(intent==='fallback'){recovery=null;executionRequested=true;try{return {handled:true,...await plan(true,true)};}catch(error){fail(error);return {handled:true,error:error.message};}}
       if(intent==='diagnose'){
         const issue=results?.diagnostic||lastIssue,reason=issue?.message||recovery?.reason||'目前尚未取得正式查詢結果，不能據此判定訂閱或額度不足。';

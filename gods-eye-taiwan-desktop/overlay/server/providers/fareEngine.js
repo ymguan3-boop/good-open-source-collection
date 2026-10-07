@@ -17,6 +17,7 @@ const unique=rows=>{const valid=rows.filter(r=>r.Price!==null&&typeof r.Price!==
 const unknown='目前無法取得可靠的最新票價資料。';
 export function selectOfficialFare(rows,segment,profile,seat,fareMedia='single'){
   if(segment.mode==='TRA'){
+    if(!traClass(segment.transportType))return null;
     const label={adult:/全票|成人/,child:/孩童|兒童/,senior:/敬老/,disabled:/愛心(?!陪)/,companion:/愛陪|愛心陪/}[profile.type];
     return label?unique(rows.filter(r=>traClass(r.TicketType)===traClass(segment.transportType)&&label.test(r.TicketType)&&!/(?:折|優惠|團體|早鳥)/.test(r.TicketType)&&((seat==='premium')===/商務|騰雲/.test(r.TicketType))&&(profile.type!=='adult'||!/孩童|兒童|敬老|愛心|愛陪/.test(r.TicketType)))):null;
   }
@@ -40,24 +41,32 @@ export function rankTransitPlans(plans,preference='recommended',requestedDepartu
 }
 export function createFareService({basic,stations,fetcher=fetch,now=Date.now,cacheFile=null,fareCache,checkPolicy=true}={}){
   const cache=fareCache||createFareCache({file:cacheFile,now}),web=createOfficialFareLookup({fetcher,now,checkPolicy,ttlMs:()=>cache.ttlMs}),publicFetch=checkPolicy?createOfficialFareFetcher({fetcher,now}):fetcher;
-  const contextByKey=new Map(),pages=new Map();let metadata=null,metadataAt=0,updateTask=null;
+  const contextByKey=new Map(),pages=new Map();let metadata=null,metadataDate=null,metadataAt=0,updateTask=null;
   const keyFor=(s,p,seat,fm)=>fareHash([s.mode,s.railSystem,s.operatorId||s.agency,s.routeId,s.subRouteId,s.direction,s.from?.id,s.to?.id,s.transportType,seat,p.type,fm,s.mode==='TRA'?String(s.departureTime).slice(0,10):null,s.mode==='BIKE'?[s.durationSeconds,s.bikeSystem,s.bikeRegion,s.to.bikeRegion]:null]);
-  async function metadataOptions({signal,refresh=false}={}){
-    if(metadata&&!refresh&&now()-metadataAt<cache.ttlMs)return structuredClone(metadata);
+  async function metadataOptions({signal,refresh=false,date=null}={}){
+    date=date&&/^\d{4}-\d{2}-\d{2}$/.test(date)?date:new Date(now()+8*3600000).toISOString().slice(0,10);
+    if(metadata&&metadataDate===date&&!refresh&&now()-metadataAt<Math.min(cache.ttlMs,3600000))return structuredClone(metadata);
     const result={vehicleTypes:[],hsrSeatClasses:[],traSeatClasses:[],passengerTypes:[{id:'adult',name:PASSENGER_NAMES.adult}],fareMedia:[{id:'single',name:'一般單程票'}],notices:[],fetchedAt:new Date(now()).toISOString(),sourceUrl:BASE+'/v2/Rail/TRA/TrainType'};
     const tasks=await Promise.allSettled([
       basic('/v2/Rail/TRA/TrainType',cache.ttlMs,signal,{'$top':100},refresh),
       basic('/v2/Rail/THSR/ODFare/1000/to/1070',cache.ttlMs,signal,{},refresh),
       basic('/v2/Bus/RouteFare/City/Taipei/307',cache.ttlMs,signal,{'$top':10},refresh),
     ]);
-    if(tasks[0].status==='fulfilled'){result.vehicleTypes=tasks[0].value.filter(r=>r.TrainTypeID&&r.TrainTypeName?.Zh_tw).map(r=>({id:String(r.TrainTypeID),name:r.TrainTypeName.Zh_tw,code:r.TrainTypeCode,sourceUpdatedAt:r.UpdateTime,seatClasses:String(r.TrainTypeCode)==='11'?['normal','premium']:[]}));result.traSeatClasses=result.vehicleTypes.some(r=>r.seatClasses.length)?['normal','premium']:[];}
+    if(tasks[0].status==='fulfilled'){result.vehicleTypes=tasks[0].value.filter(r=>r.TrainTypeID&&r.TrainTypeName?.Zh_tw).map(r=>({id:String(r.TrainTypeID),name:r.TrainTypeName.Zh_tw,code:r.TrainTypeCode,sourceUpdatedAt:r.UpdateTime,seatClasses:Array.isArray(r.SeatClasses)?r.SeatClasses.filter(s=>['normal','premium'].includes(s)):[]}));result.traSeatClasses=result.vehicleTypes.some(r=>r.seatClasses.length)?['normal','premium']:[];}
     else result.notices.push('臺鐵官方車種清單暫不可用；預設全部可搭，指定車種仍依實際班表核對。');
+    // The selected date's actual train data takes precedence over catalogue-only names.
+    try{const daily=await basic('/v2/Rail/TRA/DailyTimetable/TrainDate/'+date,3600000,signal,{'$top':3000,'$select':'TrainDate,DailyTrainInfo'},refresh),available=new Map();
+      for(const row of daily){const info=row.DailyTrainInfo,name=typeof info?.TrainTypeName==='string'?info.TrainTypeName:info?.TrainTypeName?.Zh_tw;if(row.TrainDate!==date||Number(info?.SuspendedFlag)===1||!info?.TrainTypeID||!name)continue;const original=result.vehicleTypes.find(v=>v.id===String(info.TrainTypeID));available.set(String(info.TrainTypeID),{...original,id:String(info.TrainTypeID),name,code:info.TrainTypeCode||original?.code,seatClasses:original?.seatClasses||[],sourceUpdatedAt:row.UpdateTime||info.UpdateTime,availableDate:date});}
+      if(available.size){result.vehicleTypes=[...available.values()];result.scheduleDate=date;result.vehicleSourceUrl=BASE+'/v2/Rail/TRA/DailyTimetable/TrainDate/'+date;result.notices.push('臺鐵選項依 '+date+' 官方實際班次產生；起訖、座位及可搭時間仍於規劃時逐班核對。');}
+      else result.notices.push('指定日期未取得可辨識班次車種；目前顯示官方車種目錄，不能保證該日期或路線有班次。');
+    }catch{signal?.throwIfAborted();result.notices.push('指定日期班次清單暫不可用；顯示官方車種目錄並於規劃時核對實際班次，不把資料不足當作車種不符。');}
+
     if(tasks[1].status==='fulfilled'){const fares=tasks[1].value.flatMap(r=>r.Fares||[]).filter(f=>Number(f.TicketType)===1&&Number(f.Price)>=0);result.hsrSeatClasses=Object.keys(cabin).filter(k=>fares.some(f=>Number(f.CabinClass)===cabin[k]));for(const [type,code]of Object.entries(fareClass))if(fares.some(f=>Number(f.FareClass)===code)&&!result.passengerTypes.some(p=>p.id===type))result.passengerTypes.push({id:type,name:PASSENGER_NAMES[type]});}
     else result.notices.push('高鐵官方車廂票價清單暫不可用，不顯示未核實選项。');
     if(tasks[2].status==='fulfilled'){const fares=tasks[2].value.flatMap(r=>[...(r.SectionFares||[]),...(r.ODFares||[]),...(r.StageFares||[])]).flatMap(r=>r.Fares||[]).filter(f=>Number(f.Price)>=0);if(fares.some(f=>Number(f.TicketType)===3))result.fareMedia.push({id:'electronic',name:'電子票證（公車／捷運／輕軌；僅計已核實費率）'});for(const [type,code]of Object.entries(fareClass))if(fares.some(f=>Number(f.FareClass)===code)&&!result.passengerTypes.some(p=>p.id===type))result.passengerTypes.push({id:type,name:PASSENGER_NAMES[type]});}
     // Public TRA quote form confirms supported passenger types; the page is data only.
     try{const response=await publicFetch(TRA_FARE_URL,{signal:AbortSignal.any([signal,AbortSignal.timeout(10000)].filter(Boolean))});if(response.ok){const html=await response.text();if(html.length<500000){const select=html.match(/<select\b(?=[^>]*\bname=["']tip114QueryVOs\[0\]\.ticketPriceType["'])[^>]*>([\s\S]*?)<\/select>/i)?.[1]||'';for(const [type,code]of Object.entries({adult:1,child:2,senior:3,disabled:4,companion:5}))if(new RegExp(`<option[^>]*value=["']${code}["']`).test(select)&&!result.passengerTypes.some(p=>p.id===type))result.passengerTypes.push({id:type,name:PASSENGER_NAMES[type]});}}else await response.body?.cancel();}catch{result.notices.push('臺鐵網頁票種清單未取得；既有官方已確認票種保留。');}
-    if(result.vehicleTypes.length||result.hsrSeatClasses.length){metadata=result;metadataAt=now();}return result;
+    if(result.vehicleTypes.length||result.hsrSeatClasses.length){metadata=result;metadataDate=date;metadataAt=now();}return result;
   }
   async function railRows(s,signal,refresh){
     if(['TRA','HSR'].includes(s.mode)&&(!s.from.id||!s.to.id)){

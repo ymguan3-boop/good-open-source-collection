@@ -1,3 +1,4 @@
+import {indexRecord,ensureRecordIndex,deleteRecordIndex,recordTier,recordIndexRequest} from './recordRetrieval.js';
 import JSZip from 'jszip';
 import { db } from './db.js';
 import { renderChatMarkdown } from './chatFormat.js';
@@ -7,8 +8,8 @@ export function recordTimestamp(date=new Date()) {
   return parts.replace(' ','_').replace(/:/g,'-')+`-${String(date.getMilliseconds()).padStart(3,'0')}`;
 }
 export function createChatArchive({root,open,download,onStatus,manager,onAnalyze=()=>{}}) {
-  let preview=null,lastSavedTime=0,releasePreview=null;
-  async function save(messages,{title="AI 空間助理對話紀錄",frames=[],media=null,attachments=[]}={}){
+  let preview=null,lastSavedTime=0,releasePreview=null,page=0,searchText="",typeFilter="",fromFilter="",toFilter="",locationFilter="",projectFilter="",eventFilter="";const selectedIds=new Set();
+  async function save(messages,{title="AI 空間助理對話紀錄",frames=[],media=null,attachments=[],project=""}={}){
     if(!messages.length)throw new Error('目前沒有對話可儲存');
     if(media?.id){const existing=await db.chatRecords.filter(record=>record.media?.id===media.id).first();if(existing){await db.chatRecords.update(existing.id,{media:{...existing.media,...media}});onStatus(`已更新 ${existing.filename} 的匯出狀態`);return existing.id;}}
     const latest=await db.chatRecords.orderBy('createdAt').last();
@@ -16,7 +17,9 @@ export function createChatArchive({root,open,download,onStatus,manager,onAnalyze
     const date=new Date(lastSavedTime),filename=`${recordTimestamp(date)}.md`;
     const candidates=[...frames,...messages.filter(m=>m.cctvResult?.screenshot).map(m=>({image:m.cctvResult.screenshot,caption:`${m.cctvResult.cameraName} · ${m.cctvResult.capturedAt}`,requestId:m.cctvResult.requestId}))];
     const unique=new Map();for(const frame of candidates)if(/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(frame.image||'') && frame.image.length<8000000)unique.set(frame.requestId||frame.image,frame);
-    const savedFrames=[...unique.values()].map((frame,index)=>({...frame,path:`images/cctv-${index+1}.jpg`}));
+    const groups=new Map();for(const frame of unique.values()){const camera=String(frame.cameraId||frame.caption?.split(' · ')[0]||'camera'),event=frame.eventType||'snapshot',time=Date.parse(frame.capturedAt||frame.caption?.split(' · ')[1])||lastSavedTime,key=camera+':'+event+':'+Math.floor(time/60000);const list=groups.get(key)||[];if(!list.some(f=>f.image===frame.image))list.push(frame);groups.set(key,list);}
+    const representatives=[...groups.values()].flatMap(list=>list.length<=3?list:[list[0],list[Math.floor(list.length/2)],list.at(-1)]);
+    const savedFrames=representatives.map((frame,index)=>({...frame,path:`images/cctv-${index+1}.jpg`}));
     const cctvResults=messages.filter(m=>m.cctvResult).map(m=>{const {screenshot,...metadata}=m.cctvResult;return metadata;});
     const markdown=`# ${title}\n\n儲存時間：${date.toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})}（台灣時間）\n\n`+messages.map(message=>`## ${{user:'使用者',assistant:'AI 空間助理',system:'系統'}[message.role] || '訊息'}\n\n${String(message.content || '')}\n`).join('\n')+savedFrames.map(frame=>`\n## CCTV 截圖\n${frame.caption||''}\n![CCTV 截圖](${frame.path})\n`).join('');
     const savedAttachments=attachments.map((attachment,index)=>{
@@ -27,8 +30,8 @@ export function createChatArchive({root,open,download,onStatus,manager,onAnalyze
       JSON.parse(content);
       return {filename:attachmentName,content,mimeType:'application/json'};
     });
-    const id=await db.chatRecords.add({filename,createdAt:date.toISOString(),markdown,messageCount:messages.length,frames:savedFrames,cctvResults,media,attachments:savedAttachments});
-    if(!(await db.chatRecords.get(id)))throw new Error('瀏覽器未能保存紀錄，請檢查儲存空間');
+    const id=await db.chatRecords.add({filename,createdAt:date.toISOString(),markdown,messageCount:messages.length,frames:savedFrames,cctvResults,media,project,attachments:savedAttachments});
+    const saved=await db.chatRecords.get(id);if(!saved)throw new Error('瀏覽器未能保存紀錄，請檢查儲存空間');await indexRecord(saved);
     onStatus(`已儲存 ${filename}，可至工具列「記錄」查看`);return id;
   }
   async function removeVideo(mediaId){
@@ -39,8 +42,14 @@ export function createChatArchive({root,open,download,onStatus,manager,onAnalyze
     onStatus('已刪除這支影片；記錄中的飛行軌跡與文字資料仍保留');
   }
   async function render(){
-    const records=await db.chatRecords.orderBy('createdAt').reverse().toArray();
-    open('記錄',`<div class="tw-actions"><button data-archive="export-selected">匯出勾選紀錄</button><button data-archive="export-all">匯出全部紀錄</button><button class="tw-analysis-primary" data-archive="analyze-selected">依勾選紀錄進行AI分析</button><button class="tw-analysis-secondary" data-archive="analyze-all">依全部紀錄進行AI分析</button></div><p class="tw-note">AI 空間助理「儲存對話」或電影空拍「儲存至記錄」後，Markdown 檔會暫存在目前瀏覽器。點檔名可查看；清除網站資料將刪除暫存，請另行匯出。</p>${records.map(record=>`<article class="tw-card tw-record-row"><div class="tw-record-heading"><input type="checkbox" aria-label="勾選 ${escape(record.filename)}" data-record-select value="${record.id}"><button class="tw-record-filename" data-archive="view" data-id="${record.id}">${escape(record.filename)}</button></div><div class="tw-record-summary"><p>${escape(new Date(record.createdAt).toLocaleString('zh-TW'))} · ${record.messageCount} 則訊息</p><div class="tw-actions"><button data-archive="export-one" data-id="${record.id}">匯出紀錄</button><button data-archive="delete" data-id="${record.id}">刪除紀錄</button></div></div></article>`).join('') || '<p>尚無對話紀錄。</p>'}`);
+    await ensureRecordIndex();
+    let records,total;
+    try{const result=await recordIndexRequest({action:'list',query:searchText,type:typeFilter,from:fromFilter?new Date(fromFilter).toISOString():null,to:toFilter?new Date(toFilter+'T23:59:59').toISOString():null,location:locationFilter,project:projectFilter,event:eventFilter,limit:50,offset:page*50});records=result.records;total=result.total;if(page&&page*50>=total){page=Math.max(0,Math.ceil(total/50)-1);return render();}}
+    catch{records=await db.recordIndex.orderBy('createdAt').reverse().toArray();records=records.filter(r=>(!searchText||(r.summary+' '+r.filename+' '+r.events?.join(' ')).includes(searchText))&&(!typeFilter||r.type===typeFilter)&&(!fromFilter||r.createdAt>=new Date(fromFilter).toISOString())&&(!toFilter||r.createdAt<=new Date(toFilter+'T23:59:59').toISOString())&&(!locationFilter||r.location.includes(locationFilter))&&(!projectFilter||r.project.includes(projectFilter))&&(!eventFilter||r.events?.some(x=>x.includes(eventFilter))));total=records.length;page=Math.min(page,Math.max(0,Math.ceil(total/50)-1));records=records.slice(page*50,(page+1)*50);}
+    open('記錄',`<div class="tw-actions tw-command-row"><button data-archive="export-selected">匯出勾選紀錄</button><button data-archive="export-all">匯出全部紀錄</button><button class="tw-analysis-primary" data-archive="analyze-selected">依勾選紀錄進行AI分析</button><button class="tw-analysis-secondary" data-archive="analyze-all">依全部紀錄進行AI分析</button></div>
+      <div class="tw-record-filters"><label>摘要／事件搜尋<input data-record-filter="searchText" value="${escape(searchText)}"></label><label>類型<select data-record-filter="typeFilter"><option value="">全部</option>${[['chat','對話'],['cctv','CCTV'],['aerial','空拍']].map(([v,n])=>`<option value="${v}" ${v===typeFilter?'selected':''}>${n}</option>`).join('')}</select></label><label>開始日期<input type="date" data-record-filter="fromFilter" value="${escape(fromFilter)}"></label><label>結束日期<input type="date" data-record-filter="toFilter" value="${escape(toFilter)}"></label><label>地點<input data-record-filter="locationFilter" value="${escape(locationFilter)}"></label><label>專案<input data-record-filter="projectFilter" value="${escape(projectFilter)}"></label><label>事件<input data-record-filter="eventFilter" value="${escape(eventFilter)}"></label><button data-archive="filter">搜尋</button></div>
+      <p class="tw-note">紀錄 ${total} 筆；第 ${page+1}/${Math.max(1,Math.ceil(total/50))} 頁。清單只讀取摘要索引，原文及媒體在開啟時載入；AI 預設檢索最多10筆摘要。Markdown 原文可另行匯出保存。</p><div class="tw-actions"><button data-archive="previous" ${page?'':'disabled'}>上一頁</button><button data-archive="next" ${(page+1)*50<total?'':'disabled'}>下一頁</button></div>
+      ${records.map(record=>`<article class="tw-card tw-record-row"><div class="tw-record-heading"><input type="checkbox" aria-label="勾選 ${escape(record.filename)}" data-record-select value="${record.id}" ${selectedIds.has(record.id)?'checked':''}><button class="tw-record-filename" data-archive="view" data-id="${record.id}">${escape(record.filename)}</button></div><div class="tw-record-summary"><p>${escape(new Date(record.createdAt).toLocaleString('zh-TW'))} · ${record.messageCount} 則訊息 · ${escape(recordTier(record.createdAt))}</p><p>${escape(record.summary.slice(0,220))}</p><div class="tw-actions"><button data-archive="export-one" data-id="${record.id}">匯出紀錄</button><button data-archive="delete" data-id="${record.id}">刪除紀錄</button></div></div></article>`).join('')||'<p>沒有符合条件的紀錄。</p>'}`);
   }
   async function view(id){
     const record=await db.chatRecords.get(id);if(!record)throw new Error('找不到對話紀錄');
@@ -62,18 +71,22 @@ export function createChatArchive({root,open,download,onStatus,manager,onAnalyze
     const button=event.target.closest('[data-archive]');if(!button)return;
     try{
       const id=Number(button.dataset.id),action=button.dataset.archive;
+      if(action==='filter'){const values=Object.fromEntries([...root.querySelectorAll('[data-record-filter]')].map(el=>[el.dataset.recordFilter,el.value.trim()]));({searchText,typeFilter,fromFilter,toFilter,locationFilter,projectFilter,eventFilter}=values);page=0;await render();return;}
+      if(action==='previous'||action==='next'){page+=action==='next'?1:-1;await render();return;}
       if(action==='view')await view(id);
-      if(action==='delete'){await db.chatRecords.delete(id);await render();}
+      if(action==='delete'){await db.chatRecords.delete(id);await deleteRecordIndex(id);selectedIds.delete(id);await render();}
       if(action==='export-one')await exportRecords([id]);
       if(action==='export-all')await exportRecords();
-      if(action==='export-selected')await exportRecords([...root.querySelectorAll('[data-record-select]:checked')].map(input=>Number(input.value)));
+      if(action==='export-selected')await exportRecords([...selectedIds]);
       if(action==='analyze-selected'||action==='analyze-all'){
-        const records=action==='analyze-all'?await db.chatRecords.orderBy('createdAt').toArray():(await db.chatRecords.bulkGet([...root.querySelectorAll('[data-record-select]:checked')].map(input=>Number(input.value)))).filter(Boolean);
+        const ids=action==='analyze-all'?await db.chatRecords.toCollection().primaryKeys():[...selectedIds],records=ids.map(id=>({id}));
         if(!records.length)throw Error('請先勾選紀錄，或儲存對話後再分析。');
         await onAnalyze(records);
       }
     }catch(error){onStatus(error.message);}
   };
+  const change=event=>{if(event.target.matches('[data-record-select]')){const id=Number(event.target.value);event.target.checked?selectedIds.add(id):selectedIds.delete(id);}};root.addEventListener('change',change);
   root.addEventListener('click',click);
-  return {save,render,removeVideo,destroy(){root.removeEventListener('click',click);releasePreview?.();preview?.remove();}};
+  queueMicrotask(()=>ensureRecordIndex().catch(()=>{}));
+  return {save,render,removeVideo,destroy(){root.removeEventListener('change',change);root.removeEventListener('click',click);releasePreview?.();preview?.remove();}};
 }

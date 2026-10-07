@@ -30,7 +30,7 @@ export function farePreferenceFromRequest(value={}){
 }
 const trainName=x=>String(x||'').replaceAll('臺','台').replace(/[\s（）()號車]/g,'');
 export function vehicleAllowed(name,id,p={}){
-  const matches=v=>v===String(id)||trainName(v)===trainName(name)||(!/3000|普悠瑪|太魯閣/.test(v)&&trainName(name).startsWith(trainName(v))&&!(trainName(v)==='區間'&&trainName(name).startsWith('區間快')));
+  const matches=v=>v.startsWith('name:')?trainName(v.slice(5))===trainName(name):v===String(id)||trainName(v)===trainName(name)||(!/3000|普悠瑪|太魯閣/.test(v)&&trainName(name).startsWith(trainName(v))&&!(trainName(v)==='區間'&&trainName(name).startsWith('區間快')));
   return !(p.excludedVehicleTypes||[]).some(matches)&&(!(p.vehicleTypes||[]).length||p.vehicleTypes.some(matches));
 }
 

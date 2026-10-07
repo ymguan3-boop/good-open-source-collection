@@ -56,6 +56,16 @@ export function readBuildingMetadata(buffer) {
   }
   return output;
 }
+// Adjacent query cells often reference the same GLB. Cache parsed official metadata, not rendered tiles.
+const metadataTiles=new Map(),pendingTiles=new Map();let cachedFeatures=0;
+async function tileMetadata(url,signal){
+  const cached=metadataTiles.get(url);if(cached&&Date.now()-cached.at<1800000)return {features:cached.features,bytes:0};
+  if(pendingTiles.has(url))return pendingTiles.get(url);
+  const promise=(async()=>{const buffer=await bytes(url,15_000_000,signal),features=readBuildingMetadata(buffer);
+    if(features.length){if(cached){cachedFeatures-=cached.features.length;metadataTiles.delete(url);}metadataTiles.set(url,{at:Date.now(),features});cachedFeatures+=features.length;
+      while(metadataTiles.size>128||cachedFeatures>120000){const key=metadataTiles.keys().next().value;cachedFeatures-=metadataTiles.get(key).features.length;metadataTiles.delete(key);}}
+    return {features,bytes:buffer.length};})();pendingTiles.set(url,promise);try{return await promise;}finally{pendingTiles.delete(url);}
+}
 export async function analyzeNlscBuildings({geometry,serviceUrls},signal) {
   const polygon=turf.feature(geometry);
   if (!['Polygon','MultiPolygon'].includes(geometry?.type) || JSON.stringify(geometry).length > 50000) throw new Error('建物統計需要面積範圍');
@@ -86,8 +96,8 @@ export async function analyzeNlscBuildings({geometry,serviceUrls},signal) {
   let totalBytes=0;
   for(const url of [...candidates].slice(0,80)) {
     signal.throwIfAborted();
-    try {const b=await bytes(url,15_000_000,signal);totalBytes+=b.length;if(totalBytes>180_000_000)throw new Error('已達單次分析下載上限');
-      const features=readBuildingMetadata(b);if(!features.length)warnings.push('圖磚沒有可用分棟編號或中心座標，不能推定為 0 棟');identified+=features.length;scanned++;
+    try {const metadata=await tileMetadata(url,signal);totalBytes+=metadata.bytes;if(totalBytes>180_000_000)throw new Error('已達單次分析下載上限');
+      const features=metadata.features;if(!features.length)warnings.push('圖磚沒有可用分棟編號或中心座標，不能推定為 0 棟');identified+=features.length;scanned++;
       for(const feature of features)if(turf.booleanPointInPolygon(feature,polygon))unique.set(feature.properties.buildingId,feature);
     }catch(error){signal.throwIfAborted();failed++;warnings.push(error.message);}
     if(totalBytes>180_000_000)break;

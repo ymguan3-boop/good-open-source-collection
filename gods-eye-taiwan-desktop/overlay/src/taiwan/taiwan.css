@@ -765,3 +765,12 @@ body.gev-tw-aerial-capture .tw-aerial-hud,body.gev-tw-aerial-capture .tw-aerial-
 .tw-ai-help-menu button,.tw-ai-voice-help button,.tw-ai-space-help button{color:#edf8ff!important}
 
 #tw-shell .tw-analysis-primary{background:#244a70;color:#f3f9ff;border:1px solid #8ac9ff}#tw-shell .tw-analysis-secondary{background:#59396e;color:#fff2ff;border:1px solid #d9a5eb}
+
+/* Shared horizontal commands retain readable contrast and equal height. */
+.tw-command-row{display:flex!important;flex-wrap:nowrap!important;align-items:stretch;gap:8px;width:100%;box-sizing:border-box}
+.tw-command-row>button{flex:1 1 0;min-width:0;min-height:42px;margin:0;white-space:normal;line-height:1.35;padding:8px 6px!important;border:1px solid #62bade!important;border-radius:8px!important;background:#133446!important;color:#effaff!important;font:inherit;font-weight:600}
+.tw-command-row>button.tw-analysis-primary{background:#234f72!important;border-color:#9bcfff!important}
+.tw-command-row>button.tw-analysis-secondary{background:#633b76!important;border-color:#d6ace7!important}
+.tw-shell .tw-row-actions button{background:#133446;color:#effaff;border:1px solid #62bade;border-radius:7px;min-height:32px;padding:6px 10px}
+.tw-record-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.tw-record-filters label{margin:0;min-width:0}.tw-record-filters input,.tw-record-filters select{width:100%;box-sizing:border-box;background:#0b2432;color:#eef9ff;border:1px solid #62bade;padding:6px}

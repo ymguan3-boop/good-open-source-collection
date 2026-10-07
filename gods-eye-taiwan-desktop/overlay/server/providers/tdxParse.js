@@ -88,6 +88,8 @@ function parseOutput(text){
 export async function parseTransitText(text,request={}, {signal,credential,fetcher=fetch,now=Date.now,onProgress=()=>{}}={}){
   signal?.throwIfAborted();if(typeof text!=='string'||!text.trim()||text.length>4000)throw tdxError('TRANSIT_TEXT_INVALID','請輸入 1–4000 字行程需求');
   const explicit={...explicitFarePatch(text),...explicitTransportPatch(text)};
+  const replan=/錯過|臨時重新規劃|最新.*重新|重新.*安排/.test(text)?text.match(/(?:安排|規劃|前往|到)(?:到)?([^，。！？!?]{1,60})[。！!？?\s]*$/):null;
+  if(replan){const destination=replan[1].replace(/^(?:幫我|去|到)/,'').trim();if(destination&&!/交通資訊|重新|規劃/.test(destination)){const patch={...explicit,destination,timeMode:'now',departureTime:null},next={...request,...patch,farePreference:farePreferenceFromRequest({...request,...patch}),userNaturalLanguage:text};next.resolvedLocations=[];const missing=!String(typeof next.origin==='string'?next.origin:next.origin?.name||'').trim();return {patch,request:next,intent:'replan',needsClarification:missing,questions:missing?['請提供目前的出發地點；其他已填條件保留。']:[],explanation:'已沿用起點、途經點、票種與運具設定，改為現在出發重新查詢。',source:'本機明確重新規劃解析'};}}
   const stopover=literalStopoverPatch(text,now());
   const literal=stopover?.patch||exactTripTextPatch(text,now());
   if(literal){const patch={...literal,...explicit},next={...request,...patch,farePreference:farePreferenceFromRequest({...request,...patch}),userNaturalLanguage:text};next.resolvedLocations=[];for(const field of ['preferredVehicleTypes','excludedVehicleTypes','preferredSeatClass','passengerTypes','passengerCounts'])delete next[field];return {patch,request:next,intent:'plan',needsClarification:stopover?.needsClarification||false,questions:stopover?.questions||[],explanation:'起訖、日期與時間已明確，直接依條件查詢官方運輸資料。',source:'本機明確行程解析'};}

@@ -168,12 +168,12 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
             try{
               const date=taipeiTime(segment.departureTime).slice(0,10),depart=taipeiTime(segment.departureTime).slice(11,16),arrive=taipeiTime(segment.arrivalTime).slice(11,16);
               const rows=await basic(`/v2/Rail/TRA/DailyTimetable/OD/${safeId(from.StationID)}/to/${safeId(to.StationID)}/${date}`,TDX_TTL.schedule,signal,{'$top':500});
-              const exact=rows.filter(r=>r.TrainDate===date&&r.OriginStopTime?.StationID===from.StationID&&r.DestinationStopTime?.StationID===to.StationID&&r.OriginStopTime?.DepartureTime?.slice(0,5)===depart&&r.DestinationStopTime?.ArrivalTime?.slice(0,5)===arrive&&Number(r.DailyTrainInfo?.SuspendedFlag)===0&&(!segment.trainNumber||String(r.DailyTrainInfo?.TrainNo)===segment.trainNumber));
+              const exact=rows.filter(r=>r.TrainDate===date&&r.OriginStopTime?.StationID===from.StationID&&r.DestinationStopTime?.StationID===to.StationID&&(segment.trainNumber?String(r.DailyTrainInfo?.TrainNo)===segment.trainNumber:r.OriginStopTime?.DepartureTime?.slice(0,5)===depart&&r.DestinationStopTime?.ArrivalTime?.slice(0,5)===arrive)&&Number(r.DailyTrainInfo?.SuspendedFlag)!==1&&(!segment.trainNumber||String(r.DailyTrainInfo?.TrainNo)===segment.trainNumber));
               if(exact.length===1){actual=traClass(exact[0].DailyTrainInfo?.TrainTypeName?.Zh_tw);segment.trainNumber=String(exact[0].DailyTrainInfo.TrainNo);segment.transportType=exact[0].DailyTrainInfo.TrainTypeName?.Zh_tw||'';segment.trainTypeId=exact[0].DailyTrainInfo.TrainTypeID;segment.trainTypeSource='TDX 臺鐵起迄站時刻表';}
             }catch{abort(parentSignal);}
           }
           segment.trainClass=actual;segment.requestedTrainClass=request.traTrainType;
-          segment.trainClassStatus=actual&&segment.transportType&&(request.traTrainType==='any'||request.traTrainType===actual)&&vehicleAllowed(segment.transportType,segment.trainTypeId,request.farePreference.modePreferences.TRA)&&!(request.farePreference.modePreferences.TRA.seatClasses.length===1&&request.farePreference.modePreferences.TRA.seatClasses[0]==='premium'&&!/^自強\s*[(（]?3000/.test(segment.transportType))?'matched':actual?'mismatch':'unverified';
+          segment.trainClassStatus=segment.transportType&&(request.traTrainType==='any'||request.traTrainType===actual)&&vehicleAllowed(segment.transportType,segment.trainTypeId,request.farePreference.modePreferences.TRA)&&!(request.farePreference.modePreferences.TRA.seatClasses.length===1&&request.farePreference.modePreferences.TRA.seatClasses[0]==='premium'&&!/^自強\s*[(（]?3000/.test(segment.transportType))?'matched':segment.transportType?'mismatch':'unverified';
           segment.fareLookup={source:'臺鐵官方票價查詢',sourceUrl:TRA_FARE_URL,status:'manual-required',ticketType:TRA_TRAIN_TYPES[request.traTrainType]||'待選車種'};
         }
         if(segment.mode==='TRA'&&segment.trainNumber&&Math.abs(Date.parse(segment.departureTime)-now())<3600000){
@@ -225,7 +225,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
     const plans=[];
     for(const r of rows){
       const info=r.DailyTrainInfo,kind=traClass(info?.TrainTypeName?.Zh_tw);
-      if(r.TrainDate!==date||r.OriginStopTime?.StationID!==from[0].StationID||r.DestinationStopTime?.StationID!==to[0].StationID||Number(info?.SuspendedFlag)!==0||!info?.TrainTypeName?.Zh_tw||request.traTrainType!=='any'&&kind!==request.traTrainType||!vehicleAllowed(info.TrainTypeName.Zh_tw,info.TrainTypeID,request.farePreference.modePreferences.TRA)||request.farePreference.modePreferences.TRA.seatClasses.length===1&&request.farePreference.modePreferences.TRA.seatClasses[0]==='premium'&&!/^自強\s*[(（]?3000/.test(info.TrainTypeName.Zh_tw))continue;
+      if(r.TrainDate!==date||r.OriginStopTime?.StationID!==from[0].StationID||r.DestinationStopTime?.StationID!==to[0].StationID||Number(info?.SuspendedFlag)===1||!info?.TrainTypeName?.Zh_tw||request.traTrainType!=='any'&&kind!==request.traTrainType||!vehicleAllowed(info.TrainTypeName.Zh_tw,info.TrainTypeID,request.farePreference.modePreferences.TRA)||request.farePreference.modePreferences.TRA.seatClasses.length===1&&request.farePreference.modePreferences.TRA.seatClasses[0]==='premium'&&!/^自強\s*[(（]?3000/.test(info.TrainTypeName.Zh_tw))continue;
       const d=r.OriginStopTime?.DepartureTime,a=r.DestinationStopTime?.ArrivalTime;if(!/^\d{2}:\d{2}(?::\d{2})?$/.test(d||'')||!/^\d{2}:\d{2}(?::\d{2})?$/.test(a||''))continue;
       let departure,arrival;
       try{departure=taipeiTime(`${date}T${d}`);arrival=taipeiTime(`${date}T${a}`);if(Date.parse(arrival)<Date.parse(departure))arrival=taipeiTime(new Date(Date.parse(arrival)+86400000).toISOString());}catch{continue;}
@@ -266,7 +266,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
       const unchecked=valid.some(p=>p.segments.some(s=>s.mode==='TRA'&&s.trainClassStatus!=='matched'));
       valid=valid.filter(p=>p.segments.every(s=>s.mode!=='TRA'||s.trainClassStatus==='matched'));
       if(unchecked&&!valid.length){const alternative=await directTra(request,signal,refresh,true);if(alternative?.plans?.length){alternative.notices.push('TDX MaaS 臺鐵時刻未對應當日官方班表，改查相同起訖的臺鐵直達候選；其他運具未窮舉。');return alternative;}}
-      if(unchecked&&!valid.length)return {plans:[],request,notices:['目前回傳臺鐵班次的車種與您的選擇不符，或班次資料不足以核對車種；請調整時間／車種後再查詢。未套用其他車種票價。'],sourceStatus:{tdx:'no-matching-train'}};
+      if(unchecked&&!valid.length)return {plans:[],request,notices:['臺鐵候選的車種限制或班次辨識尚未通過核對；將保留選擇並改查官方班表，不套用其他車種票價。'],sourceStatus:{tdx:'no-matching-train'}};
       const score=p=>request.preference==='fewest-transfers'?p.transfers:request.preference==='least-walking'?p.walkDistanceMeters:request.preference==='fastest'?p.durationSeconds:request.preference==='cheapest'?(p.totalFare??Infinity):p.durationSeconds;
       rankTransitPlans(valid,request.preference,request.departureTime||new Date(now()).toISOString());
       return {plans:valid.slice(0,3),request,sourceStatus:{tdx:valid.length?'ready':'no-route',geometry:valid.length&&valid.every(p=>p.geometryStatus==='ready')?'ready':valid.some(p=>p.segments.some(s=>s.geometry))?'partial':'missing',realtime:valid.some(p=>p.segments.some(s=>s.realtimeStatus==='dynamic'))?'partial':'scheduled'},notices:[...(!valid.length?['TDX 未回傳符合時間與運具條件的可行班次；請調整出發時間或交通工具後再查詢。']:[]),'單次查詢取得 TDX 官方最多三個候選，依指定時間／成本偏好；非全網窮舉。',...(request.timeMode==='now'?['現在出發以 10 分鐘後為理想搜尋時間；TDX 可能前後擴大搜尋，只保留尚未出發的方案，以各方案實際時刻為準。']:[]),'行程示意非即時車輛位置；沒有核實線形的路段不造直線。',...(request.preference==='lowest-delay'?['部分班次無即時延誤資料，無法保證延誤最低。']:[])]};
@@ -364,7 +364,7 @@ export function createTdxService({fetcher=fetch,credential=getCredential,now=Dat
         finalizePlan(selected);result.plans=[selected];result.conclusion=true;result.executedPlanIndex=index;result.comparisons=[];return result;
       }
       case 'official-fare-info':return fares.sources({signal,modes:Array.isArray(data.request?.allowedModes)?data.request.allowedModes.filter(m=>['TRA','HSR','BUS','METRO','LRT','BIKE','WALK'].includes(m)):['TRA','HSR']});
-      case 'fare-options':return fares.metadata({signal,refresh:data.refresh===true});
+      case 'fare-options':return fares.metadata({signal,refresh:data.refresh===true,date:data.date});
       case 'fare-status':return fares.status();
       case 'fare-update':return fares.update({signal});
       case 'fare-config':await fares.configure(Number(data.ttlMs));return fares.status();

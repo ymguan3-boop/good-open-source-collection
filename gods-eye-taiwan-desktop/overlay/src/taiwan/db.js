@@ -11,3 +11,5 @@ db.version(1).stores({
 db.version(2).stores({ results:'++id,createdAt,name' });
 
 db.version(3).stores({chatRecords:'++id,createdAt,filename'});
+
+db.version(4).stores({recordIndex:'&id,createdAt,type,location,project,cameraId,hash,version'});

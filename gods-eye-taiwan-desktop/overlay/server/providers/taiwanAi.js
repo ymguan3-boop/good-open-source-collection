@@ -1,3 +1,4 @@
+import {recordIndexAction} from './recordIndex.js';
 import {searchVoiceNews} from './voiceNews.js';
 import {tdxService} from './tdxService.js';
 import {probeGeminiLive} from './geminiLiveProbe.js';
@@ -88,6 +89,7 @@ export function taiwanAiProxy() {
         if (!local(req) || !['GET', 'POST', 'DELETE'].includes(req.method)) return json(res, 403, { error:'僅允許本機同來源瀏覽器' });
         const route = (req.url || '').split('?')[0];
         try {
+          if(route==='/record-index' && req.method==='POST')return json(res,200,await recordIndexAction(await body(req)));
           if(route==='/voice-settings' && req.method==='GET')return json(res,200,{setting:await readVoiceSettings()});
           if(route==='/voice-settings' && req.method==='POST')return json(res,200,{setting:await writeVoiceSettings(await body(req))});
           if (route==='/response-style' && req.method==='GET')return json(res,200,{setting:await readResponseStyle()});
