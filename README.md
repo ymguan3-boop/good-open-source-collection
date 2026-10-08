@@ -1,5 +1,7 @@
 # 好用開源程式收集
 
+- **2026-10-08｜上帝之眼・台灣版 v36**：確認建議後直接回報成果，停止建議迴圈，過期方案有限重查與重複確認保護；[檢查與限制](gods-eye-taiwan-desktop/docs/browser-v36-confirmed-execution-20261008.md)。
+
 - **2026-10-08｜上帝之眼・台灣版 v35**：工具列按鈕改用緊湊行高，紀錄恢復時序垂直MD清單；[改版說明](gods-eye-taiwan-desktop/docs/browser-v35-compact-toolbar-20261008.md)。
 
 - **2026-10-07｜上帝之眼・台灣版 v34**：空間索引＋批次運算＋一次 AI 解讀，SQLite／FTS5 紀錄摘要檢索，分析中可插話、補充條件與停止；[驗收紀錄與限制](gods-eye-taiwan-desktop/docs/browser-v34-batch-analysis-20261007.md)。

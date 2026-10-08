@@ -18,34 +18,42 @@ function readStyle(){try{return normalizeTransitStyle(JSON.parse(localStorage.ge
 export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{},onError=()=>{},onRecovery=()=>{},onProgress=()=>{},getDrivingColor=()=> '#369cff'}) {
   if(!manager?.create)throw new Error('大眾運輸視窗需要共用浮動視窗管理器');
   let request=normalizeTripRequest(),tab='form',style=readStyle(),results=null,selectedPlan=null,journey=null,journeyState={},pending=null,busy=false,destroyed=false,operation=0,abort=null,revision=0,dragIndex=null,parsed=false,parsedRefresh=false,naturalDirty=false,questions=[],waypointSequence=0,recovery=null,recoverySequence=0,executionRequested=false,lastIssue=null;
+  let confirmedExecution=false,confirmedResult=null,executionPlanIndex=0,renewalAttempts=0;
   let fareOptions={vehicleTypes:[],hsrSeatClasses:[],passengerTypes:[{id:'adult',name:PASSENGER_NAMES.adult}],notices:[]},fareLoaded=false,fareDate=null,awaitingTripDetails=false;
   const panel=manager.create({id:'transit-planning',title:'AI 智慧大眾運輸',width:450,height:650,onClose:()=>{cancel();return journey?.stop?.();}});
   panel.body.classList.add('tw-transit');
   function status(message){if(destroyed)return;panel.body.querySelector('[data-transit-status]').textContent=message;panel.setSummary(busy?'工作中...':selectedPlan?.label||'旅程規劃');onProgress({message:busy&&!message.startsWith('工作中')?'工作中... '+message:message,busy});}
-  function fail(error){if(destroyed||error?.name==='AbortError')return;lastIssue={message:error.message,code:error.code,status:error.status,rateLimit:error.rateLimit};executionRequested=false;proposeRecovery(error);}
+  async function reportConfirmedFailure(issue){
+    if(destroyed)return;recovery=null;executionRequested=false;
+    const reason=String(issue?.message||issue||'未取得可驗證的成果');
+    confirmedResult={conclusion:true,executionConfirmed:true,executionStatus:'blocked',plans:[],request:clone(request),serviceError:{code:issue?.code,status:issue?.status,rateLimit:issue?.rateLimit},notices:['本次執行已結束，尚未完成目標：'+reason]};
+    results=clone(confirmedResult);renderResults();await onExplain(clone(confirmedResult),{conclusion:true});status('已回報執行結果與未完成原因，不再重複提出建議。');return clone(confirmedResult);
+  }
+  async function fail(error){if(destroyed||error?.name==='AbortError')return;lastIssue={message:error.message,code:error.code,status:error.status,rateLimit:error.rateLimit};executionRequested=false;if(confirmedExecution)return reportConfirmedFailure(error);proposeRecovery(error);}
   function proposeRecovery(issue){
-    if(destroyed)return;busy=false;recovery={...buildTransitRecovery(request,issue),id:String(++recoverySequence),revision};status('已整理三點修正建議，請在 AI 空間助理確認後繼續。');renderBusy();onRecovery(clone(recovery));
+    if(destroyed)return;if(confirmedExecution)return reportConfirmedFailure(issue);busy=false;recovery={...buildTransitRecovery(request,issue),id:String(++recoverySequence),revision};status('已整理三點修正建議，請在 AI 空間助理確認後繼續。');renderBusy();onRecovery(clone(recovery));
   }
   async function confirmRecovery(id,index){
     if(busy)throw new Error('目前規劃仍在執行，完成後會自動回報。');
     if(!recovery||recovery.id!==String(id)||recovery.revision!==revision)throw new Error('此建議已失效，請依目前旅程條件重新規劃。');
     const suggestion=recovery.suggestions[index];if(!suggestion)throw new Error('請選擇建議1、2或3');recovery=null;
+    if(suggestion.action==='execute'||suggestion.action==='clarify'){confirmedExecution=true;confirmedResult=null;renewalAttempts=0;executionPlanIndex=suggestion.planIndex||0;}
     if(suggestion.action==='clarify'){
       awaitingTripDetails=true;executionRequested=true;tab='form';renderForm();renderTabs();panel.restore();
       const missing=tripLocationEntries(request).filter(item=>!locationName(item.value));
       const text=missing.length?`已採用「按你建議執行」，目前尚缺${missing.map(item=>item.label).join('、')}。\n\n${missing.length===1?`請直接在此對話回覆${missing[0].label}，例如「宜蘭縣政府」；收到後會沿用其餘條件查詢班次、回報結論與地圖路線。`:'請補充完整起終點，例如「從宜蘭縣政府到台北車站」。'}\n\n同行人數、票種、允許運具與中繼點均已保留。`:validateTripRequest(request).join('；');
-      await onExplain({assistantContent:'## 已採用建議，等待必要條件\n'+text,needsClarification:true,request:clone(request)});
+      await onExplain({assistantContent:'## 已採用建議，等待必要條件\n'+text,needsClarification:true,executionConfirmed:confirmedExecution,request:clone(request)});
       status('已回報缺少的旅程條件；可在 AI 空間助理直接補充。');
       const field=missing[0]?.key;if(field==='origin'||field==='destination')panel.body.querySelector(`[data-trip-field="${field}"]`)?.focus();
       return {handled:true,needsClarification:true};
     }
     if(suggestion.action==='execute'&&results?.offerId&&Number.isInteger(suggestion.planIndex))return executeConfirmed(suggestion.planIndex);
     if(suggestion.action==='execute')executionRequested=true;
-    if(suggestion.action==='edit'){awaitingTripDetails=true;tab='form';renderForm();renderTabs();panel.restore();await onExplain({assistantContent:'## 已開啟旅程條件表單\n已採用「'+suggestion.label+'」。原起終點、中繼點、乘客與運具設定已保留；可在表單修改，或在此對話直接補充条件。確認完整後會重新查詢官方班次。',needsClarification:true,request:clone(request)});status('已開啟保留的旅程條件，請修改後再按規劃。');return {handled:true,editing:true};}
+    if(suggestion.action==='edit'){awaitingTripDetails=true;tab='form';renderForm();renderTabs();panel.restore();await onExplain({assistantContent:'## 已開啟旅程條件表單\n已採用「'+suggestion.label+'」。原起終點、中繼點、乘客與運具設定已保留；可在表單修改，或在此對話直接補充条件。確認完整後會重新查詢官方班次。',needsClarification:true,executionConfirmed:confirmedExecution,request:clone(request)});status('已開啟保留的旅程條件，請修改後再按規劃。');return {handled:true,editing:true};}
     request=patchTripRequest(request,suggestion.patch||{});revision++;questions=[];renderForm();renderTabs();
-    try{if(suggestion.action==='parse')return await parse(request.userNaturalLanguage,{followup:true,refresh:true});naturalDirty=false;return await plan(true);}catch(error){fail(error);return {handled:true,error:error.message};}
+    try{if(suggestion.action==='parse')return await parse(request.userNaturalLanguage,{followup:true,refresh:true});naturalDirty=false;return await plan(true);}catch(error){await fail(error);return {handled:true,error:error.message};}
   }
-  function cancel(){executionRequested=false;recovery=null;operation++;abort?.abort();abort=null;busy=false;pending=null;if(!destroyed)panel.body.querySelector('[data-transit-candidates]').hidden=true;renderBusy();}
+  function cancel(){confirmedExecution=false;confirmedResult=null;executionPlanIndex=0;renewalAttempts=0;executionRequested=false;recovery=null;operation++;abort?.abort();abort=null;busy=false;pending=null;if(!destroyed)panel.body.querySelector('[data-transit-candidates]').hidden=true;renderBusy();}
   function start(message){abort?.abort();abort=new AbortController();const token=++operation;busy=true;status(message);renderBusy();return {token,signal:abort.signal,revision};}
   function live(work){return !destroyed&&!work.signal.aborted&&operation===work.token&&revision===work.revision;}
   function finish(work){if(operation===work.token){busy=false;renderBusy();onProgress({busy:false,message:panel.body.querySelector('[data-transit-status]').textContent});}}
@@ -106,6 +114,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
     try{
       const response=await streamTransitParse({text,request:clone(request)},{signal:work.signal,onStatus:message=>{if(live(work))status(message);}});
       if(!live(work))return {cancelled:true};
+      if(response.intent==='explain'&&confirmedExecution){if(results?.plans?.length){finish(work);return executeConfirmed(executionPlanIndex);}naturalDirty=false;finish(work);return plan(true,true);}
       if(response.intent==='explain'){if(results?.plans?.length){await onExplain({...clone(results),request:clone(request)},{signal:work.signal});recovery={...buildTransitPlanConfirmation(results),id:String(++recoverySequence),revision};onRecovery(clone(recovery));}else proposeRecovery(lastIssue||new Error('目前尚無可執行官方方案；請確認已保留條件後查詢。'));return {handled:true,intent:'explain'};}
       if(!response.request&&!response.patch&&!response.needsClarification)throw new Error('AI 未回傳可確認的旅程條件，請改用表單或重新描述');
       request=response.request?normalizeTripRequest(response.request):patchTripRequest(request,response.patch||{});
@@ -113,7 +122,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
       if(response.needsClarification&&!questions.length)questions=['請補充起終點或時間條件，再重新規劃。'];
       renderForm();renderTabs();
        status(questions.length?'AI 需要補充條件；請修改表單或描述後再規劃。':'AI 已理解您的需求，接續查詢最新運輸資訊。');
-      if(questions.length){proposeRecovery(new Error(questions.join('；')));return clone(response);}
+      if(questions.length){await proposeRecovery(new Error(questions.join('；')));return clone(response);}
       if(followup&&!questions.length){finish(work);return plan(refresh||response.intent==='replan');}
       return clone(response);
     }finally{finish(work);}
@@ -137,7 +146,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
       if(!live(work))return {cancelled:true};
       if(response.needsClarification){
         results={...response,plans:[]};questions=(response.questions||[]).map(String);parsed=true;renderUnderstanding();
-        proposeRecovery(new Error(questions.join('；')||'請先補充旅程需求。'));return clone(results);
+        await proposeRecovery(new Error(questions.join('；')||'請先補充旅程需求。'));return clone(results);
       }
       if(response.needsSelection){
         const unresolved=response.unresolvedLocations?.find(item=>Array.isArray(item.results)&&item.results.some(hasCoordinates));
@@ -148,9 +157,9 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
       results={...response,request:clone(request),plans:Array.isArray(response.plans)?response.plans:[]};
       if(response.request)request=normalizeTripRequest(response.request);
       pending=null;root.querySelector('[data-transit-candidates]').hidden=true;renderForm();renderUnderstanding();renderResults();
-      if(!results.plans.length){lastIssue=response.diagnostic||{message:(response.notices||[]).join('；')};if(executionRequested){executionRequested=false;results.conclusion=true;results.notices=['規劃尚未完成：官方資料與公開班表備援均未提供符合條件的完整旅程。',...(response.notices||[])];await onExplain(clone(results),{signal:work.signal,conclusion:true});}proposeRecovery({...lastIssue,message:(response.notices||[]).join('；')||'目前查不到符合條件的官方運輸方案。'});return clone(results);}
+      if(!results.plans.length){lastIssue=response.diagnostic||{message:(response.notices||[]).join('；')};const issue={...lastIssue,message:(response.notices||[]).join('；')||'TDX及官方公開班表均未提供符合已確認條件的完整旅程。'};if(confirmedExecution)return await reportConfirmedFailure(issue);proposeRecovery(issue);return clone(results);}
+      if(executionRequested){finish(work);return await executeConfirmed(executionPlanIndex);}
       await choosePlan(0);if(!live(work))return {cancelled:true};
-      if(executionRequested){finish(work);return await executePlan(0);}
       await onExplain(clone(results),{signal:work.signal});if(live(work))status(`已取得 ${results.plans.length} 個可靠資料方案，結果已送至 AI 空間助理。`);
       recovery={...buildTransitPlanConfirmation(results),id:String(++recoverySequence),revision};onRecovery(clone(recovery));
       return clone(results);
@@ -160,11 +169,21 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
     if(!results?.offerId)throw new Error('目前沒有可確認的官方方案，請先規劃。');
     recovery=null;executionRequested=false;const work=start('正在確認方案、查核官方票價與估算依據…');
     try{const response=await browserAi('/tdx',{method:'POST',data:{action:'execute-plan',offerId:results.offerId,index},signal:work.signal});
-      if(!live(work))return {cancelled:true};results={...response,request:clone(request)};await onExplain({...clone(results),displayPending:true},{signal:work.signal,conclusion:true});status('班次與票價查核已完成，規劃結論已回報；正在準備地圖示意…');let display;try{display=await choosePlan(0,{execute:true});}catch(error){display={animationStarted:false,animationNotice:error.message};}results.animationStarted=display?.animationStarted===true;if(display?.animationNotice)results.notices=[...(results.notices||[]),'3D 旅程尚未開始：'+display.animationNotice];if(!live(work))return {cancelled:true};
-      await onExplain(clone(results),{signal:work.signal,conclusion:true});status(results.animationStarted?'規劃結論已送至 AI 空間助理，3D 旅程示意已開始。':'規劃結論已送至 AI 空間助理；請查看旅程展示視窗的狀態。');return {handled:true,conclusion:true,...clone(results)};
-    }catch(error){if(live(work)){status('執行未完成：'+error.message);await onExplain({conclusion:true,plans:[],serviceError:{code:error.code,status:error.status,rateLimit:error.rateLimit},notices:['規劃結論：未能執行目前方案。'+error.message],request:clone(request)},{conclusion:true});}throw error;}finally{finish(work);}
+      if(!live(work))return {cancelled:true};results={...response,request:clone(request),executionConfirmed:confirmedExecution};await onExplain({...clone(results),displayPending:true},{signal:work.signal,conclusion:true});status('班次與票價查核已完成，規劃結論已回報；正在準備地圖示意…');let display;for(let attempt=0;attempt<2;attempt++){if(!live(work))return {cancelled:true};try{display=await choosePlan(0,{execute:true});}catch(error){display={animationStarted:false,animationNotice:error.message};}if(display?.animationStarted)break;if(attempt===0)status('正在重新準備已確認方案的地圖路線與行進示意…');}results.animationStarted=display?.animationStarted===true;if(display?.animationNotice)results.notices=[...(results.notices||[]),'3D 旅程尚未開始：'+display.animationNotice];if(!live(work))return {cancelled:true};
+      results.executionStatus=results.animationStarted?'completed':'partial';confirmedResult=clone(results);await onExplain(clone(results),{signal:work.signal,conclusion:true});status(results.animationStarted?'規劃結論已送至 AI 空間助理，3D 旅程示意已開始。':'規劃結論已送至 AI 空間助理；請查看旅程展示視窗的狀態。');return {handled:true,conclusion:true,...clone(results)};
+    }finally{finish(work);}
   }
-  async function executeConfirmed(index){try{return await executePlan(index);}catch(error){fail(error);return {handled:true,error:error.message};}}
+  async function executeConfirmed(index){
+    confirmedExecution=true;executionPlanIndex=index;executionRequested=true;
+    try{return await executePlan(index);}catch(error){
+      if(error?.name==='AbortError'||destroyed)return {cancelled:true};
+      if(index===0&&['PLAN_EXPIRED','PLAN_DEPARTED'].includes(error.code)&&renewalAttempts++===0){
+        status('已確認的班次已過期，正在保留旅程限制重新查核官方班次…');
+        try{executionRequested=true;return await plan(true,true);}catch(retryError){await fail(retryError);return {handled:true,error:retryError.message};}
+      }
+      await fail(error);return {handled:true,error:error.message};
+    }
+  }
   function synchronizeColor(){const adjusted=distinctTransitColor(style.color,getDrivingColor());if(adjusted!==style.color){style={...style,color:adjusted};try{localStorage.setItem(storageKey,JSON.stringify(style));}catch{}const field=root.querySelector('[data-transit-style="color"]');if(field)field.value=adjusted;journey?.setStyle?.(clone(style));}return clone(style);}
   function renderCandidates(){
     const box=root.querySelector('[data-transit-candidates]');box.hidden=!pending;if(!pending)return;
@@ -178,7 +197,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
     const plan=results?.plans?.[index];if(!plan)throw new Error('此方案不存在，請重新規劃');
     selectedPlan=plan;
     let outcome;try{const controller=await onPlan(clone(plan),{request:clone(request),style:synchronizeColor(),execute});if(controller?.play)setJourneyController(controller);outcome=controller;}
-    catch(error){if(execute)throw error;fail(new Error(`運輸方案已保留，但 3D 旅程無法顯示：${error.message}`));}
+    catch(error){if(execute)throw error;await fail(new Error(`運輸方案已保留，但 3D 旅程無法顯示：${error.message}`));}
     root.querySelectorAll('[data-transit-plan]').forEach(element=>element.classList.toggle('is-selected',Number(element.dataset.transitPlan)===index));
     renderJourney();return outcome;
   }
@@ -242,7 +261,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
   if(panel.mode==='expanded'||panel.mode==='minimized')void loadFareOptions();
   return {
     show(){void loadFareOptions();panel.show();panel.bringToFront();return this;},hide(){panel.hide();},minimize(){panel.minimize();},restore(){void loadFareOptions();panel.restore();},bringToFront(){panel.bringToFront();},
-    get element(){return panel.element;},get state(){return clone(request);},get results(){return clone(results);},get style(){return clone(style);},synchronizeColor,get busy(){return busy;},get awaitingTripDetails(){return awaitingTripDetails;},get active(){return !!results?.plans?.length||!!recovery||!!locationName(request.origin)||!!request.userNaturalLanguage;},get recovery(){return clone(recovery);},confirmRecovery,
+    get element(){return panel.element;},get state(){return clone(request);},get results(){return clone(results);},get style(){return clone(style);},synchronizeColor,get busy(){return busy;},get awaitingTripDetails(){return awaitingTripDetails;},get active(){return !!results?.plans?.length||!!recovery||!!locationName(request.origin)||!!request.userNaturalLanguage;},get recovery(){return clone(recovery);},get executionConfirmed(){return confirmedExecution;},confirmRecovery,
     setRequest(value){edit(value);renderForm();renderTabs();},
     cancel,
     setJourneyController,updateJourney(value){
@@ -255,6 +274,7 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
       if(busy){status('目前查詢仍在執行，完成或失敗會自動回報；請勿重複執行。');return {handled:true,busy:true};}
       const intent=transitMessageIntent(text,{hasRequest:!!locationName(request.origin)||!!request.userNaturalLanguage,active:!!recovery||!!results});
       if(awaitingTripDetails&&!['service','sources','status','diagnose','confirm','fallback'].includes(intent)){
+        if(confirmedExecution){executionRequested=true;confirmedResult=null;}
         panel.show();const missing=tripLocationEntries(request).filter(item=>!locationName(item.value));
         try{
           if(missing.length===1&&text.trim().length<=120&&!/[？?\n]|(?:怎麼|為什麼|原因|可以嗎|建議|有沒有)/.test(text)&&!/(?:從|到|出發|抵達).*(?:到|從)/.test(text)){
@@ -262,12 +282,12 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
             request=setTripLocation(request,missing[0].key,name);revision++;questions=[];naturalDirty=false;awaitingTripDetails=false;renderForm();renderTabs();return {handled:true,...await plan(true)};
           }
           return {handled:true,...await parse(text,{followup:true,refresh:true})};
-        }catch(error){fail(error);return {handled:true,error:error.message};}
+        }catch(error){await fail(error);return {handled:true,error:error.message};}
       }
-      if(intent==='fallback'){recovery=null;executionRequested=true;try{return {handled:true,...await plan(true,true)};}catch(error){fail(error);return {handled:true,error:error.message};}}
+      if(intent==='fallback'){recovery=null;confirmedExecution=true;confirmedResult=null;renewalAttempts=0;executionRequested=true;try{return {handled:true,...await plan(true,true)};}catch(error){await fail(error);return {handled:true,error:error.message};}}
       if(intent==='diagnose'){
         const issue=results?.diagnostic||lastIssue,reason=issue?.message||recovery?.reason||'目前尚未取得正式查詢結果，不能據此判定訂閱或額度不足。';
-        await onExplain({assistantContent:'## 本次規劃問題與處理方式\n'+reason+'\n\n'+(issue?.upstreamStatus?'官方 HTTP 狀態：'+issue.upstreamStatus+'；'+(issue.classification==='quota'?'已確認用量限制。':issue.classification==='permission'?'已確認此端點權限不足。':'此狀態尚不足以判定額度。'):'目前未取得 403／429 的額度或權限證據；查無方案與金鑰失效是不同狀態。')+'\n已自動查詢官方班表備援、核實接駁道路與中繼停留，不需手動載入交通圖層。可回覆「用爬蟲解決」直接查官方公開資料，或點「按你建議執行」沿用目前條件繼續。',serviceError:issue});if(recovery)onRecovery(clone(recovery));return {handled:true};
+        await onExplain({assistantContent:'## 本次規劃問題與處理方式\n'+reason+'\n\n'+(issue?.upstreamStatus?'官方 HTTP 狀態：'+issue.upstreamStatus+'；'+(issue.classification==='quota'?'已確認用量限制。':issue.classification==='permission'?'已確認此端點權限不足。':'此狀態尚不足以判定額度。'):'目前未取得 403／429 的額度或權限證據；查無方案與金鑰失效是不同狀態。')+'\n已自動查詢官方班表備援、核實接駁道路與中繼停留，不需手動載入交通圖層。'+(confirmedExecution?'本次執行結果已回報，沒有重新要求確認。':'可回覆「用爬蟲解決」直接查官方公開資料，或點「按你建議執行」沿用目前條件繼續。'),serviceError:issue});if(recovery&&!confirmedExecution)onRecovery(clone(recovery));return {handled:true};
       }
       if(intent==='service'||intent==='sources'){
         const work=start(intent==='sources'?'正在擷取目前旅程相關的官方公開票價來源…':'正在讀取實際 TDX 服務狀態…');
@@ -275,23 +295,24 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
           if(intent==='sources'){const sourceResult=await browserAi('/tdx',{method:'POST',data:{action:'official-fare-info',request:clone(request)},signal:work.signal});if(live(work))await onExplain({assistantContent:transitServiceText(service)+'\n\n## 官方網頁擷取結果\n'+sourceResult.sources.map(s=>`- [${s.name}](${s.sourceUrl})：${s.status}；擷取時間 ${s.fetchedAt||'未取得'}${s.notice?'；'+s.notice:''}`).join('\n')+'\n\n這是實際公開頁面查核；起訖、車種、票種與計價條件仍由 Fare Engine 驗證，不讓文字模型猜金額。',serviceStatus:service},{signal:work.signal});}
           else{const fareStatus=await browserAi('/tdx',{method:'POST',data:{action:'fare-status'},signal:work.signal});if(live(work))await onExplain({assistantContent:transitServiceText(service,fareStatus),serviceStatus:service},{signal:work.signal});}
           status('資料服務查核結果已回報至 AI 空間助理。');return {handled:true};
-        }catch(error){fail(error);return {handled:true,error:error.message};}finally{finish(work);}
+        }catch(error){await fail(error);return {handled:true,error:error.message};}finally{finish(work);}
       }
       if(intent==='status'){
         if(results?.plans?.length)await onExplain({...clone(results),conclusion:true});
-        else await onExplain({assistantContent:'## 目前查核結果\n'+(results?.notices?.join('\n')||lastIssue?.message||recovery?.reason||'尚未開始查詢，請先提供旅程條件。')+'\n\n尚未取得完整路線，未標記為完成。可以點「按你建議執行」或回覆「用爬蟲解決」接續官方資料備援。'});
-        if(recovery)onRecovery(clone(recovery));
-        else if(!results?.plans?.length)proposeRecovery(lastIssue||new Error('目前尚未取得可執行方案；查詢直接透過 TDX 與官方票價來源，不需要載入交通圖層。'));
+        else await onExplain({assistantContent:'## 目前查核結果\n'+(results?.notices?.join('\n')||lastIssue?.message||recovery?.reason||'尚未開始查詢，請先提供旅程條件。')+(confirmedExecution?'\n\n本次執行結果已回報；沒有取得完整路線，未標記為成功。':'\n\n尚未取得完整路線，未標記為完成。可以點「按你建議執行」或回覆「用爬蟲解決」接續官方資料備援。')});
+        if(recovery&&!confirmedExecution)onRecovery(clone(recovery));
+        else if(!results?.plans?.length&&!confirmedExecution)proposeRecovery(lastIssue||new Error('目前尚未取得可執行方案；查詢直接透過 TDX 與官方票價來源，不需要載入交通圖層。'));
         return {handled:true};
       }
       if(recovery){const index=transitConfirmationIndex(text);if(index!==null)return confirmRecovery(recovery.id,index);await onExplain({assistantContent:'目前保留您的旅程條件與三項建議。請點「按你建議執行」，或詢問「原因」／「用爬蟲解決」，我會接續實際查詢並回報結果。'});return {handled:true,needsConfirmation:true};}
       if(intent==='confirm'){
+        if(confirmedResult){await onExplain(clone(confirmedResult),{conclusion:true});status('已回報本次執行結果，沒有重複執行。');return {handled:true,...clone(confirmedResult)};}
         if(results?.offerId&&results.plans?.length)return executeConfirmed(0);
-        proposeRecovery(lastIssue||new Error('尚未取得可執行的官方方案，請確認下方建議。'));return {handled:true,needsConfirmation:true};
+        confirmedExecution=true;confirmedResult=null;renewalAttempts=0;executionRequested=true;try{return {handled:true,...await plan(true,true)};}catch(error){await fail(error);return {handled:true,error:error.message};}
       }
-      if(!results?.plans?.length&&!results?.needsClarification)return {handled:false};panel.show();try{const response=await parse(text,{followup:true,refresh:/錯過|重新|最新/.test(text)});return {handled:true,...response};}catch(error){fail(error);return {handled:true,error:error.message};}
+      if(!results?.plans?.length&&!results?.needsClarification)return {handled:false};panel.show();try{const response=await parse(text,{followup:true,refresh:/錯過|重新|最新/.test(text)});return {handled:true,...response};}catch(error){await fail(error);return {handled:true,error:error.message};}
     },
-    async plan({refresh=false}={}){try{return await plan(refresh);}catch(error){fail(error);return {error:error.message};}},
+    async plan({refresh=false}={}){try{return await plan(refresh);}catch(error){await fail(error);return {error:error.message};}},
     destroy(){if(destroyed)return;cancel();destroyed=true;root.removeEventListener('click',click);root.removeEventListener('input',input);root.removeEventListener('change',input);root.removeEventListener('dragstart',dragStart);root.removeEventListener('dragover',dragOver);root.removeEventListener('drop',drop);root.removeEventListener('dragend',dragEnd);panel.destroy();},
   };
 }

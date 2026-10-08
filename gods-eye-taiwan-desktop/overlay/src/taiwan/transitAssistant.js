@@ -1,8 +1,9 @@
+import {adoptsRecommendation} from './recommendationExecution.js';
 /** Operational transit messages are handled by the workflow, never by a text-only model. */
 export function transitMessageIntent(text,{hasRequest=false,active=false}={}){
  const value=String(text||'').trim();
  if(/Gemini|OpenRouter|語音/i.test(value)&&!/TDX|大眾運輸|運輸/i.test(value))return null;
- if(/^(?:請)?(?:按|照|依)(?:照)?\s*(?:你(?:的)?|AI(?:的)?|目前(?:的)?)?\s*建議(?:方案)?(?:執行|做|辦|規劃)?[。！!\s]*$/i.test(value)||/^(?:請)?(?:採用|確認|選擇|使用)?\s*(?:建議)?\s*([123一二三])[。！!\s]*$/.test(value))return hasRequest||active?'confirm':null;
+ if(adoptsRecommendation(value)||/^(?:請)?(?:採用|確認|選擇|使用)?\s*(?:建議)?\s*([123一二三])[。！!\s]*$/.test(value))return hasRequest||active?'confirm':null;
  if((hasRequest||active)&&/原因|為什麼|怎麼(?:辦|解決)|解決方案|沒反應|卡住/.test(value))return 'diagnose';
  if((hasRequest||active)&&/爬蟲|爬取|擷取|抓取/.test(value)&&!/票價|公告|地形|圖資/.test(value))return 'fallback';
  if(/爬蟲|爬取|擷取|抓取|查(?:詢|核).*(?:官方|票價)|更新.*票價/.test(value))return /票價|交通|班次|TDX|運輸/.test(value)?'sources':null;
