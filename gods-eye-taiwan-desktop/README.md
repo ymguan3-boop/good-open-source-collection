@@ -1,5 +1,9 @@
 # 上帝之眼・台灣版
 
+## v37 缺口彙整、追蹤成果與 DTM（2026-10-08）
+
+缺口改為分類摘要；三項追蹤依實際成果產生，點擊直接交付表格與來源；Windows 首次安裝自動下載官方 DTM，既有安裝支援補裝。詳見 [v37檢查與限制](docs/browser-v37-analysis-dtm-20261008.md)。
+
 ## v36 確認後直接交付成果（2026-10-08）
 
 確認後直接回報成果、來源與實際完成狀態，不再重複提出三項建議；過期方案有限重查，重複確認沿用成果。詳見 [v36檢查與限制](docs/browser-v36-confirmed-execution-20261008.md)。
@@ -145,7 +149,7 @@ cd good-open-source-collection\gods-eye-taiwan-desktop
 node .\scripts\install-browser.mjs
 ```
 
-安裝程式依 `UPSTREAM.lock` 取得鎖定上游、套用台灣版、安裝套件及建立正式介面；所需時間取決於網路與電腦。若已有安裝工作區會停止，不刪除既有設定。首次安裝完成後雙擊：
+安裝程式依 `UPSTREAM.lock` 取得鎖定上游、套用台灣版、安裝套件及建立正式介面；所需時間取決於網路與電腦。若已有安裝工作區會停止，不刪除既有設定。Windows 首次安裝預設會接著下載官方 DTM；失敗會保留程式與續傳檔，並顯示補裝指令。首次安裝完成後雙擊：
 
 ```text
 啟動上帝之眼-瀏覽器版.bat
@@ -158,6 +162,23 @@ node .\scripts\install-browser.mjs
 可把本資料夾交給 Codex 或 Claude Code，輸入：
 
 > 請讀取 AGENTS.md，使用 scripts/install-browser.mjs 安裝瀏覽器版，再啟動「啟動上帝之眼-瀏覽器版.bat」。請確認正式介面可開啟及圖資可載入，保留既有設定與金鑰。
+
+## 官方 DTM 首次安裝與補裝
+
+- 原因：GitHub 排除約 757 MB 的原始 GeoTIFF，舊版安裝腳本也未執行 DTM 下載；複製程式到另一台電腦後因此缺檔。新版 Windows 首次安裝會自動下載，無需 Agent 或 API Key。
+- 所需空間：約 1.1 GB（269 MB ZIP 加解壓後原始檔）；下載速度依官方服務與網路而定。下載來源：[TGOS 官方 2025 全臺 20 公尺 DTM](https://www.tgos.tw/MDE/VirtualDir_TC/Product/528530be-0710-431e-954e-2f2f5e98b0c5/不分幅_全台20MDEM(2025).zip)。
+- 既有安裝、下載中斷或缺檔：在**本專案根目錄**執行下列指令。它支援續傳，驗證檔案大小及 SHA-256；已有有效原始檔會沿用，不重複下載。
+
+```powershell
+npm.cmd run install:dtm
+```
+
+- 沒有 npm 指令時，也可執行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-official-dtm.ps1`。
+- 只想先安裝介面時可用 `node .\scripts\install-browser.mjs --skip-dtm`；日後再補裝。下載失敗不會把 DTM 宣稱為已安裝。
+- 檔案位置：`data/official/dtm-2025/DEM_tawiwan_V2025.tif`；路徑由專案根目錄定位，不依賴原作者磁碟代號或安裝工作區深度。資料就緒後重新載入 DTM 圖層即可。
+- ZIP SHA-256：`2E1CD738B3C3ABBCFDBCE79AC18A5818A6EC80AA32C2813F0E21CFD909BE295C`；GeoTIFF：`59E5E980000D6E3F5A7734C6AF197934A1A5432482B6CAA789A1EC90B624015D`。
+- 雜湊不符會停止並保留原檔。請先備份或將不符的 ZIP／GeoTIFF 移到另一資料夾，再重跑補裝；程式不自行覆蓋不明來源檔案。官方網址或版本如改變，需先核對新版 metadata、大小及雜湊再更新下載腳本。
+- 可讀狀態端點：`http://127.0.0.1:4175/api/taiwan/dtm-2025/status`；缺檔時圖層錯誤也會提供補裝指令。20 公尺格網為地形取樣，不能替代工程測量，也不是 3D 地形網格。
 
 ## 更新既有安裝
 
@@ -263,7 +284,7 @@ v17 曾修正語音範圍回答無法接續載入及重複詢問，保留 v16 �
 - 匯入／匯出JSON，專案圖層可切換顯示、排序、刪除及改色。「記錄」保存 AI 對話 MD；清除網站資料會移除暫存，請另存下載檔。舊版成果的 JSON 資料仍保留於資料庫，未列入新的對話紀錄面板。
 - 標註與量測：先選工具、填色、框線與粗細，再繪製；圓形可指定半徑，多邊形顯示頂點。每個成果可排序、刪除，說明與AI分析置於可展開的子層級。
 - 完成繪製後，手動加入已載入圖資、確認子圖層，再計算／AI解析。缺少可計數建物向量時顯示未知，不把Google擬真3D影像直接當作可計數的建物清冊。
-- 全球地形與官方20m DTM分開取樣／標示，未取得真實高程時不填入虛構數據。官方DTM為大型選用下載，相關腳本在 `scripts/install-official-dtm.ps1`，不隨Git打包。
+- 全球地形與官方20m DTM分開取樣／標示，未取得真實高程時不填入虛構數據。官方 DTM 原始檔因容量不隨 Git 打包；Windows 首次安裝預設自動下載並驗證，既有安裝可用 `npm.cmd run install:dtm` 補裝。
 - AI空間助理可伸縮、清除對話、保存自訂風格，表格與粗體直接顯示格式。Gemini優先使用台灣中文與繁體中文逐字稿；真實API中文音訊已驗證，實際麥克風回音／語言仍需在使用者裝置確認。
 - 左側工具列可收合，原版UI保留；`T`台灣、`G`全球，CCTV不使用`Ctrl+C`快捷鍵。
 

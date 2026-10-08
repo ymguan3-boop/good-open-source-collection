@@ -19,4 +19,11 @@ if(process.platform==='win32'){
   execFileSync('npm',['install'],{cwd:work,stdio:'inherit'});
   execFileSync('npm',['run','build'],{cwd:work,stdio:'inherit'});
 }
+if(!process.argv.includes('--skip-dtm')){
+  if(process.platform==='win32'){
+    console.log('正在安裝官方 2025 全臺 20 公尺 DTM（下載約269 MB，含解壓需約1.1 GB空間）...');
+    try{execFileSync('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',resolve(root,'scripts/install-official-dtm.ps1')],{cwd:root,stdio:'inherit'});}
+    catch{console.warn('瀏覽器程式已安裝，但 DTM 尚未就緒。請在專案目錄執行 npm.cmd run install:dtm 續傳／補裝；詳見 README。');}
+  }else console.warn('DTM 尚未安裝；此下載腳本適用 Windows，其他系統請依 README 官方來源與雜湊部署資料。');
+}else console.log('已依 --skip-dtm 略過 DTM；日後可執行 npm.cmd run install:dtm 補裝。');
 console.log('瀏覽器版已完成安裝。Windows請雙擊「啟動上帝之眼-瀏覽器版.bat」。');

@@ -1,12 +1,18 @@
 import { existsSync, openSync, readSync, closeSync, statSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import proj4 from 'proj4';
 import * as turf from '@turf/turf';
 
 // The official 2025 GeoTIFF is an uncompressed, little-endian Float32 raster
 // with one 10035-pixel strip per row. The dimensions and byte count are checked
 // before any request so a replacement file cannot silently use this layout.
-const TIFF = resolve(import.meta.dirname, '../../../../data/official/dtm-2025/DEM_tawiwan_V2025.tif');
+function projectRoot(start){
+  for(let folder=start;;folder=dirname(folder)){
+    if(existsSync(resolve(folder,'UPSTREAM.lock'))&&existsSync(resolve(folder,'scripts/install-official-dtm.ps1')))return folder;
+    if(dirname(folder)===folder)throw new Error('無法定位 DTM 專案根目錄，請保留 UPSTREAM.lock 與 scripts 安裝腳本。');
+  }
+}
+const TIFF = resolve(projectRoot(import.meta.dirname), 'data/official/dtm-2025/DEM_tawiwan_V2025.tif');
 const WIDTH = 10035;
 const HEIGHT = 18852;
 const BYTES = 756870860;
@@ -15,6 +21,11 @@ const Y0 = 2799160;
 const CELL = 20;
 const NODATA = -32767;
 const TWD97 = '+proj=tmerc +lat_0=0 +lon_0=121 +k=0.9999 +x_0=250000 +y_0=0 +ellps=GRS80 +units=m +no_defs';
+export function dtmStatus(){
+  const fileBytes=existsSync(TIFF)?statSync(TIFF).size:0;
+  return {installed:fileBytes===BYTES,fileBytes,expectedBytes:BYTES,source:'內政部地政司 2025 全臺 20 公尺 DTM',installCommand:'npm.cmd run install:dtm',readme:'README.md#官方-dtm-首次安裝與補裝',integrity:'安裝腳本驗證 SHA-256；服務檢查檔案大小'};
+}
+function requireDtm(){if(!dtmStatus().installed)throw new Error('官方 2025 DTM 尚未安裝或檔案不完整；請在專案目錄執行 npm.cmd run install:dtm 續傳／補裝，詳見 README「官方 DTM 首次安裝與補裝」。');}
 
 function local(req) {
   const host = String(req.headers.host || '');
@@ -26,7 +37,7 @@ function local(req) {
 }
 
 function sample(bbox, maxSamples=8500) {
-  if (!existsSync(TIFF) || statSync(TIFF).size !== BYTES) throw new Error('找不到完整的官方 2025 全台 DTM GeoTIFF');
+  requireDtm();
   const [west,south,east,north] = bbox;
   if (![west,south,east,north].every(Number.isFinite) || west < 117 || east > 123.5 || south < 20 || north > 27 || west >= east || south >= north) {
     throw new Error('DTM 請求範圍不正確');
@@ -71,7 +82,7 @@ export function analyzeDtm(geometry) {
   let spacing = CELL;
   let profile = {};
   if (geometry.type === 'LineString') {
-    if (!existsSync(TIFF) || statSync(TIFF).size !== BYTES) throw new Error('找不到完整官方 DTM；請先安裝本機資料');
+    requireDtm();
     const length = turf.length(feature,{units:'meters'});
     if (!(length>0)) throw new Error('路徑長度不足');
     const segments = Math.min(2000,Math.max(1,Math.ceil(length/CELL)));
@@ -124,6 +135,7 @@ export function taiwanDtmProxy() {
         res.setHeader('Cache-Control','no-store');
         if (!['GET','POST'].includes(req.method) || !local(req)) { res.statusCode=403; res.end(JSON.stringify({error:'僅允許本機同來源瀏覽器'})); return; }
         try {
+          if(req.method==='GET'&&req.url.split('?')[0]==='/status'){res.end(JSON.stringify(dtmStatus()));return;}
           if (req.method==='POST' && req.url.split('?')[0]==='/analysis') {
             const chunks=[]; let bytes=0;
             for await (const chunk of req) { bytes+=chunk.length; if (bytes>200000) throw new Error('分析範圍資料過大'); chunks.push(chunk); }

@@ -1,5 +1,7 @@
 # 好用開源程式收集
 
+- **2026-10-08｜上帝之眼・台灣版 v37**：缺口分類彙整、依實際成果產生可執行追蹤，首次安裝自動下載官方 DTM；[檢查與補裝說明](gods-eye-taiwan-desktop/docs/browser-v37-analysis-dtm-20261008.md)。
+
 - **2026-10-08｜上帝之眼・台灣版 v36**：確認建議後直接回報成果，停止建議迴圈，過期方案有限重查與重複確認保護；[檢查與限制](gods-eye-taiwan-desktop/docs/browser-v36-confirmed-execution-20261008.md)。
 
 - **2026-10-08｜上帝之眼・台灣版 v35**：工具列按鈕改用緊湊行高，紀錄恢復時序垂直MD清單；[改版說明](gods-eye-taiwan-desktop/docs/browser-v35-compact-toolbar-20261008.md)。

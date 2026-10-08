@@ -1,10 +1,11 @@
 import {db} from './db.js';
-const VERSION=1;
+import {compactHistoricalGaps} from './analysisGaps.js';
+const VERSION=2;
 const namespace=()=>{let id=localStorage.getItem('gev.tw.recordNamespace');if(!id){id=crypto.randomUUID();localStorage.setItem('gev.tw.recordNamespace',id);}return id;};
 export async function recordIndexRequest(body,signal){const response=await fetch('/api/taiwan/ai/record-index',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,namespace:namespace()}),signal});const value=await response.json();if(!response.ok)throw Error(value.error||'紀錄索引服務無法使用');return value;}
 export function recordTier(createdAt){const age=Date.now()-Date.parse(createdAt);return age<=86400000?'Hot（24小時內）':age<=30*86400000?'Warm（30天內）':'Cold（較早紀錄）';}
 export async function summarizeRecord(record){
-  const raw=String(record.markdown||'').replace(/data:[^,\s]+;base64,[A-Za-z0-9+/=_-]+/g,'[影像附件索引]'),lines=raw.split(/\r?\n/).map(x=>x.trim()).filter(x=>x&&!/^!\[|^```|^\|\s*[-:| ]+\|$/.test(x));
+  const raw=String(record.markdown||'').replace(/data:[^,\s]+;base64,[A-Za-z0-9+/=_-]+/g,'[影像附件索引]'),lines=compactHistoricalGaps(raw).split(/\r?\n/).map(x=>x.trim()).filter(x=>x&&!/^!\[|^```|^\|\s*[-:| ]+\|$/.test(x));
   const ranked=lines.map((text,i)=>({text,i,rank:/結論|查核|結果|來源|錯誤|未完成|建議|班次|票價|數量|時間|攝影機/.test(text)?2:/^#|^\|/.test(text)?1:0})).sort((a,b)=>b.rank-a.rank||a.i-b.i);let length=0;const chosen=[];
   for(const line of ranked){const text=line.text.slice(0,400);if(length+text.length>2200)continue;chosen.push({...line,text});length+=text.length;if(chosen.length>=24)break;}
   const eventMetadata=(record.cctvResults||[]).slice(-50).map(x=>({cameraId:x.cameraId||x.cameraName||'',cameraName:x.cameraName||'',capturedAt:x.capturedAt,eventType:x.eventType||x.congestion?.label||'辨識',counts:x.counts||{},source:x.source||'',confidence:x.confidence??null,requestId:x.requestId||''}));

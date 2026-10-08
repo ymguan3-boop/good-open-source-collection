@@ -8,6 +8,7 @@
   },
   "scripts": {
     "install:browser": "node scripts/install-browser.mjs",
+    "install:dtm": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/install-official-dtm.ps1",
     "prepare:upstream": "node scripts/prepare-upstream.mjs",
     "prepare:win": "powershell -ExecutionPolicy Bypass -File scripts/prepare-upstream.ps1",
     "dev": "npm --prefix .work/upstream run dev",
