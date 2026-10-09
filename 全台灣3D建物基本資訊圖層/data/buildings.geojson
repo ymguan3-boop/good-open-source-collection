@@ -1,0 +1,9 @@
+{
+  "type": "FeatureCollection",
+  "name": "全台灣3D建物基本資訊圖層",
+  "metadata": {
+    "status": "schema-ready-no-national-data-yet",
+    "warning": "不得將未知資料推估為官方值"
+  },
+  "features": []
+}
