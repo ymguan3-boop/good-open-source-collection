@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Rate-limited, resumable BUILDLIC downloader. Requires explicit non-personal query filters."""
-import argparse, hashlib, json, os, pathlib, random, time, urllib.error, urllib.parse, urllib.request
+import argparse, hashlib, http.client, json, os, pathlib, random, socket, ssl, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, timezone
 BASE="https://building-apply.publicwork.ntpc.gov.tw/opendata/OpenDataSearchUrl.do"
 def request(url,retries):
@@ -14,7 +14,7 @@ def request(url,retries):
   except urllib.error.HTTPError as e:
    if e.code not in (429,500,502,503,504) or n==retries: raise
    wait=float(e.headers.get("Retry-After","0")) if e.headers.get("Retry-After","").isdigit() else min(180,2**n*5)
-  except (urllib.error.URLError,TimeoutError) as e:
+  except (urllib.error.URLError, TimeoutError, ConnectionError, ConnectionResetError, http.client.RemoteDisconnected, http.client.BadStatusLine, http.client.IncompleteRead, socket.timeout, ssl.SSLError) as e:
    if n==retries: raise
    wait=min(180,2**n*5)
   time.sleep(wait+random.uniform(0,2))
