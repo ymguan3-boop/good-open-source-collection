@@ -1,0 +1,30 @@
+{
+  "dataset_name": "全台灣3D建物基本資訊圖層",
+  "policy": "每個屬性須保留來源；來源未驗證不得標示為官方直接值",
+  "sources": [
+    {
+      "id": "NLSC_REFERENCE",
+      "role": "spatial_reference_only",
+      "note": "既有 NLSC 3D 圖層保持獨立；不得未經授權複製模型資料"
+    },
+    {
+      "id": "GOV_BUILDING_OPEN_DATA",
+      "role": "primary_attributes",
+      "status": "pending-per-source-validation",
+      "fields": [
+        "樓層",
+        "年份/竣工日期",
+        "用途",
+        "構造",
+        "面積",
+        "建照/使照"
+      ]
+    },
+    {
+      "id": "FUNRAISE_MCP",
+      "role": "supplementary",
+      "status": "pending-license-and-cache-validation",
+      "note": "僅於授權允許時快取/整合"
+    }
+  ]
+}
