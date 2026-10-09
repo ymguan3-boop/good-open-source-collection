@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Rate-limited, resumable BUILDLIC downloader. Requires explicit non-personal query filters."""
-import argparse, hashlib, http.client, json, os, pathlib, random, socket, ssl, time, urllib.error, urllib.parse, urllib.request
+import argparse, hashlib, http.client, json, os, pathlib, random, re, socket, ssl, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, timezone
 BASE="https://building-apply.publicwork.ntpc.gov.tw/opendata/OpenDataSearchUrl.do"
 def request(url,retries):
@@ -8,7 +8,11 @@ def request(url,retries):
   try:
    with urllib.request.urlopen(urllib.request.Request(url,headers={"User-Agent":"TaiwanBuildingOpenData/0.2 (+https://github.com/ymguan3-boop/good-open-source-collection)","Accept":"application/json, application/xml, text/xml"}),timeout=35) as r:
     data=r.read(8_000_000); mime=r.headers.get("Content-Type","")
-    if r.status!=200 or not data or b"<html" in data[:512].lower() or "text/html" in mime.lower(): raise ValueError("invalid/HTML response")
+    if r.status!=200 or not data or b"<html" in data[:512].lower() or "text/html" in mime.lower():
+     title=re.search(rb"<title[^>]*>(.*?)</title>",data[:12000],re.I|re.S)
+     safe_title=re.sub(rb"\\s+",b" ",title.group(1))[:160].decode("utf-8","replace") if title else "(no title)"
+     print(f"DIAGNOSTIC status={r.status} final_host={urllib.parse.urlsplit(r.url).hostname} mime={mime} bytes={len(data)} html_title={safe_title}",flush=True)
+     raise ValueError("invalid/HTML response; see sanitized diagnostics")
     if not (data.lstrip().startswith((b"{",b"[",b"<?xml",b"<"))): raise ValueError("unknown response format")
     return data,mime
   except urllib.error.HTTPError as e:
