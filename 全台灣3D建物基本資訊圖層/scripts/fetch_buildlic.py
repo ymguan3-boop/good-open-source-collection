@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """政府建管開放資料擷取器；僅儲存實際回傳的原始資料，不捏造地理座標。"""
-import argparse, json, pathlib, time, urllib.parse, urllib.request
+import argparse, json, pathlib, time, urllib.parse, urllib.request, urllib.error, socket
 BASE="https://building-apply.publicwork.ntpc.gov.tw/opendata/OpenDataSearchUrl.do"
 def fetch(start, filters):
     params={"d":"OPENDATA","c":"BUILDLIC","Start":str(start),**filters}
@@ -9,6 +9,8 @@ def fetch(start, filters):
     with urllib.request.urlopen(req,timeout=30) as response:
         body=response.read()
         typ=response.headers.get("Content-Type","")
+    if b"<html" in body[:500].lower() or "text/html" in typ.lower():
+        raise ValueError("端點回傳 HTML 而非建管資料；可能是錯誤頁、維護頁或阻擋頁")
     return url,body,typ
 def main():
     a=argparse.ArgumentParser()
@@ -32,6 +34,12 @@ def main():
             manifest.append({"url":url,"file":name,"bytes":len(body),"content_type":ctype,"status":"downloaded_unvalidated"})
             print(name,len(body),ctype)
             if len(body)<30:break
+        except urllib.error.HTTPError as exc:
+            manifest.append({"start":start,"status":"http_error","http_status":exc.code,"error":str(exc)})
+            print("HTTP ERROR",exc.code,exc.reason);break
+        except urllib.error.URLError as exc:
+            manifest.append({"start":start,"status":"network_error","error":str(exc.reason)})
+            print("NETWORK ERROR",repr(exc.reason));break
         except Exception as exc:
             manifest.append({"start":start,"status":"failed","error":str(exc)})
             print("ERROR",exc)
