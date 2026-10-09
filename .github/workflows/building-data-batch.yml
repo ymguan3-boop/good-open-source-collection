@@ -1,7 +1,6 @@
 name: 建管資料限速分批擷取
 on:
-  schedule:
-    - cron: '0 18 * * *' # 臺灣時間每日02:00
+  # 暫停每日排程：API 回傳 13 bytes HTML，待確認端點後再恢復。
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,7 +14,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: 限速下載（宜蘭市測試）
-        run: python "全台灣3D建物基本資訊圖層/scripts/fetch_buildlic.py" --filter "門牌.行政區=宜蘭市" --max-pages 50 --interval 5 --out "$RUNNER_TEMP/buildlic"
+        run: python "全台灣3D建物基本資訊圖層/scripts/fetch_buildlic.py" --filter "門牌.行政區=宜蘭市" --max-pages 1 --interval 5 --out "$RUNNER_TEMP/buildlic"
       - name: 保存擷取結果供人工審查（不公開提交原始個資）
         if: always()
         uses: actions/upload-artifact@v4
