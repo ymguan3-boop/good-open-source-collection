@@ -12,6 +12,8 @@ def request(url,retries):
      title=re.search(rb"<title[^>]*>(.*?)</title>",data[:12000],re.I|re.S)
      safe_title=re.sub(rb"\\s+",b" ",title.group(1))[:160].decode("utf-8","replace") if title else "(no title)"
      print(f"DIAGNOSTIC status={r.status} final_host={urllib.parse.urlsplit(r.url).hostname} mime={mime} bytes={len(data)} html_title={safe_title}",flush=True)
+     if len(data)<=64:
+      print(f"DIAGNOSTIC short_response_hex={data.hex()} (hex only; no unfiltered page contents)",flush=True)
      raise ValueError("invalid/HTML response; see sanitized diagnostics")
     if not (data.lstrip().startswith((b"{",b"[",b"<?xml",b"<"))): raise ValueError("unknown response format")
     return data,mime
