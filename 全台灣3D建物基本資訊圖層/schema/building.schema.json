@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Taiwan 3D Building Basic Info",
+  "type": "object",
+  "properties": {
+    "building_id": {
+      "type": "string"
+    },
+    "address": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "county": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "town": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "floors_above": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "floors_below": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "height_m": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "height_method": {
+      "enum": [
+        "official",
+        "derived",
+        "unknown"
+      ]
+    },
+    "completion_date": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "building_year": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "usage": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "structure": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "building_area_m2": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "total_floor_area_m2": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "permit_no": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "license_no": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence": {
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "UNKNOWN"
+      ]
+    },
+    "updated_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "building_id",
+    "source_refs",
+    "confidence"
+  ]
+}
