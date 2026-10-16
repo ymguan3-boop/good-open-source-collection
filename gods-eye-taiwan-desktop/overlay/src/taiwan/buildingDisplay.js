@@ -44,7 +44,9 @@ export async function prepareBuildingSurface(viewer,{signal}={}){
   signal?.throwIfAborted();
   setLayerVisible(terrain.id,true);
   const maps=hosts.get(viewer);
-  if(maps?.getActiveId()==='photoreal'){
+  // Official buildings sit on the NLSC orthophoto (same source). Esri imagery adds visible tile seams (grey rectangles)
+  // and a different roof/year alignment, so it is replaced just like the Google 3D base.
+  if(['photoreal','esri-imagery'].includes(maps?.getActiveId())){
     const state=await maps.setStack('nlsc-ortho');
     signal?.throwIfAborted();
     if(state?.activeId!=='nlsc-ortho')throw new Error('NLSC 建物需要地形與正射底圖；底圖切換失敗，請稍後再試');
@@ -58,7 +60,8 @@ export function configureBuildingTileset(layer){
   const tileset=layer.tileset;
   const originalShader=tileset.customShader;let whiteShader=null;
   layer.setWhiteMode=enabled=>{if(enabled){whiteShader ||= new Cesium.CustomShader({lightingModel:Cesium.LightingModel.PBR,fragmentShaderText:'void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) { material.diffuse = vec3(0.95); material.alpha = 1.0; material.specular = vec3(0.04); material.emissive = vec3(0.0); material.roughness = 1.0; }'});tileset.customShader=whiteShader;}else tileset.customShader=originalShader;layer.dataMetadata={...layer.dataMetadata,whiteModel:!!enabled};layer.viewer.scene.requestRender();};
-  layer.setWhiteMode(buildingWhiteMode(layer.viewer));
+  // The NLSC white-mode switch never touches the separate 宜蘭縣OSM+實價登錄 layers (they use local white tiles instead).
+  layer.setWhiteMode(layer.infoLayer ? false : buildingWhiteMode(layer.viewer));
   let detailMode='detailed';
   tileset.skipLevelOfDetail=false;
   tileset.dynamicScreenSpaceError=false;tileset.foveatedScreenSpaceError=false;
@@ -111,7 +114,7 @@ export function configureBuildingTileset(layer){
 const whiteModes=new WeakMap();
 export function setBuildingWhiteMode(viewer,enabled){
   whiteModes.set(viewer,!!enabled);
-  for(const layer of listLayers().filter(layer=>layer.viewer===viewer && layer.kind==='3d-tiles'))layer.setWhiteMode?.(enabled);
+  for(const layer of listLayers().filter(layer=>layer.viewer===viewer && layer.kind==='3d-tiles' && !layer.infoLayer))layer.setWhiteMode?.(enabled);
   viewer.scene.requestRender();
 }
 export function buildingWhiteMode(viewer){return whiteModes.get(viewer)===true;}

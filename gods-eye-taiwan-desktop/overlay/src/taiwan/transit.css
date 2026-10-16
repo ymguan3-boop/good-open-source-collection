@@ -93,3 +93,5 @@
 #tw-shell .tw-journey-card {font-size:14px;color:#dcecf4;line-height:1.5;}
 #tw-shell .tw-journey-card-actions {display:flex;gap:8px;flex-wrap:wrap;}
 #tw-shell .tw-journey-card-actions button {padding:8px 10px;background:#103142;border:1px solid #3985a1;border-radius:7px;color:#e1f2fc;}
+
+.tw-chat-export{margin:6px 0 2px}.tw-chat-export button{font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer}

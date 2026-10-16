@@ -12,3 +12,5 @@ data/official/dtm-2025/
 !/.env.example
 
 release/
+
+data/local/

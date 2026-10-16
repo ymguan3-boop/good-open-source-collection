@@ -1,3 +1,4 @@
+import './nlscTls.js';
 import { readFileSync } from 'node:fs';
 import * as turf from '@turf/turf';
 import proj4 from 'proj4';
@@ -6,7 +7,9 @@ const allowed = new Map(registry.map(item=>[item.Url,item]));
 const roots = new Map();
 const TWD97 = '+proj=tmerc +lat_0=0 +lon_0=121 +k=0.9999 +x_0=250000 +y_0=0 +ellps=GRS80 +units=m +no_defs';
 async function bytes(url,limit,signal) {
-  const response = await fetch(url,{signal:AbortSignal.any([signal,AbortSignal.timeout(25000)]),redirect:'error'});
+  let response;
+  try { response = await fetch(url,{signal:AbortSignal.any([signal,AbortSignal.timeout(25000)]),redirect:'error'}); }
+  catch (error) { signal.throwIfAborted(); const code=error.cause?.code || error.name; throw new Error(/CERT|SIGNATURE|ISSUER/.test(code) ? `NLSC 連線憑證驗證失敗（${code}）` : `NLSC 圖磚連線失敗（${code || error.message}）`); }
   if (!response.ok) throw new Error(`NLSC HTTP ${response.status}`);
   if (Number(response.headers.get('content-length')) > limit) throw new Error('圖磚超過分析記憶體上限');
   const chunks = []; let length = 0;
@@ -57,13 +60,14 @@ export function readBuildingMetadata(buffer) {
   return output;
 }
 // Adjacent query cells often reference the same GLB. Cache parsed official metadata, not rendered tiles.
+const MAX_TILES=1500,MAX_BYTES=400_000_000,TILE_CONCURRENCY=8;
 const metadataTiles=new Map(),pendingTiles=new Map();let cachedFeatures=0;
 async function tileMetadata(url,signal){
   const cached=metadataTiles.get(url);if(cached&&Date.now()-cached.at<1800000)return {features:cached.features,bytes:0};
   if(pendingTiles.has(url))return pendingTiles.get(url);
   const promise=(async()=>{const buffer=await bytes(url,15_000_000,signal),features=readBuildingMetadata(buffer);
     if(features.length){if(cached){cachedFeatures-=cached.features.length;metadataTiles.delete(url);}metadataTiles.set(url,{at:Date.now(),features});cachedFeatures+=features.length;
-      while(metadataTiles.size>128||cachedFeatures>120000){const key=metadataTiles.keys().next().value;cachedFeatures-=metadataTiles.get(key).features.length;metadataTiles.delete(key);}}
+      while(metadataTiles.size>1024||cachedFeatures>120000){const key=metadataTiles.keys().next().value;cachedFeatures-=metadataTiles.get(key).features.length;metadataTiles.delete(key);}}
     return {features,bytes:buffer.length};})();pendingTiles.set(url,promise);try{return await promise;}finally{pendingTiles.delete(url);}
 }
 export async function analyzeNlscBuildings({geometry,serviceUrls},signal) {
@@ -93,15 +97,18 @@ export async function analyzeNlscBuildings({geometry,serviceUrls},signal) {
       }
     }
   }
-  let totalBytes=0;
-  for(const url of [...candidates].slice(0,80)) {
-    signal.throwIfAborted();
-    try {const metadata=await tileMetadata(url,signal);totalBytes+=metadata.bytes;if(totalBytes>180_000_000)throw new Error('已達單次分析下載上限');
-      const features=metadata.features;if(!features.length)warnings.push('圖磚沒有可用分棟編號或中心座標，不能推定為 0 棟');identified+=features.length;scanned++;
-      for(const feature of features)if(turf.booleanPointInPolygon(feature,polygon))unique.set(feature.properties.buildingId,feature);
-    }catch(error){signal.throwIfAborted();failed++;warnings.push(error.message);}
-    if(totalBytes>180_000_000)break;
-  }
+  // Dense urban cells contain 600–800 small tiles; read them with bounded parallelism.
+  let totalBytes=0,capped=false;const queue=[...candidates].slice(0,MAX_TILES);
+  if(candidates.size>MAX_TILES)warnings.push(`候選圖磚 ${candidates.size} 個，超過單次上限 ${MAX_TILES}`);
+  await Promise.all(Array.from({length:Math.min(TILE_CONCURRENCY,queue.length)},async()=>{
+    while(queue.length&&!capped){
+      signal.throwIfAborted();const url=queue.shift();
+      try {const metadata=await tileMetadata(url,signal);totalBytes+=metadata.bytes;if(totalBytes>MAX_BYTES){capped=true;throw new Error('已達單次分析下載上限');}
+        const features=metadata.features;if(!features.length)warnings.push('圖磚沒有可用分棟編號或中心座標，不能推定為 0 棟');identified+=features.length;scanned++;
+        for(const feature of features)if(turf.booleanPointInPolygon(feature,polygon))unique.set(feature.properties.buildingId,feature);
+      }catch(error){signal.throwIfAborted();failed++;warnings.push(error.message);}
+    }
+  }));
   const complete=scanned === candidates.size && failed === 0 && warnings.length === 0;
   const count=(identified || candidates.size === 0) && complete ? unique.size : identified ? unique.size : null;
   return {buildingCount:count,buildingCountComplete:complete,buildingSource:'NLSC 官方分棟版 3D Tiles 屬性',buildingCountRule:'BUILD_ID 去重，建物中心座標位於量測範圍內（非建物足跡相交）',

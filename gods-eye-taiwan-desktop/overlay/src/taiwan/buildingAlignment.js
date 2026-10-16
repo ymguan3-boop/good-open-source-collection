@@ -4,7 +4,7 @@ const median=values=>{const a=[...values].sort((x,y)=>x-y);return a[Math.floor(a
 /** Per-tile display height correction, using real model bases and terrain.
  * Restore every original transform when disabled. Never infer an XY shift. */
 export function createBuildingAlignment(layer,onChange=()=>{}){
- let enabled=true,disposed=false,busy=false,suspended=false,controller=null;
+ let enabled=true,disposed=false,busy=false,suspended=false,controller=null,globalApplied=false;
  const entries=new Map(),attempts=new Map();let last=null,activeProvider=layer.viewer.terrainProvider;
  function state(value){layer.dataMetadata={...layer.dataMetadata,buildingAlignment:{...layer.dataMetadata?.buildingAlignment,...value}};onChange();}
  state({status:'pending',enabled:true,note:'等待街區圖磚，將比較模型底面與地形高程；不改寫官方來源。'});
@@ -17,7 +17,11 @@ export function createBuildingAlignment(layer,onChange=()=>{}){
   // Limit workload to currently visible street blocks, one job at a time.
   if(!tile.boundingSphere||tile.boundingSphere.radius>600||entries.has(tile)||entries.size>=256||(attempts.get(tile)||0)>=3)return;
   const url=tile.content?.url;if(typeof url!=='string'||!url.split('?')[0].endsWith('.glb'))return;
-  const target=new URL(url,layer.serviceUrl);if(target.protocol!=='https:'||!/(^|\.)nlsc\.gov\.tw$/.test(target.hostname))return;
+  const target=new URL(url,layer.serviceUrl);
+  // Official NLSC tiles, or this app's own local white-model copies of them (same geometry, textures removed).
+  const officialTile=target.protocol==='https:'&&/(^|\.)nlsc\.gov\.tw$/.test(target.hostname);
+  const localWhiteTile=layer.infoLayer===true&&target.origin===location.origin&&target.pathname.startsWith('/api/taiwan/nlsc-buildings/white/');
+  if(!officialTile&&!localWhiteTile)return;
   busy=true;attempts.set(tile,(attempts.get(tile)||0)+1);controller=new AbortController();const job=controller;
   const original=C.Matrix4.clone(tile.transform),computed=C.Matrix4.clone(tile.computedTransform);
   const parent=C.Matrix4.multiply(computed,C.Matrix4.inverse(original,new C.Matrix4()),new C.Matrix4());
@@ -34,6 +38,16 @@ export function createBuildingAlignment(layer,onChange=()=>{}){
    const delta=median(rows.map(r=>r.delta)),mad=median(rows.map(r=>Math.abs(r.delta-delta)));
    if(Math.abs(delta)>100||mad>3)throw Error('來源高程差不一致，保留原高程並請人工核對');
    const offset=Math.abs(delta)<1?0:delta;if(disposed||!enabled)return;
+   // The datum difference between the official models and the terrain is shared by the whole area, so the first
+   // verified block sets one display height for the whole layer; later blocks only add their small residual.
+   // (Tiles are small and corrected one at a time, so without this most of a view stays ~20 m off for a while.)
+   if(layer.infoLayer===true&&!globalApplied&&offset!==0&&rows.length>=5&&typeof layer.setHeightOffset==='function'){
+    globalApplied=true;
+    layer.setHeightOffset((Number(layer.dataMetadata?.displayHeightOffset)||0)+offset,{automatic:true});
+    attempts.delete(tile);
+    state({status:'pending',enabled:true,note:`整層高程基準已依第一批街區調整 ${offset.toFixed(2)} 公尺（${rows.length} 個底面取樣），各街區再微調餘差；不改寫官方來源。`});
+    return;
+   }
    const lon=median(rows.map(r=>r.longitude)),lat=median(rows.map(r=>r.latitude));
    const movement=C.Cartesian3.subtract(C.Cartesian3.fromDegrees(lon,lat,offset),C.Cartesian3.fromDegrees(lon,lat,0),new C.Cartesian3());
    const translation=C.Matrix4.fromTranslation(movement);
@@ -55,5 +69,5 @@ export function createBuildingAlignment(layer,onChange=()=>{}){
   }catch(error){if(!disposed&&enabled&&error.name!=='AbortError')state({status:entries.size?'aligned':'unverified',note:String(error.message).slice(0,200)});}
   finally{if(controller===job)controller=null;busy=false;}
  }
- return {consider,getTileStatus(url){const entry=[...entries.values()].find(item=>item.source===url);return entry?{...entry,tile:undefined,original:undefined,transform:C.Matrix4.clone(entry.tile.computedTransform)}:null;},setEnabled(value){enabled=!!value;controller?.abort();restore();state({enabled,status:enabled?'pending':'disabled',tiles:0,note:enabled?'等待可驗證的街區底面與地形':'使用官方原始高程'});},manual(){enabled=false;controller?.abort();restore();state({enabled:false,status:'manual',tiles:0,note:'使用者高程微調，已停止自動對齊'});},destroy(){disposed=true;controller?.abort();window.removeEventListener('gev-tw:aerial-priority',aerialPriority);restore();}};
+ return {consider,getTileStatus(url){const entry=[...entries.values()].find(item=>item.source===url);return entry?{...entry,tile:undefined,original:undefined,transform:C.Matrix4.clone(entry.tile.computedTransform)}:null;},setEnabled(value){enabled=!!value;controller?.abort();restore();if(!enabled&&globalApplied){globalApplied=false;layer.setHeightOffset?.(0,{automatic:true});}state({enabled,status:enabled?'pending':'disabled',tiles:0,note:enabled?'等待可驗證的街區底面與地形':'使用官方原始高程'});},manual(){enabled=false;controller?.abort();restore();state({enabled:false,status:'manual',tiles:0,note:'使用者高程微調，已停止自動對齊'});},destroy(){disposed=true;controller?.abort();window.removeEventListener('gev-tw:aerial-priority',aerialPriority);restore();}};
 }

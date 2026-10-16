@@ -1,3 +1,4 @@
+import {tomtomFetch} from './tomtomFallback.js';
 import {tdxLimit} from './tdxLimits.js';
 import {createFareService,defaultFareCacheFile,fareComparison,rankTransitPlans} from './fareEngine.js';
 import {vehicleAllowed} from '../../src/taiwan/farePreference.js';
@@ -18,7 +19,7 @@ const abort=signal=>signal?.throwIfAborted();
 const norm=name=>String(name||'').replaceAll('臺','台').replace(/(?:火車站|車站|站)$/,'').trim();
 const safeId=id=>{if(!/^[A-Za-z0-9_-]{1,100}$/.test(String(id)))throw tdxError('INVALID_STATION_ID','車站代碼不正確');return encodeURIComponent(id);};
 
-export function createTdxService({fetcher=fetch,credential=getCredential,now=Date.now,cacheFile=null,checkFarePolicy=true}={}){
+export function createTdxService({fetcher=tomtomFetch,credential=getCredential,now=Date.now,cacheFile=null,checkFarePolicy=true}={}){
   let token=null,authPromise=null,lastServiceError=null;const cache=new Map(),pendingApi=new Map(),rateLimits=new Map(),offers=new Map();
   const trainQuestion=request=>({plans:[],request,needsClarification:true,clarificationField:'traTrainType',questions:['這段旅程可能搭乘臺鐵，請先選擇自強號、莒光號、區間／區間快，或明確選擇不限車種；不同車種票價不同。'],notices:['請在旅程表單選擇「臺鐵車種需求」，或直接在 AI 空間助理回答想搭的車種，再重新規劃。'],sourceStatus:{tdx:'needs-confirmation'}});
   const fingerprint=()=>createHash('sha256').update(`${credential('TDX_CLIENT_ID')}\0${credential('TDX_CLIENT_SECRET')}`).digest('hex');

@@ -69,13 +69,15 @@ export async function loadBundledDtm(viewer, { signal, bbox:requestedBbox } = {}
   return { layer, sampledSpacingMeters:result.sampledSpacingMeters };
 }
 
-export async function loadNlscBuildings(url, viewer, { name='NLSC 3D 建物', flyTo=true, nationwideAuto=false, signal } = {}) {
-  const parsed = new URL(url);
-  if (parsed.protocol !== 'https:' || !/(^|\.)nlsc\.gov\.tw$/.test(parsed.hostname)) throw new Error('請貼上國土測繪中心核發的 HTTPS 3D Tiles 服務網址');
+export async function loadNlscBuildings(url, viewer, { name='NLSC 3D 建物', flyTo=true, nationwideAuto=false, signal, extra={} } = {}) {
+  const parsed = new URL(url, location.href);
+  // Locally built per-town indexes are served by this app itself; everything else must be an official NLSC HTTPS service.
+  const ownTownIndex = extra.localTileset === true && parsed.origin === location.origin && parsed.pathname === '/api/taiwan/nlsc-buildings/town-tileset';
+  if (!ownTownIndex && (parsed.protocol !== 'https:' || !/(^|\.)nlsc\.gov\.tw$/.test(parsed.hostname))) throw new Error('請貼上國土測繪中心核發的 HTTPS 3D Tiles 服務網址');
   signal?.throwIfAborted();
   await prepareBuildingSurface(viewer,{signal});
   let timeout; let abortListener; let discarded = false; let tileset;
-  const loading = Cesium.Cesium3DTileset.fromUrl(parsed.href,{maximumScreenSpaceError:8,cacheBytes:268435456,maximumCacheOverflowBytes:134217728});
+  const loading = Cesium.Cesium3DTileset.fromUrl(parsed.href,{maximumScreenSpaceError:8,cacheBytes:268435456,maximumCacheOverflowBytes:134217728,...(extra.tilesetOptions||{})});
   loading.then(value=>{ if (discarded && !value.isDestroyed()) value.destroy(); },()=>{});
   try {
     tileset = await Promise.race([loading,
@@ -86,7 +88,9 @@ export async function loadNlscBuildings(url, viewer, { name='NLSC 3D 建物', fl
   } catch (error) { discarded = true; if (tileset && !tileset.isDestroyed()) tileset.destroy(); throw error; }
   finally { clearTimeout(timeout); if (abortListener) signal.removeEventListener('abort',abortListener); }
   viewer.scene.primitives.add(tileset);
-  const layer = registerLayer({ name, kind:'3d-tiles', source:'國土測繪中心免申請 3D Tiles', serviceUrl:parsed.href, nationwideAuto, tileset, viewer });
+  // extra.infoLayer marks the separate 宜蘭縣OSM+實價登錄 layer; the flag exists before the layer is announced.
+  tileset.__gevInfoLayer = !!extra.infoLayer;
+  const layer = registerLayer({ name, kind:'3d-tiles', source:'國土測繪中心免申請 3D Tiles', serviceUrl:parsed.href, nationwideAuto, tileset, viewer, ...extra });
   configureBuildingTileset(layer);
   if (flyTo) await viewer.zoomTo(tileset);
   return layer;
@@ -106,7 +110,7 @@ export function loadNationalReferenceMap(viewer,{bbox}={}) {
     credit:'內政部國土測繪中心｜臺灣通用電子地圖',
   });
   const imageryLayer = viewer.imageryLayers.addImageryProvider(provider);
-  imageryLayer.alpha = 0.9;
+  imageryLayer.alpha = 0.55;
   return registerLayer({ name:'全臺國土測繪參考圖（道路、鐵路、水系）', kind:'national-wms',
     source:'NLSC EMAP2 WMS；僅供顯示，非分析向量',scopeManaged:true, imageryLayer, viewer });
 }

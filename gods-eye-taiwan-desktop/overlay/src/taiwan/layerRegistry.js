@@ -4,7 +4,7 @@ let seq = 0;
 export function registerLayer(layer) {
   for (const existing of [...layers.values()]) {
     if ((layer.sourceKey && existing.sourceKey === layer.sourceKey) ||
-        (layer.serviceUrl && existing.kind === layer.kind && existing.serviceUrl === layer.serviceUrl)) removeLayer(existing.id);
+        (layer.serviceUrl && existing.kind === layer.kind && existing.serviceUrl === layer.serviceUrl && !!existing.infoLayer === !!layer.infoLayer && existing.infoTown === layer.infoTown)) removeLayer(existing.id);
   }
   const id = layer.id || `tw-${++seq}`;
   const item = { visible:true, ...layer, id };

@@ -198,7 +198,7 @@ export function integrateProviderSettings({manager,onRestartRequired}={}) {
     if (![...rows.querySelectorAll('input[data-tw-secure-key]')].some(input => input.value.trim())) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    await saveSecureKeys();
+    await saveOnce();
   };
   applyButton?.addEventListener('click', onApply, true);
   rows.addEventListener('click', event => {
@@ -219,12 +219,29 @@ export function integrateProviderSettings({manager,onRestartRequired}={}) {
       window.dispatchEvent(new Event('gev-tw:model-changed'));
     }
   });
+  // Typed keys used to be kept only in the field: Enter did nothing and closing
+  // the dialog discarded them, so they were gone after a restart. Enter now
+  // saves, and closing with unsaved keys saves them before the dialog hides.
+  let savePending = null;
+  const saveOnce = () => savePending ??= saveSecureKeys().finally(() => { savePending = null; });
+  rows.addEventListener('input', event => {
+    if (event.target.matches('input[data-tw-secure-key]') && event.target.value.trim()) status.textContent = '尚未儲存：請按 Enter 或下方「儲存金鑰」；關閉視窗時也會自動加密儲存。';
+  });
+  rows.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' || event.isComposing || !event.target.matches('input[data-tw-secure-key]')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    void saveOnce();
+  });
   const rowObserver = new MutationObserver(ensureRows);
   rowObserver.observe(rows, { childList:true });
+  let wasVisible = false;
   const syncVisibility = () => {
     const visible = !dialog.hidden && dialog.classList.contains('visible');
     document.body.classList.toggle('gev-tw-provider-settings-open', visible);
     if (visible) { ensureRows(); void updateKeyIndicators(); void refreshModels(); }
+    else if (wasVisible && [...rows.querySelectorAll('input[data-tw-secure-key]')].some(input => input.value.trim())) void saveOnce();
+    wasVisible = visible;
   };
   const dialogObserver = new MutationObserver(syncVisibility);
   dialogObserver.observe(dialog, { attributes:true, attributeFilter:['hidden','class'] });

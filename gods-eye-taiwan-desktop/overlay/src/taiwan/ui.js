@@ -5,6 +5,7 @@ import {transitMessageIntent,rateLimitText} from './transitAssistant.js';
 import {analyzeSelectedLayers,visibleAnalysisLayers} from './selectedLayerAnalysis.js';
 import {analyzeRecords} from './recordAnalysis.js';
 import {createJourneyCard} from './journeyCard.js';
+import {attachBuildingInfoPicker} from './buildingInfo.js';
 import {createTransitPanel} from './transitPanel.js';
 import {SEAT_NAMES} from './farePreference.js';
 import {createJourneyDisplay} from './journeyDisplay.js';
@@ -43,6 +44,7 @@ import { integrateProviderSettings } from './providerSettings.js';
 import { browserAi, streamBrowserChat } from './browserAi.js';
 import { db } from './db.js';
 import { renderChatMarkdown } from './chatFormat.js';
+import { buildXlsxFromMarkdown, hasMarkdownTable, exportFileName } from './xlsxExport.js';
 import { createCctvWall } from './cctvWall.js';
 import { drawingInputs,attachDrawingInput,confirmDrawingInputs,invalidateDrawing,analyzeDrawingInputs } from './drawingInputs.js';
 import { createDrawingController } from './drawing.js';
@@ -155,8 +157,9 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   let batchProgress = '';
   let activeProject = null;
   let expandedDrawingId = null;
-  const collapsedGroups = new Set();
-  try {for(const key of JSON.parse(localStorage.getItem('gev.tw.collapsedGroups') || '[]'))collapsedGroups.add(key);}catch{}
+  // Every layer group starts collapsed on each launch; groups opened by the user stay open only for this session.
+  const expandedGroups = new Set();
+  const collapsedGroups = { has:key=>!expandedGroups.has(key), add:key=>{expandedGroups.delete(key);}, delete:key=>{expandedGroups.add(key);} };
   let inputCandidates = new Map();
   let chatGeneration = 0;
   let responseStyle='',styleRevision=0;
@@ -176,6 +179,9 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   let nlscServices = [];
   let selectedNlscUrl = '';
   let nlscNotice = '尚未查詢官方服務清單。';
+  // Separate layer: Yilan individual-building tiles + local OSM roads / real-price tables. Never replaces the NLSC 3D 建物 layer.
+  const INFO_LAYER_NAME='宜蘭縣OSM+實價登錄 3D建物',INFO_TILESET_URL='https://3dtiles.nlsc.gov.tw/building/tiles3d/36/tileset.json';
+  let infoBuildingStatus=null,infoStatusRequested=false,infoBuildingNotice='尚未匯入資料庫。';
   let nationwideBuildingsEnabled = false;
   let buildingLoadPending = false;
   let automaticBuildingLoad = null;
@@ -336,6 +342,8 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     showRouteInfo(info);
   }});
   journeyCard=createJourneyCard({manager:floatingPanels,controller:journey,onError:error=>toast(error.message)});
+  let buildingInfoPanel=null;
+  const releaseBuildingInfo=attachBuildingInfoPicker({viewer,onInfo:html=>{buildingInfoPanel??=floatingPanels.create({id:'building-info',title:'建物資訊',width:430,height:560});buildingInfoPanel.body.innerHTML=html;buildingInfoPanel.restore();}});
   let transitProgressMessage=null;
   function transitProgress({busy,message}){
     if(busy){analysisSession=null;pendingAnalysisLayers=null;}
@@ -540,7 +548,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
         content.hidden=!content.hidden;btn.setAttribute('aria-expanded',String(!content.hidden));
         btn.querySelector('.tw-group-arrow').textContent=content.hidden?'▸':'▾';
         if(content.hidden)collapsedGroups.add(key);else collapsedGroups.delete(key);
-        localStorage.setItem('gev.tw.collapsedGroups',JSON.stringify([...collapsedGroups]));return;
+        return;
       }
       if (a === 'close-drawer') return close();
       if (a === 'quick-toggle') {
@@ -605,6 +613,15 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
       if (a === 'dtm-bundled') return await loadLocalDtm();
       if (a === 'national-reference') { await ensureCounties();loadNationalReferenceMap(viewer,{bbox:scopeBounds()}); return renderLayers(); }
       if (a === 'nlsc-load') return body.querySelector('#tw-nlsc-url')?.value.trim() ? await loadNlscFromPanel() : await loadNlscScope();
+      if (a === 'info-load-all') return await loadInfoTowns(infoMasters());
+      if (a === 'info-town-load') return await loadInfoTowns(infoMasters().filter(master=>master.slug===btn.dataset.slug));
+      if (a === 'info-import-toggle') { infoImportOpen=!infoImportOpen; if(infoImportOpen){try{await refreshInfoStatus(true);}catch(error){infoBuildingNotice='讀取可匯入資料庫失敗：'+error.message;}} return renderLayers(); }
+      if (a === 'info-import-do') { const groups=new Map(); for(const box of body.querySelectorAll('input[data-info-pack]:checked')){const list=groups.get(box.dataset.root)||[];list.push(box.value);groups.set(box.dataset.root,list);} if(!groups.size){infoBuildingNotice='請先勾選要匯入的鄉鎮市。';return renderLayers();} return await infoImport(groups); }
+      if (a === 'info-import-all') { const groups=new Map(); for(const pack of infoAvailable||[]){const list=groups.get(pack.root)||[];list.push(pack.slug);groups.set(pack.root,list);} if(!groups.size){infoBuildingNotice='沒有可匯入的資料庫。';return renderLayers();} return await infoImport(groups); }
+      if (a === 'info-import-scan') { try{ const value=await infoApi('/info/packs/scan',{path:body.querySelector('#tw-info-folder')?.value.trim()}); infoAvailable=[...(infoAvailable||[]).filter(pack=>!value.available.some(item=>item.slug===pack.slug)),...value.available].filter(pack=>!infoMasters().some(master=>master.slug===pack.slug)); infoBuildingNotice='找到 '+value.available.length+' 個資料庫。'; }catch(error){infoBuildingNotice='掃描失敗：'+error.message;} return renderLayers(); }
+      if (a === 'info-pack-remove') return await infoRemovePack(btn.dataset.slug);
+      if (a === 'info-town-goto') { flyToInfoTown(infoMasters().find(master=>master.slug===btn.dataset.slug)); return; }
+      if (a === 'info-all-toggle') { const group=infoTownLayers(),show=!group.some(layer=>layer.visible); if(show)await ensureBuildingSurface(); for(const layer of group)setLayerVisible(layer.id,show); return renderLayers(); }
       if (a === 'nlsc-discover') return await discoverNlsc();
       if (a === 'results') return await renderResults();
       if (a === 'clear-project') { await clearCurrentProject(); return renderProject(); }
@@ -627,6 +644,13 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
         if(result?.stale)throw Error('這張資訊卡屬於舊路線，請點選目前路線。');
         journeyInfo?.hide();if(a==='hide-transit-route')journeyCard?.hide();
         toast('已關閉這條導航路線的顯示；規劃結果仍保留。');return;
+      }
+      if (a === 'chat-export-xlsx') {
+        const message=chatMessages[Number(btn.dataset.chatIndex)];
+        if(!message || message.role!=='assistant')throw Error('找不到要匯出的回覆。');
+        const blob=await buildXlsxFromMarkdown(message.content);
+        download(blob,exportFileName());
+        toast('已產生 Excel 檔並交給瀏覽器下載；若看不到請檢查瀏覽器的下載列。');return;
       }
       if (a === 'analysis-followup') {
         const session=analysisSessions.get(btn.dataset.analysisId);
@@ -658,7 +682,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
         if(layer?.kind==='world-terrain')for(const relief of listLayers().filter(item=>item.kind==='taiwan-relief' && item.visible))setLayerVisible(relief.id,false);
         if (layer?.pendingService) { await connectPendingLayer(layer); return renderCurrentDrawer(); }
         if (btn.dataset.layer === 'nlsc-all') {
-          const buildings = listLayers().filter(item=>item.kind === '3d-tiles'); const show = !buildings.some(item=>item.visible);
+          const buildings = listLayers().filter(item=>item.kind === '3d-tiles' && !item.infoLayer); const show = !buildings.some(item=>item.visible);
           if(show && buildings.length)await ensureBuildingSurface();
           for (const item of buildings) { if (show && item.pendingService) await connectPendingLayer(item); else setLayerVisible(item.id,show); }
         } else if (layer) setLayerVisible(layer.id,!layer.visible);
@@ -851,6 +875,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     if(target.matches('[data-vehicle-color]')){navigation.setVehicleColor(target.dataset.vehicleColor,target.value);toast('車身顏色已儲存，下次開啟沿用');return;}
     if(target.matches('[data-label-style]')){const layer=getLayer(target.dataset.layer);if(layer){layer.dataMetadata.annotationLabel=normalizeLabelStyle({...layer.dataMetadata.annotationLabel,[target.dataset.labelStyle]:target.value});layer.name=`標籤：${layer.dataMetadata.annotationLabel.text.slice(0,40)}`;layer.geojson.features[0].properties.name=layer.dataMetadata.annotationLabel.text;applyAnnotationLabel(layer);}return;}
     if(target.matches('[data-building-white]')){setBuildingWhiteMode(viewer,target.checked);return;}
+    if(target.matches('[data-info-white]')){void setInfoWhite(target.checked);return;}
     if(target.matches('[data-building-align]')){getLayer(target.dataset.layer)?.alignment?.setEnabled(target.checked);return;}
     if(target.matches('[data-building-offset]')){try{getLayer(target.dataset.layer)?.setHeightOffset?.(target.value);}catch(error){toast(error.message);}return;}
     if(target.matches('[data-relief-scale]')) {getLayer(target.dataset.layer)?.setScale(target.value);return;}
@@ -1038,7 +1063,8 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     const dtm = layers.find(layer=>layer.sourceKey === 'official-dtm-2025');
     const dtmChildren = layers.filter(layer=>layer.kind === 'dtm' && layer !== dtm && !layer.sourceProject);
     const terrainChildren = layers.filter(layer=>layer.parentSourceKey === 'official-dtm-2025');
-    const buildings = layers.filter(layer=>layer.kind === '3d-tiles');
+    const buildings = layers.filter(layer=>layer.kind === '3d-tiles' && !layer.infoLayer);
+    if(!infoStatusRequested){infoStatusRequested=true;void refreshInfoStatus().then(()=>{if(infoLayersOpen())renderLayers();}).catch(()=>{infoBuildingStatus={error:true,imported:[]};});}
     const reference = layers.find(layer=>layer.kind === 'national-wms');
     const projectLayers = layers.filter(layer=>layer.sourceProject && !layer.bufferSourceId && !layer.parentSourceKey);
     const files = [...new Set(projectLayers.map(layer=>layer.sourceProject))];
@@ -1056,6 +1082,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
         ${catalogRow({name:'NLSC 3D 建物',color:'#a78bfa',description:'國土測繪中心免登入 3D Tiles；選擇涵蓋縣市後，按需載入可見圖磚。',source:'國土測繪中心多維度平台 · 量測統計另讀官方分棟編號與中心座標',layer:buildings.length ? {id:'nlsc-all',visible:buildings.some(layer=>layer.visible)} : null,countText:`${buildings.length} 項`,load:'data-act="nlsc-load"',update:'data-act="nlsc-load"',
           details:`<label class="tw-inline-option"><input type="checkbox" data-building-white ${buildingWhiteMode(viewer)?'checked':''}>白模模式</label><button data-act="nlsc-discover">更新官方服務清單</button>${nlscServices.length ? `<label>建物服務<select id="tw-nlsc-service">${nlscServices.map(item=>`<option value="${esc(item.url)}" ${item.url === selectedNlscUrl ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select></label>` : ''}<label>手動 3D Tiles 網址<input id="tw-nlsc-url" type="url" placeholder="https://…nlsc.gov.tw/…/tileset.json"></label><p id="tw-nlsc-status" class="tw-note">${esc(nlscNotice)}</p>`,children:`<div class="tw-layer-tree">${buildings.map(layer=>layerRow(layer)).join('')}</div>`})}
       </div>
+      ${infoBuildingRow(layers,layerRow)}
       <div class="tw-catalog-group"><b class="tw-group-label">全臺參考圖</b>${catalogRow({name:'NLSC 道路、水系與鐵路參考圖',color:'#87caca',description:'全臺線上地圖圖磚，向量分析請使用上方獨立圖層。',source:'NLSC EMAP2 WMS · 非分析向量',layer:reference,load:'data-act="national-reference"',details:`<p class="tw-note">參考圖僅供判讀；下列按鈕會載入獨立向量圖層，沿用上方所選縣市／全台灣範圍，可用於相交、長度及影響範圍分析。</p><div class="tw-actions">${[['osm-roads','道路中心線'],['osm-waterways','河川／水系中心線'],['osm-water','水域面'],['osm-rail','鐵路']].map(([id,label])=>`<button data-act="builtin-load" data-builtin="${id}">載入${label}</button>`).join('')}</div><p class="tw-note">道路與水文使用內建 OSM 固定版；鐵路使用官方開放資料。圖磚不提供分析向量。</p>`})}</div>
       ${files.map(file=>`<div class="tw-catalog-group" data-layer-group>${groupHeading(`json:${file}`,`JSON 專案：${file}`)}<div class="tw-group-content" ${collapsedGroups.has(`json:${file}`)?'hidden':''}><div class="tw-layer-tree">${projectLayers.filter(layer=>layer.sourceProject === file).map(layer=>layerRow(layer)).join('')}${activeProject?.sourceFile === file ? reportRows(activeProject.metadata?.aiReports) : ''}</div></div></div>`).join('')}
       ${custom.length ? `<div class="tw-catalog-group"><b class="tw-group-label">匯入與繪製圖資</b>${custom.map(layer=>layerRow(layer)).join('')}</div>` : ''}
@@ -1080,6 +1107,138 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     return `<div class="tw-catalog-group"><b class="tw-group-label">影像與擬真底圖</b>${maps.map(map=>catalogRow({name:labels[map.id] || map.label,color:'#38bdf8',description:map.kind==='nlsc' ? '國土測繪中心全臺線上圖磚，包含來源提供的外島；依視野載入，底圖一次使用一種。影像不能直接作為分析向量。' : '全球串流底圖，縣市模式定位到所選範圍；底圖一次使用一種。',source:map.kind==='nlsc' ? `國土測繪中心 WMTS · ${map.nlscLayer} · 免輸入金鑰` : map.requiresIon ? 'Bing / Cesium ion；需 Cesium Token' : map.label,layer:mapStackController.getActiveId() === map.id ? {id:`map:${map.id}`,visible:viewer.scene.globe.show || mapStackController.getImageryHostTileset()?.show,action:`data-act="map-stack" data-map="${map.id}"`} : null,load:`data-act="map-stack" data-map="${map.id}"`,error:layerErrors.get(`map:${map.id}`) || (!map.available ? '此來源尚未就緒；請檢查金鑰設定後重新開啟。' : null)})).join('')}</div>
       <div class="tw-catalog-group"><b class="tw-group-label">全球地形與地名</b>${catalogRow({name:'OSM 道路、建物與景點標籤',color:'#91bafa',description:'OSM 道路、建物與景點名稱；置頂顯示，不被其他 3D 建物遮住，依目前視野查詢。',source:'OpenStreetMap / Overpass；不需 API Key',layer:layers.find(layer=>layer.kind==='osm-labels'),load:'data-act="osm-labels"',details:`<p class="tw-note">${esc(layers.find(layer=>layer.kind==='osm-labels')?.status || '尚未載入')}。名稱依 OSM 涵蓋範圍，不是每棟建物都有名稱。請放大到城市或街道；單次查詢限畫面中心附近約 12 公里，最多 800 筆並避開文字重疊。</p>`})}${catalogRow({name:'全球地形',color:'#91b773',description:'3D 地表高程；有 Cesium Token 使用 World Terrain，無 Token 使用 Re:Earth。加入量測子圖資並確認後可取樣高程；與官方20m DTM分開標示。',source:terrain?.source || 'Cesium / Re:Earth',layer:terrain,load:'data-act="world-terrain"'})}${catalogRow({name:'台灣 3D 地形地貌',color:'#85ddd1',description:'真實地形搭配 NLSC 正射影像、山坡光影與青色縣市界；預設高程視覺放大 3 倍，方便辨認山脈、河谷及平原。',source:relief?.source || 'Cesium / Re:Earth 地形 + NLSC PHOTO2 + 官方縣市界',layer:relief,load:'data-act="taiwan-relief"',details:`<p class="tw-note">開啟時暫時切換地形展示，隱藏或移除後恢復先前底圖。高程放大只影響顯示，不更動量測高程；不是官方 20 公尺 DTM 模型。同時顯示 NLSC 建物時改採真實高度 1 倍，避免地形遮住建物；隱藏建物後恢復設定倍率。</p>${relief ? `<label>高程視覺放大倍率<input type="number" data-relief-scale data-layer="${relief.id}" value="${relief.getScale()}" title="目前實際倍率 ${relief.getEffectiveScale?.()??relief.getScale()}" min="1" max="6" step="0.5"></label><div class="tw-actions"><button data-act="relief-focus" data-layer="${relief.id}">查看台灣地形</button><button data-act="layer-remove" data-layer="${relief.id}">移除</button></div>` : ''}`})}</div>
       <div class="tw-catalog-group"><b class="tw-group-label">即時資料</b>${catalogRow({name:'TomTom 即時交通',color:'#fb923c',description:'細線與移動點位呈現車流；綠色順暢、黃色變慢、紅色壅塞、紫色封路。點位為速度示意，非個別車輛位置；路況每兩分鐘更新。',source:'TomTom Traffic Flow · 需 API Key',layer:traffic,error:layerErrors.get('traffic-key'),load:'data-act="tomtom-flow"',update:'data-act="tomtom-flow"',details:liveDescription('traffic',traffic?.getStats?.(),traffic?.visible).map(text=>`<p class="tw-note">${esc(text)}</p>`).join('')})}${live.filter(([id])=>dataManager?.layers.has(id)).map(([id,name,color,source])=>catalogRow({name,color,description:`${scopeLabel()}；按載入才啟動，隱藏即停止資料更新。`,source,error:layerErrors.get(`live:${id}`),layer:dataManager.isEnabled(id) ? {id:`live:${id}`,visible:true,action:`data-act="live-layer" data-live="${id}"`} : null,load:`data-act="live-layer" data-live="${id}"`,details:id === 'cctv' ? '<button data-act="open-cctv">開啟原版 CCTV 面板</button>' : liveDescription(id,{...dataManager.layers.get(id).module.getStats?.(),...(layerErrors.has(`live:${id}`) ? {error:layerErrors.get(`live:${id}`)} : {})},dataManager.isEnabled(id)).map(text=>`<p class="tw-note">${esc(text)}</p>`).join('')})).join('')}</div>`;
+  }
+  // ---- 宜蘭縣OSM+實價登錄 3D建物：以「匯入本機資料庫」加入；記憶已載入的鄉鎮市 -----------------
+  let infoWhite=true,infoImportOpen=false,infoAvailable=null,infoPersistPaused=false,infoRestored=false,infoPersistTimer=null,infoPersistSignature='',infoRestoreTimer=null;
+  const infoApi=(path,body)=>fetch('/api/taiwan/nlsc-buildings'+path,body===undefined?{cache:'no-store'}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(async response=>{const value=await response.json().catch(()=>({}));if(!response.ok)throw new Error(value.error||`HTTP ${response.status}`);return value;});
+  const infoTownLayers=()=>listLayers().filter(layer=>layer.infoLayer);
+  const infoMasters=()=>infoBuildingStatus?.imported||[];
+  async function refreshInfoStatus(withAvailable=false){
+    const value=await infoApi('/info/packs'+(withAvailable?'?available=1':''));
+    infoBuildingStatus=value;infoWhite=value.whiteMode!==false;
+    if(withAvailable)infoAvailable=value.available||[];
+    return value;
+  }
+  // The imported towns, which of them are loaded and whether they are shown are saved on the local server,
+  // so the next launch restores them. Saving waits while layers are being swapped or restored.
+  function persistInfoState(){
+    if(infoPersistPaused||!infoBuildingStatus||infoBuildingStatus.error)return;
+    const layers={};
+    for(const master of infoMasters()){const layer=infoTownLayers().find(item=>item.infoTown===master.slug);layers[master.slug]={loaded:!!layer,visible:layer?layer.visible!==false:master.visible!==false};}
+    const signature=JSON.stringify([layers,infoWhite]);
+    if(signature===infoPersistSignature)return;
+    clearTimeout(infoPersistTimer);
+    infoPersistTimer=setTimeout(()=>{infoPersistSignature=signature;infoApi('/info/state',{layers,whiteMode:infoWhite}).catch(()=>{});},600);
+  }
+  window.addEventListener('gev-tw:layers-changed',persistInfoState);
+  const infoLayersOpen=()=>!drawer.hidden&&title.textContent==='圖資';
+  function infoTownRow(master,layer){
+    const source=layer?(layer.infoMode==='white'?'顯示來源：本機白模圖磚（離線）':'顯示來源：NLSC 貼圖圖磚（線上）'):'尚未載入';
+    const actions=layer?`<span class="tw-badge ok">${layer.visible?'已顯示':'已載入'}</span><button data-act="layer-toggle" data-layer="${esc(layer.id)}">${layer.visible?'隱藏':'顯示'}</button>`:`<button data-act="info-town-load" data-slug="${esc(master.slug)}">載入</button>`;
+    return `<div class="tw-layer-row" ${layer?`data-style-layer="${esc(layer.id)}"`:''}><div class="tw-layer-main"><b class="tw-layer-name"><span class="tw-layer-swatch" style="--tw-layer-color:#f59e0b" aria-hidden="true"></span>${esc(master.towns)}</b><small>${(master.inArea||0).toLocaleString('zh-TW')} 棟（界內）· 建置於 ${master.updatedAt?new Date(master.updatedAt).toLocaleDateString('zh-TW'):'時間未記錄'}${master.hasWhite?'':' · 無白模圖磚'}</small><span class="tw-source-line">${esc(source)}</span></div><div class="tw-row-actions">${actions}<button data-act="info-town-goto" data-slug="${esc(master.slug)}" title="飛到這個鄉鎮市（白模需拉近到約 3 公里內才看得到建物）">前往</button><button data-act="info-pack-remove" data-slug="${esc(master.slug)}" title="從圖資移除；可選擇是否一併刪除本機檔案">移除</button></div>${layer?infoAlignControls(layer):''}</div>`;
+  }
+  // Same height-alignment controls as the NLSC 3D 建物 layer (the handlers are shared), with the live alignment status.
+  function infoAlignControls(layer){
+    return `<details class="tw-layer-more"><summary>高程對齊與微調</summary><p class="tw-note">白模與官方圖磚座標完全相同。斜視時建物若看似偏移，多半是建物底面與地形的高程差，或衛星影像的屋頂傾斜與拍攝年份不同；水平位置不做平移。街區載入後會自動取樣模型底面對齊地形高程，也可手動微調。</p><p class="tw-note" data-building-status="${layer.id}" role="status">${esc(buildingStatus(layer))}</p><label class="tw-inline-option"><input type="checkbox" data-building-align data-layer="${layer.id}" ${layer.dataMetadata?.buildingAlignment?.enabled!==false?'checked':''}>依模型底面自動對齊地形高程（展示）</label><label>高程微調（公尺）<input type="number" data-building-offset data-layer="${layer.id}" min="-200" max="200" step="1" value="${Number(layer.dataMetadata?.displayHeightOffset)||0}"></label></details>`;
+  }
+  function infoImportPanel(){
+    const list=infoAvailable||[];
+    return `<div class="tw-info-import"><p class="tw-note">可匯入的本機資料庫${infoBuildingStatus?.dataFolder?`（${esc(infoBuildingStatus.dataFolder)}）`:''}：</p>
+      ${list.length?list.map(pack=>`<label class="tw-inline-option"><input type="checkbox" data-info-pack value="${esc(pack.slug)}" data-root="${esc(pack.root)}">${esc(pack.towns)}（${(pack.inArea||0).toLocaleString('zh-TW')} 棟 · ${pack.tiles} 圖磚${pack.hasWhite?'':' · 無白模'}）</label>`).join(''):'<p class="tw-note">沒有可匯入的資料庫；可在下方輸入其他資料夾後掃描。</p>'}
+      <div class="tw-actions">${list.length?'<button data-act="info-import-do">匯入勾選</button><button data-act="info-import-all">匯入全部</button>':''}</div>
+      <label>其他資料夾（完整路徑）<input id="tw-info-folder" type="text" placeholder="例如 D:\\資料\\宜蘭"></label><button data-act="info-import-scan">掃描資料夾</button></div>`;
+  }
+  function infoBuildingRow(layers,layerRow){
+    const s=infoBuildingStatus,masters=infoMasters(),loaded=infoTownLayers(),lvr=s?.lvr;
+    const overall=loaded.length?{id:'info-all',visible:loaded.some(layer=>layer.visible),action:'data-act="info-all-toggle"',countText:`${loaded.length}／${masters.length} 個鄉鎮市`}:null;
+    const total=masters.reduce((n,master)=>n+(master.inArea||0),0);
+    const summary=masters.length?`已匯入 ${masters.length} 個鄉鎮市：${masters.map(master=>master.towns).join('、')}（共 ${total.toLocaleString('zh-TW')} 棟）。`:(s?.error?'無法讀取本機資料庫狀態。':'尚未匯入任何本機資料庫。按「匯入本機資料庫」加入。');
+    return `<div class="tw-catalog-group"><b class="tw-group-label">${INFO_LAYER_NAME}</b>${catalogRow({name:INFO_LAYER_NAME,color:'#f59e0b',description:`以匯入本機資料庫的方式加入，獨立於 NLSC 3D 建物。各鄉鎮市可單獨載入、顯示、隱藏、移除；已載入的項目下次開啟會自動還原。`,source:`NLSC 分棟版 3D Tiles 屬性 · OpenStreetMap 道路（ODbL） · 內政部實價登錄 ${lvr?.quarters||'（未匯入）'}${lvr?.buildingTrades?`（買賣含建物 ${lvr.buildingTrades} 筆）`:''} · 實價登錄僅能對到路名，非逐棟定位`,layer:overall,countText:overall?.countText})}
+      <p class="tw-note">${esc(summary)}</p>
+      <div class="tw-actions"><button data-act="info-import-toggle">${infoImportOpen?'收合匯入':'＋ 匯入本機資料庫…'}</button>${masters.length&&loaded.length<masters.length?'<button data-act="info-load-all">載入全部已匯入</button>':''}</div>
+      ${infoImportOpen?infoImportPanel():''}
+      <label class="tw-inline-option"><input type="checkbox" data-info-white ${infoWhite?'checked':''}>白模模式（本機白模圖磚：離線、載入快；取消則改用 NLSC 貼圖圖磚。與 NLSC 3D 建物的白模開關各自獨立）</label>
+      <p class="tw-note" role="status">${esc(infoBuildingNotice)}</p>
+      ${masters.map(master=>infoTownRow(master,loaded.find(item=>item.infoTown===master.slug))).join('')}</div>`;
+  }
+  async function loadInfoTownLayer(master,visible=true){
+    const mode=infoWhite&&master.hasWhite?'white':'nlsc';
+    const layer=await loadNlscBuildings(`/api/taiwan/nlsc-buildings/town-tileset?slug=${encodeURIComponent(master.slug)}&mode=${mode}`,viewer,{name:`${INFO_LAYER_NAME}｜${master.towns}`,flyTo:false,extra:{infoLayer:true,infoTown:master.slug,infoTownName:master.towns,infoMode:mode,localTileset:true,serviceUrl:INFO_TILESET_URL,
+      // Smaller tile caches keep many loaded towns responsive.
+      tilesetOptions:{cacheBytes:96*1048576,maximumCacheOverflowBytes:48*1048576},
+      source:'NLSC 分棟版 3D Tiles 屬性＋OpenStreetMap 道路＋內政部實價登錄（本機資料庫）',dataMetadata:{builtTowns:[master.towns],lvrQuarters:infoBuildingStatus?.lvr?.quarters||null,displaySource:mode==='white'?'本機白模圖磚':'NLSC 貼圖圖磚'}}});
+    if(!visible)setLayerVisible(layer.id,false);
+    return layer;
+  }
+  // White tiles are the finest level only (no coarse overview), so buildings appear once the camera is within about 3 km.
+  function flyToInfoTown(master){
+    const c=master?.center;if(!c)return;
+    viewer.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(c.lon,c.lat-0.014,1700),orientation:{heading:0,pitch:Cesium.Math.toRadians(-45),roll:0},duration:2});
+  }
+  async function loadInfoTowns(list,{restoring=false}={}){
+    if(!list.length){infoBuildingNotice='沒有可載入的鄉鎮市。';return renderLayers();}
+    // The NLSC orthophoto base only covers Taiwan, so make sure the camera is over Yilan before the surface is prepared.
+    const overYilan=()=>{const c=Cesium.Cartographic.fromCartesian(viewer.camera.positionWC),lon=Cesium.Math.toDegrees(c.longitude),lat=Cesium.Math.toDegrees(c.latitude);return lon>121.2&&lon<122.0&&lat>24.2&&lat<25.0;};
+    const yilanView=Cesium.Rectangle.fromDegrees(121.62,24.58,121.92,24.86);
+    try{
+      if(!overYilan()){infoBuildingNotice='正在飛往宜蘭縣…';renderLayers();await Promise.race([new Promise(resolve=>viewer.camera.flyTo({destination:yilanView,duration:1.2,complete:resolve,cancel:resolve})),new Promise(resolve=>setTimeout(resolve,3500))]);}
+      // Another camera animation may cancel the flight; place the camera directly in that case.
+      if(!overYilan()){viewer.camera.cancelFlight();viewer.camera.setView({destination:yilanView});}
+    }catch{/* camera position unavailable; load anyway */}
+    for(const master of list){
+      if(infoTownLayers().some(layer=>layer.infoTown===master.slug))continue;
+      infoBuildingNotice=`${restoring?'還原上次載入：':'正在載入 '}${master.towns}…`;renderLayers();
+      try{await loadInfoTownLayer(master,restoring?master.visible!==false:true);}catch(error){infoBuildingNotice=`${master.towns} 載入失敗：${error.message}`;return renderLayers();}
+    }
+    infoBuildingNotice=restoring?'已還原上次載入的圖資；點擊建物可查看資訊。':'已載入，已飛到該鄉鎮市；建物需拉近到約 3 公里內才看得到，可按各列「前往」。點擊建物可查看資訊。';
+    if(!restoring)flyToInfoTown(list.length===1?list[0]:list.slice().sort((a,b)=>(b.inArea||0)-(a.inArea||0))[0]);
+    renderLayers();
+  }
+  async function restoreInfoLayers(){
+    if(infoRestored)return;
+    infoRestored=true;infoStatusRequested=true;infoPersistPaused=true;
+    try{
+      await refreshInfoStatus(false);
+      const remembered=infoMasters().filter(master=>master.loaded);
+      if(remembered.length)await loadInfoTowns(remembered,{restoring:true});
+    }catch(error){infoBuildingNotice='還原上次載入的圖資失敗：'+error.message;infoBuildingStatus??={error:true,imported:[]};}
+    finally{infoPersistPaused=false;persistInfoState();if(infoLayersOpen())renderLayers();}
+  }
+  infoRestoreTimer=setTimeout(()=>void restoreInfoLayers(),2500);
+  async function setInfoWhite(on){
+    infoWhite=on;
+    const current=infoTownLayers().map(layer=>({master:infoMasters().find(item=>item.slug===layer.infoTown),visible:layer.visible,id:layer.id})).filter(item=>item.master);
+    infoBuildingNotice=on?'正在改用本機白模圖磚…':'正在改用 NLSC 貼圖圖磚…';renderLayers();
+    infoPersistPaused=true;
+    try{for(const item of current){removeLayer(item.id);await loadInfoTownLayer(item.master,item.visible);}infoBuildingNotice=on?'已改用本機白模圖磚（離線）。':'已改用 NLSC 貼圖圖磚（線上）。';}
+    catch(error){infoBuildingNotice='切換失敗：'+error.message;}
+    finally{infoPersistPaused=false;persistInfoState();}
+    renderLayers();
+  }
+  async function infoImport(slugsByRoot){
+    try{
+      const folder=infoBuildingStatus?.dataFolder;const added=[];
+      for(const [root,slugs] of slugsByRoot){const result=await infoApi('/info/packs/import',{slugs,...(root&&root!==folder?{folder:root}:{})});added.push(...result.added);}
+      infoBuildingNotice=`已匯入：${added.join('、')}。`;
+      await refreshInfoStatus(true);
+      if(!infoAvailable.length)infoImportOpen=false;
+    }catch(error){infoBuildingNotice='匯入失敗：'+error.message;}
+    renderLayers();
+  }
+  async function infoRemovePack(slug){
+    const master=infoMasters().find(item=>item.slug===slug);if(!master)return;
+    if(!window.confirm(`從圖資移除「${master.towns}」？\n圖層會卸載；本機檔案先保留，之後可以再匯入。`))return;
+    const deleteFiles=window.confirm(`要同時刪除「${master.towns}」的本機檔案嗎？\n（建物資料庫、白模圖磚、圖磚索引；重建需重新下載，無法復原）\n\n按「確定」＝一併刪除檔案\n按「取消」＝只移除、保留檔案`);
+    const layer=infoTownLayers().find(item=>item.infoTown===slug);
+    infoPersistPaused=true;
+    try{
+      if(layer)removeLayer(layer.id);
+      await infoApi('/info/packs/remove',{slug,deleteFiles,confirm:deleteFiles});
+      infoBuildingNotice=`已移除「${master.towns}」${deleteFiles?'，本機檔案已刪除':'（本機檔案保留，可再匯入）'}。`;
+      await refreshInfoStatus(infoImportOpen);
+    }catch(error){infoBuildingNotice='移除失敗：'+error.message;}
+    finally{infoPersistPaused=false;persistInfoState();}
+    renderLayers();
   }
   function catalogRow({name,color,description,source,layer,load,update,busy,error,countText,details='',children=''}) {
     return `<div class="tw-layer-row" ${layer?.id ? `data-style-layer="${esc(layer.id)}"` : ''}><div class="tw-layer-main"><b class="tw-layer-name"><span class="tw-layer-swatch" style="--tw-layer-color:${esc(color)}" aria-hidden="true"></span>${esc(name)}</b><small>${esc(description)}</small><span class="tw-source-line">${esc(source)}</span></div><div class="tw-row-actions">${busy ? `<span class="tw-badge">${layer?.geojson?.features.length || 0} 筆 · 載入中…</span>` : layer ? `<span class="tw-badge ok">${countText || (layer.geojson ? `${layer.geojson.features.length} 筆${layer.dataMetadata?.partial ? "（部分資料）" : ""}` : '已載入')}</span><button ${layer.action || `data-act="layer-toggle" data-layer="${layer.id}"`}>${layer.visible ? '隱藏' : '顯示'}</button>${update ? `<button ${update}>更新</button>` : ''}` : load ? `<button ${load}>載入</button>` : ''}</div>${error ? `<p class="tw-layer-error" role="alert">${esc(error)}</p>` : ''}${details ? `<details class="tw-layer-more"><summary>說明與分析</summary>${details}</details>` : ''}${children&&children.replace(/<[^>]*>/g,'').trim()?`<div data-layer-group>${groupHeading('children:'+(layer?.id||name),'子圖層與成果')}<div class="tw-group-content" ${collapsedGroups.has('children:'+(layer?.id||name))?'hidden':''}>${children}</div></div>`:''}</div>`;
@@ -1180,12 +1339,12 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     const choice=body.querySelector('#tw-data-scope').value,mode=choice==='taiwan' ? 'taiwan' : 'county',county=choice==='taiwan' ? dataScope().county : choice;
     const ids=listLayers().filter(layer=>layer.visible && layer.builtinId).map(layer=>layer.builtinId);
     const dtmOn=listLayers().some(layer=>layer.sourceKey === 'official-dtm-2025' && layer.visible);
-    const buildingOn=listLayers().some(layer=>layer.kind === '3d-tiles' && layer.visible);
+    const buildingOn=listLayers().some(layer=>layer.kind === '3d-tiles' && layer.visible && !layer.infoLayer);
     const referenceOn=listLayers().some(layer=>layer.kind === 'national-wms' && layer.visible);
     const trafficOn=listLayers().some(layer=>layer.kind === 'tomtom-flow-image' && layer.visible);
     const liveIds=['cctv','flights','ais-live-vessels','local-firms','earthquakes'].filter(id=>dataManager?.isEnabled(id));
     await stopAllWork();await stopProjectFeeds();nationwideBuildingsEnabled=false;const epoch=workEpoch;await setDataScope(mode,county);
-    for(const layer of listLayers())if(layer.builtinId || layer.scopeManaged || ['3d-tiles','national-wms','dtm'].includes(layer.kind))setLayerVisible(layer.id,false);
+    for(const layer of listLayers())if(!layer.infoLayer && (layer.builtinId || layer.scopeManaged || ['3d-tiles','national-wms','dtm'].includes(layer.kind)))setLayerVisible(layer.id,false);
     await focusScope();renderLayers();
     for(const id of ids){if(epoch !== workEpoch)return;await doLoadBuiltin(id);}
     if(epoch !== workEpoch)return;if(dtmOn)await loadLocalDtm();if(epoch !== workEpoch)return;if(buildingOn)await loadNlscScope();if(epoch !== workEpoch)return;if(referenceOn)loadNationalReferenceMap(viewer,{bbox:scopeBounds()});if(trafficOn)await loadTrafficForScope();
@@ -1201,8 +1360,8 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     if(!service)throw new Error(`${scopeLabel()}沒有可用建物服務`);
     await prepareBuildingSurface(viewer,{signal:controller.signal});controller.signal.throwIfAborted();
     selectedNlscUrl=service.url;
-    for(const layer of listLayers().filter(layer=>layer.kind === '3d-tiles'))setLayerVisible(layer.id,false);
-    const existing=listLayers().find(layer=>layer.serviceUrl === service.url);
+    for(const layer of listLayers().filter(layer=>layer.kind === '3d-tiles' && !layer.infoLayer))setLayerVisible(layer.id,false);
+    const existing=listLayers().find(layer=>layer.serviceUrl === service.url && !layer.infoLayer);
     if(existing?.pendingService)await connectPendingLayer(existing,{signal:controller.signal});else if(existing)setLayerVisible(existing.id,true);else await loadNlscBuildings(service.url,viewer,{name:service.name,flyTo:false,signal:controller.signal});
     const visibleBuilding=listLayers().find(layer=>layer.serviceUrl===service.url);
      if(selection.mode==='county' && visibleBuilding?.tileset)await viewer.zoomTo(visibleBuilding.tileset,new Cesium.HeadingPitchRange(0,Cesium.Math.toRadians(-45),0));
@@ -1215,7 +1374,9 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     batchRunning=true;const epoch=workEpoch;
     try{
       await ensureCounties();await focusScope();if(epoch !== workEpoch)return;
-      await loadLocalDtm();if(epoch !== workEpoch)return;loadNationalReferenceMap(viewer,{bbox:scopeBounds()});
+      // The NLSC reference map is a hazy WMS overlay clipped to the scope rectangle (a grey parallelogram over the imagery) and
+      // duplicates the road/rail/water vector layers loaded below, so "load all" no longer adds it; it can still be loaded on its own.
+      await loadLocalDtm();if(epoch !== workEpoch)return;
       try{await loadNlscScope();}catch(error){if(error.name === 'AbortError')return;nlscNotice=error.message;}
       for(const item of BUILTIN_LAYER_CATALOG){if(epoch !== workEpoch)return;await doLoadBuiltin(item.id,{fromBatch:true});}
     }finally{batchRunning=false;if(epoch===workEpoch)renderLayers();}
@@ -1501,6 +1662,31 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     }finally{if(analysisJob===job)analysisJob=null;if(generation===chatGeneration){chatBusy=false;chatController=null;renderChatMessages();}}
   }
 
+  function wantsAnalysisRecompute(content){
+    return /(?:兩側|兩旁|走廊|距離|改為|改成|外延)[^\d]{0,8}\d+(?:\.\d+)?\s*(?:公尺|米|m)/i.test(content)
+      || /重新(?:分析|計算|整理|讀取|載入|執行|查詢|跑)|重算|再(?:分析|計算|算)一次|更新(?:資料|圖資|分析|成果)|(?:加入|納入|併入|改用|換成).{0,12}(?:圖資|圖層|紀錄|資料)|(?:擴大|縮小|更改|改變).{0,6}範圍/.test(content);
+  }
+
+  async function answerAnalysisFollowUp(session,content){
+    if(chatBusy||transit.busy){chatStatus('工作中... 目前工作完成後即可接續分析。');return;}
+    const removed=session.type==='layers'?(session.layers||[]).filter(layer=>!getLayer(layer.id)).map(layer=>layer.name):[];
+    const note=removed.length?`\n\n- 注意：分析後已移除圖層「${removed.slice(0,5).join('、')}」；本回答仍依分析當時的成果快照。如需反映目前圖資，請輸入「重新分析」。`:'';
+    chatMessages.push({role:'user',content});
+    if(!await hasApiKey('openrouter')){chatMessages.push({role:'assistant',content:'本次分析成果已保留，未重新讀取圖資。尚未設定 OpenRouter 文字模型，無法解讀追問；如需重新計算請輸入「重新分析」。'+note});showAssistant();renderChatMessages();return;}
+    const generation=chatGeneration,model=selectedModel()||'openrouter/free',answer={role:'assistant',content:'正在依本次分析成果回答，不重新讀取圖資…'};
+    const history=chatMessages.slice(chatContextStartIndex,-1).filter(message=>message.role!=='system').slice(-8).map(({role,content})=>({role,content}));
+    chatMessages.push(answer);chatBusy=true;chatController=new AbortController();showAssistant();renderChatMessages();chatStatus('沿用本次分析成果回答追問，不重新讀取圖資。');
+    try{
+      const result=await streamBrowserChat({model,messages:[...history,{role:'user',content:`${content}\n\n（回答規則：只依資料中本次已完成的本機分析成果快照 calculatedSummary 與先前對話回答，不重新讀取圖資，也不自行逐圖徵計算。數字只能引用快照中已有的數值；快照沒有涵蓋的內容請說明需輸入「重新分析」或指定新條件才能取得。）`}],context:{analysisKind:session.type,analysisFollowUp:true,calculatedSummary:session.result.compact},responseStyle},{signal:chatController.signal,
+        onStatus:message=>{if(generation===chatGeneration)chatStatus(message);},
+        onDelta:text=>{if(generation!==chatGeneration)return;answer.content=text;renderChatMessages();}});
+      if(generation!==chatGeneration)return;
+      answer.content=(String(result.content||'').trim()||'模型沒有回傳文字。')+note;
+      chatStatus('已依本次分析成果回答，未重新讀取圖資。');
+    }catch(error){if(generation===chatGeneration)answer.content=(chatController?.signal.aborted?'已停止回覆。':'追問回覆暫未取得：'+error.message+'。')+'本次分析成果已保留，未重新讀取圖資。'+note;}
+    finally{if(generation===chatGeneration){chatBusy=false;chatController=null;renderChatMessages();}}
+  }
+
   async function analysisInterjection(content){
     const job=analysisJob;if(!job)return false;chatMessages.push({role:'user',content});
     if(adoptsRecommendation(content)){job.session.resultOnly=true;job.revision++;job.interpretController?.abort();chatMessages.push({role:'assistant',content:'已確認，正在完成目前分析並直接回報成果，不再提出下一輪建議。'});renderChatMessages();return true;}
@@ -1669,7 +1855,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     const thread = chatPanel.querySelector('#tw-chat-thread');
     if (!thread) return;
     thread.innerHTML = chatMessages.length
-      ? chatMessages.map(message => `<div class="tw-chat-bubble ${message.role === 'user' ? 'user' : message.role === 'system' ? 'system' : 'assistant'}"><small>${message.role === 'user' ? '你' : message.role === 'system' ? '系統' : 'AI'}</small>${message.cctvResult ? cctvFrameHtml(message.cctvResult) : message.cctvFrame ? `<figure class="tw-cctv-analysis-frame"><img src="${esc(message.cctvFrame.image)}" alt="AI 分析的 CCTV 截圖"><figcaption>${esc(message.cctvFrame.cameraName)} · ${esc(new Date(message.cctvFrame.observedAt).toLocaleString('zh-TW'))}</figcaption></figure>` : ''}<div class="tw-chat-content">${message.role === 'assistant' ? renderChatMarkdown(message.content) : esc(message.content)}</div>${message.transitRecovery?`<div class="tw-transit-recovery-actions">${message.transitRecovery.suggestions.map((s,i)=>`<button data-act="transit-recovery" data-recovery-id="${esc(message.transitRecovery.id)}" data-recovery-index="${i}" ${transit.recovery?.id!==message.transitRecovery.id||transit.busy||chatBusy?'disabled':''}>${i+1}｜${esc(s.label)}</button>`).join('')}</div>`:''}${message.analysisSuggestions?`<div class="tw-transit-recovery-actions">${message.analysisSuggestions.items.map((item,i)=>`<button data-act="analysis-followup" data-analysis-id="${esc(message.analysisSuggestions.id)}" data-analysis-index="${i}" ${chatBusy||analysisSessions.get(message.analysisSuggestions.id)?.adopted?'disabled':''}>${i+1}｜${esc(item.label)}</button>`).join('')}</div>`:''}${(message.serviceLimits?.length?message.serviceLimits:message.transitRecovery?.rateLimit?[message.transitRecovery.rateLimit]:[]).map(limit=>`<p class="tw-transit-countdown" data-transit-limit="${esc(JSON.stringify(limit))}">${esc(rateLimitText(limit))}</p>`).join('')}</div>`).join('')
+      ? chatMessages.map((message,messageIndex) => `<div class="tw-chat-bubble ${message.role === 'user' ? 'user' : message.role === 'system' ? 'system' : 'assistant'}"><small>${message.role === 'user' ? '你' : message.role === 'system' ? '系統' : 'AI'}</small>${message.cctvResult ? cctvFrameHtml(message.cctvResult) : message.cctvFrame ? `<figure class="tw-cctv-analysis-frame"><img src="${esc(message.cctvFrame.image)}" alt="AI 分析的 CCTV 截圖"><figcaption>${esc(message.cctvFrame.cameraName)} · ${esc(new Date(message.cctvFrame.observedAt).toLocaleString('zh-TW'))}</figcaption></figure>` : ''}<div class="tw-chat-content">${message.role === 'assistant' ? renderChatMarkdown(message.content) : esc(message.content)}</div>${message.role==='assistant' && hasMarkdownTable(message.content)?`<div class="tw-chat-export"><button type="button" data-act="chat-export-xlsx" data-chat-index="${messageIndex}" title="把這則回覆的表格匯出成 Excel 檔，可直接交給同事（本機產生，不經外部服務）">匯出 Excel</button></div>`:''}${message.transitRecovery?`<div class="tw-transit-recovery-actions">${message.transitRecovery.suggestions.map((s,i)=>`<button data-act="transit-recovery" data-recovery-id="${esc(message.transitRecovery.id)}" data-recovery-index="${i}" ${transit.recovery?.id!==message.transitRecovery.id||transit.busy||chatBusy?'disabled':''}>${i+1}｜${esc(s.label)}</button>`).join('')}</div>`:''}${message.analysisSuggestions?`<div class="tw-transit-recovery-actions">${message.analysisSuggestions.items.map((item,i)=>`<button data-act="analysis-followup" data-analysis-id="${esc(message.analysisSuggestions.id)}" data-analysis-index="${i}" ${chatBusy||analysisSessions.get(message.analysisSuggestions.id)?.adopted?'disabled':''}>${i+1}｜${esc(item.label)}</button>`).join('')}</div>`:''}${(message.serviceLimits?.length?message.serviceLimits:message.transitRecovery?.rateLimit?[message.transitRecovery.rateLimit]:[]).map(limit=>`<p class="tw-transit-countdown" data-transit-limit="${esc(JSON.stringify(limit))}">${esc(rateLimitText(limit))}</p>`).join('')}</div>`).join('')
       : '<div class="tw-chat-empty">你可以直接詢問地圖、圖資或分析做法。</div>';
     if (chatBusy && !aiStreaming && !analysisJob) thread.insertAdjacentHTML('beforeend', '<div class="tw-chat-bubble assistant pending">AI 正在輸入…</div>');
     thread.scrollTop = thread.scrollHeight;
@@ -1699,7 +1885,12 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
       chatMessages.push({role:'user',content},{role:'assistant',content:'## 執行結果\n目前沒有已登錄的可執行方案或分析來源，因此尚未執行任何操作；不能把文字建議當作已完成的任務。'});showAssistant();renderChatMessages();chatStatus('已回報本次執行所缺的方案與來源。');return;
     }
     if(analysisSession&&!/(?:TDX|重新規劃|班次|規劃.*(?:旅程|交通)|(?:旅程|大眾運輸).*規劃|^(?:請)?(?:帶我到|飛到|前往|搜尋並前往|搜尋地標))/i.test(content)){
-      input.value='';await runIntegratedAnalysis({...analysisSession,prompt:content},content);return;
+      input.value='';
+      // Follow-up questions reuse the finished snapshot; only an explicit
+      // recalculation request re-reads layers or records.
+      if(!analysisSession.result||wantsAnalysisRecompute(content))await runIntegratedAnalysis({...analysisSession,prompt:content},content);
+      else await answerAnalysisFollowUp(analysisSession,content);
+      return;
     }
     const visit=content.match(/^(?:請)?(?:帶我到|飛到|前往|搜尋並前往|搜尋地標)\s*(.+?)(?:[。！!]|$)/);
     if(visit && !focusLayer) {
@@ -1960,6 +2151,8 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
     window.removeEventListener('gev-tw:aerial-capture-ui',onCaptureUi);
     document.body.classList.remove('gev-tw-aerial-capture');
     providerSettings.dispose();
+    releaseBuildingInfo();
+    clearTimeout(infoRestoreTimer);clearTimeout(infoPersistTimer);window.removeEventListener('gev-tw:layers-changed',persistInfoState);
     root.remove();
   };
 }

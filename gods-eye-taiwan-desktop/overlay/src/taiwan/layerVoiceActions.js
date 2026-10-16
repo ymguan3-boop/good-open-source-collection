@@ -36,7 +36,7 @@ export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackC
   function entryLayer(id) {
     return listLayers().find(layer => layer.builtinId === id || layer.sourceKey === id ||
       (id === 'national-reference' && layer.kind === 'national-wms') ||
-      (id === 'nlsc-buildings' && layer.kind === '3d-tiles'));
+      (id === 'nlsc-buildings' && layer.kind === '3d-tiles' && !layer.infoLayer));
   }
   function catalog() {
     const definitions = [
@@ -104,14 +104,14 @@ export function createLayerVoiceActions({ builtinCatalog, dataManager, mapStackC
     else {
       let layer = entryLayer(item.id) || getLayer(item.id);
       if (!visible) {
-        const targets = item.id === 'nlsc-buildings' ? listLayers().filter(candidate => candidate.kind === '3d-tiles') : layer ? [layer] : [];
+        const targets = item.id === 'nlsc-buildings' ? listLayers().filter(candidate => candidate.kind === '3d-tiles' && !candidate.infoLayer) : layer ? [layer] : [];
         for (const targetLayer of targets) setLayerVisible(targetLayer.id, false);
       } else if (item.kind === 'builtin' && (!layer || operation === 'update')) {
         layer = await adapters.loadBuiltin(item.id, { signal, fresh: explicitlyUpdating });
       } else if (item.kind === 'service' && (!layer || operation === 'update')) await adapters.loadService(item.id, { signal });
       else if (layer){
         if(operation==='update')throw new Error('此匯入圖層不支援線上更新，請重新匯入原始資料');
-        const targets=item.id==='nlsc-buildings' ? listLayers().filter(candidate=>candidate.kind==='3d-tiles') : [layer];
+        const targets=item.id==='nlsc-buildings' ? listLayers().filter(candidate=>candidate.kind==='3d-tiles' && !candidate.infoLayer) : [layer];
         for(const targetLayer of targets){signal?.throwIfAborted();if(targetLayer.pendingService)await adapters.connectCustom(targetLayer,{signal});else setLayerVisible(targetLayer.id,true);}
       }
       else throw new Error('此匯入圖層已移除，請重新匯入 JSON');

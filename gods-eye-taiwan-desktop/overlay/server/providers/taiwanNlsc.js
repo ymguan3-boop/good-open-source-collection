@@ -1,5 +1,7 @@
+import './nlscTls.js';
 import { readFileSync } from 'node:fs';
 import { analyzeNlscBuildings } from './nlscBuildingAnalysis.js';
+import { buildingInfoStatus, importBuildingPacks, listAvailablePacks, lookupBuilding, packsOverview, readTownTileset, readWhiteTile, rememberPackState, removeBuildingPack, scanPackFolder } from './taiwanBuildingInfo.js';
 
 const SERVICE_LIST = 'https://3dtiles.nlsc.gov.tw/tiles3d/Service';
 const SNAPSHOT_CAPTURED_AT = '2026-09-30';
@@ -47,7 +49,7 @@ export function taiwanNlscProxy() {
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.setHeader('Cache-Control', 'no-store');
         if (req.url === '/analysis' && req.method === 'POST' && local(req)) {
-          const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),120000);
+          const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),420000);
           res.on('close',()=>controller.abort());
           try {
             let text='';for await(const chunk of req){text+=chunk.toString('utf8');if(text.length>60000)throw new Error('分析範圍過大');}
@@ -55,6 +57,43 @@ export function taiwanNlscProxy() {
             if(!res.destroyed)res.end(JSON.stringify(result));
           }catch(error){if(!res.destroyed){res.statusCode=400;res.end(JSON.stringify({error:error.message}));}}
           finally{clearTimeout(timer);}
+          return;
+        }
+        if (req.method === 'GET' && local(req) && /^\/(?:town-tileset|white\/)/.test(req.url || '')) {
+          try {
+            const url = new URL(req.url, 'http://127.0.0.1');
+            if (url.pathname === '/town-tileset') {
+              const body = readTownTileset(url.searchParams.get('slug'), url.searchParams.get('mode'));
+              res.setHeader('Content-Type', 'application/json; charset=utf-8'); res.setHeader('Content-Encoding', 'gzip'); res.setHeader('Vary', 'Accept-Encoding');
+              res.setHeader('Cache-Control', 'private, max-age=60'); res.setHeader('Content-Length', String(body.length)); res.end(body); return;
+            }
+            const [, , slug, name] = url.pathname.split('/');
+            const tile = await readWhiteTile(slug, decodeURIComponent(name || ''));
+            res.setHeader('Content-Type', 'model/gltf-binary'); res.setHeader('Cache-Control', 'private, max-age=86400'); res.setHeader('Content-Length', String(tile.length)); res.end(tile);
+          } catch (error) { res.setHeader('Content-Type', 'application/json; charset=utf-8'); res.removeHeader('Content-Encoding'); res.statusCode = 404; res.end(JSON.stringify({ error:error.message })); }
+          return;
+        }
+        // Imported township databases: list, scan a folder, import, remove, and remember what is loaded.
+        if (local(req) && ['GET', 'POST'].includes(req.method) && /^\/info\/(?:packs|state)/.test(req.url || '')) {
+          try {
+            const url = new URL(req.url, 'http://127.0.0.1');
+            if (req.method === 'GET' && url.pathname === '/info/packs') { res.end(JSON.stringify({ ...packsOverview(), ...(url.searchParams.get('available') === '1' ? { available: listAvailablePacks() } : {}) })); return; }
+            if (req.method !== 'POST') throw new Error('不支援的操作');
+            let text = ''; for await (const chunk of req) { text += chunk.toString('utf8'); if (text.length > 20000) throw new Error('要求內容過大'); }
+            const data = text ? JSON.parse(text) : {};
+            if (url.pathname === '/info/packs/scan') { res.end(JSON.stringify({ available: scanPackFolder(data.path) })); return; }
+            if (url.pathname === '/info/packs/import') { res.end(JSON.stringify({ ok: true, added: importBuildingPacks(data.slugs, data.folder) })); return; }
+            if (url.pathname === '/info/packs/remove') { res.end(JSON.stringify({ ok: true, ...removeBuildingPack(data.slug, data.deleteFiles === true && data.confirm === true) })); return; }
+            if (url.pathname === '/info/state') { rememberPackState(data); res.end(JSON.stringify({ ok: true })); return; }
+            throw new Error('不支援的操作');
+          } catch (error) { res.statusCode = 400; res.end(JSON.stringify({ error:error.message })); }
+          return;
+        }
+        if (req.method === 'GET' && local(req) && /^\/info(?:\/status)?(?:\?|$)/.test(req.url || '')) {
+          try {
+            const url = new URL(req.url, 'http://127.0.0.1');
+            res.end(JSON.stringify(url.pathname === '/info/status' ? buildingInfoStatus() : lookupBuilding(url.searchParams.get('id'))));
+          } catch (error) { res.statusCode = 400; res.end(JSON.stringify({ error:error.message })); }
           return;
         }
         if (req.method !== 'GET' || !local(req)) { res.statusCode = 403; res.end(JSON.stringify({ error:'僅允許本機同來源瀏覽器' })); return; }

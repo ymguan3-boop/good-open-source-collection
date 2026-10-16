@@ -13,6 +13,7 @@ import { join, resolve } from 'node:path';
 import { keySetupStatus } from '../../src/keySetupCore.mjs';
 import { refreshCredentials, getCredential, saveCredential, credentialPresence } from './taiwanCredentialStore.js';
 import {freeTextModels} from './freeTextModels.js';
+import { tomtomFetch } from './tomtomFallback.js';
 import { streamTaiwanChat } from './taiwanChat.js';
 import { analyzeCctvImage,planInspectionRoute,getFreeVisionModels } from './taiwanVisualAnalysis.js';
 
@@ -47,7 +48,7 @@ async function body(req) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 async function provider(url, options = {}) {
-  const res = await fetch(url, { ...options, signal:AbortSignal.timeout(options.timeout || 30000) });
+  const res = await tomtomFetch(url, { ...options, signal:AbortSignal.timeout(options.timeout || 30000) });
   const value = await res.json();
   if (!res.ok) throw new Error(value?.error?.message || `${res.status} ${res.statusText}`);
   return value;
@@ -126,7 +127,7 @@ export function taiwanAiProxy() {
               const url = new URL(`https://api.tomtom.com/search/2/search/${encodeURIComponent(query)}.json`);
               url.search = new URLSearchParams({key,language:'zh-TW',limit:'5',countrySet:'TW'});
               const value = await provider(url);
-              const results = (value.results || []).map(hit=>({name:hit.poi?.name || hit.address?.freeformAddress || query,lat:hit.position?.lat,lon:hit.position?.lon,height:150,source:'TomTom Search'})).filter(hit=>Number.isFinite(hit.lat) && Number.isFinite(hit.lon));
+              const results = (value.results || []).map(hit=>({name:hit.poi?.name || hit.address?.freeformAddress || query,lat:hit.position?.lat,lon:hit.position?.lon,height:150,source:value.fallback?'© OpenStreetMap contributors / Nominatim・Photon（TomTom 金鑰無效，已改用備援）':'TomTom Search'})).filter(hit=>Number.isFinite(hit.lat) && Number.isFinite(hit.lon));
               return json(res,200,{results});
             }
             if (searchCache.has(query)) return json(res,200,searchCache.get(query));
@@ -182,7 +183,7 @@ export function taiwanAiProxy() {
               const url=new URL(`https://api.tomtom.com/traffic/map/4/tile/flow/relative/${z}/${x}/${y}.pbf`);
               url.search=new URLSearchParams({key});
               const upstream=await fetch(url,{signal:AbortSignal.timeout(20000)});
-              if(!upstream.ok)throw new Error(`TomTom 即時交通 HTTP ${upstream.status}`);
+              if(!upstream.ok)throw new Error(upstream.status===401||upstream.status===403?"TomTom 金鑰無效或無權限（HTTP "+upstream.status+"），請到 API 設定重新輸入 TomTom API Key":`TomTom 即時交通 HTTP ${upstream.status}`);
               entry={at:Date.now(),bytes:Buffer.from(await upstream.arrayBuffer())};
               if(trafficCache.size>=64)trafficCache.delete(trafficCache.keys().next().value);
               trafficCache.set(route,entry);
@@ -194,7 +195,7 @@ export function taiwanAiProxy() {
             const key=getCredential('TOMTOM_API_KEY');if(!key)throw new Error('未輸入金鑰');
             const [z,x,y]=route.match(/\d+/g).map(Number);if(z>18 || x>=2**z || y>=2**z)throw new Error('圖磚座標不正確');
             const url=new URL(`https://api.tomtom.com/traffic/map/4/tile/flow/relative0/${z}/${x}/${y}.png`);url.search=new URLSearchParams({key,tileSize:'256'});
-            const upstream=await fetch(url,{signal:AbortSignal.timeout(20000)});if(!upstream.ok)throw new Error(`TomTom 即時交通 HTTP ${upstream.status}`);
+            const upstream=await fetch(url,{signal:AbortSignal.timeout(20000)});if(!upstream.ok)throw new Error(upstream.status===401||upstream.status===403?"TomTom 金鑰無效或無權限（HTTP "+upstream.status+"），請到 API 設定重新輸入 TomTom API Key":`TomTom 即時交通 HTTP ${upstream.status}`);
             res.setHeader('Content-Type','image/png');res.setHeader('Cache-Control','private,max-age=60');res.end(Buffer.from(await upstream.arrayBuffer()));return;
           }
           if (route === '/keys' && req.method === 'POST') {

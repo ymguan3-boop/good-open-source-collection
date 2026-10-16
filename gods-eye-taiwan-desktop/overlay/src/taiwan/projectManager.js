@@ -20,9 +20,9 @@ export async function exportProject({ name='未命名專案', viewer, layers=[],
       heading: viewer.camera.heading, pitch: viewer.camera.pitch, roll: viewer.camera.roll,
     } : null,
     metadata,
-    services:layers.filter(layer=>['3d-tiles','national-wms'].includes(layer.kind)).map(layer=>({kind:layer.kind,name:layer.name,visible:layer.visible,
+    services:layers.filter(layer=>['3d-tiles','national-wms'].includes(layer.kind) && !layer.infoLayer).map(layer=>({kind:layer.kind,name:layer.name,visible:layer.visible,
       ...(layer.kind === '3d-tiles' ? {url:publicNlscUrl(layer.serviceUrl)} : {}),metadata:{...layer.dataMetadata,...(layer.aiReports ? {aiReports:layer.aiReports} : {})}})),
-    omittedLayers:layers.filter(layer=>!layer.geojson && !['3d-tiles','national-wms'].includes(layer.kind)).map(layer=>layer.name),
+    omittedLayers:layers.filter(layer=>layer.infoLayer || (!layer.geojson && !['3d-tiles','national-wms'].includes(layer.kind))).map(layer=>layer.name),
     layers: layers.filter(l => l.geojson).map(l => ({ id:l.id, name:l.name, kind:l.kind, visible:l.visible, builtinId:l.builtinId || null, sourceKey:l.sourceKey || null, source:l.source || null, description:l.description || null, metadata:{...l.dataMetadata,...(l.aiReports ? {aiReports:l.aiReports} : {})}, parentSourceKey:l.parentSourceKey || null, bufferSourceId:l.bufferSourceId || null, bufferDistanceMeters:l.bufferDistanceMeters ?? null, style:l.style || null, geojson:l.geojson }))
   };
   return new Blob([JSON.stringify(manifest, null, 2)], { type:'application/json;charset=utf-8' });
