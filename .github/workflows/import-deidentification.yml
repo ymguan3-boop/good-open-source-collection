@@ -1,0 +1,64 @@
+name: Import de-identification static app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/import-deidentification.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch reviewed upstream revision
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/dean9703111/data-deidentification.git /tmp/deidentification
+          cd /tmp/deidentification
+          git checkout --detach 1f7b9298f94a9728cf6d181f84cfcce48c39d968
+      - name: Prepare isolated application
+        run: |
+          set -eu
+          mkdir -p /tmp/deid-build
+          for f in package.json package-lock.json tsconfig.json vite.config.ts index.html LICENSE README.md; do
+            cp "/tmp/deidentification/$f" "/tmp/deid-build/$f"
+          done
+          cp -a /tmp/deidentification/src /tmp/deid-build/
+          cp -a /tmp/deidentification/public /tmp/deid-build/
+          # Retain repository-specific README in destination; do not copy any agent instruction folders.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install and build static site without lifecycle hooks
+        working-directory: /tmp/deid-build
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+      - name: Copy application, licensing and built site to collection
+        run: |
+          set -eu
+          target='去識別化開源工具'
+          mkdir -p "$target"
+          cp -a /tmp/deid-build/dist/. "$target/"
+          cp /tmp/deid-build/LICENSE "$target/LICENSE"
+          mkdir -p "$target/source"
+          cp -a /tmp/deid-build/src /tmp/deid-build/public "$target/source/"
+          cp /tmp/deid-build/package.json /tmp/deid-build/package-lock.json /tmp/deid-build/tsconfig.json /tmp/deid-build/vite.config.ts /tmp/deid-build/index.html "$target/source/"
+          printf '%s\n' '1f7b9298f94a9728cf6d181f84cfcce48c39d968' > "$target/UPSTREAM_COMMIT"
+      - name: Commit imported source and generated site
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add '去識別化開源工具'
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Import reviewed de-identification tool and static build'
+          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" push origin HEAD:main
