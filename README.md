@@ -1,35 +1,33 @@
 # 好用開源程式收集
 
-- **2026-10-08｜上帝之眼・台灣版 v37**：缺口分類彙整、依實際成果產生可執行追蹤，首次安裝自動下載官方 DTM；[檢查與補裝說明](gods-eye-taiwan-desktop/docs/browser-v37-analysis-dtm-20261008.md)。
+本倉庫集中整理可自由檢視原始碼的程式，方便查閱功能、授權、使用說明與下載位置。目前收錄 **4 套開源程式**。
 
-- **2026-10-08｜上帝之眼・台灣版 v36**：確認建議後直接回報成果，停止建議迴圈，過期方案有限重查與重複確認保護；[檢查與限制](gods-eye-taiwan-desktop/docs/browser-v36-confirmed-execution-20261008.md)。
+## 📚 收錄程式一覽（4 套）
 
-- **2026-10-08｜上帝之眼・台灣版 v35**：工具列按鈕改用緊湊行高，紀錄恢復時序垂直MD清單；[改版說明](gods-eye-taiwan-desktop/docs/browser-v35-compact-toolbar-20261008.md)。
+1. **[上帝之眼（原版）](上帝之眼/)** — 以 CesiumJS 為核心的 3D 地球與即時地理資訊觀察工具，整合交通、衛星、CCTV 與其他空間資料，供全球場景探索與延伸開發。
+2. **[上帝之眼・台灣版](gods-eye-taiwan-desktop/)** — 在 3D 地球基礎上整合臺灣地形、建物、道路、圖資套疊、AI 空間助理、交通規劃、CCTV 辨識及電影式空拍，適用於空間觀察與 GIS 查核。
+3. **[GeoLibre](GeoLibre/)** — 開源地理資訊分析與資料處理工具，可搭配瀏覽器、桌面及 Jupyter 工作流程，進行地圖呈現、空間分析與地理資料處理。
+4. **[去識別化開源工具](去識別化開源工具/)** — 由 Dean Lin 開發的瀏覽器端個資遮罩工具，可處理 PDF、Word、Excel、文字及掃描文件（OCR），支援偵測、人工覆核、遮罩與部分模式下的編碼還原。**[影片介紹](https://youtu.be/Mx7d0nSF61k?si=H4T6W59ZNNS0X08y)**。
 
-- **2026-10-07｜上帝之眼・台灣版 v34**：空間索引＋批次運算＋一次 AI 解讀，SQLite／FTS5 紀錄摘要檢索，分析中可插話、補充條件與停止；[驗收紀錄與限制](gods-eye-taiwan-desktop/docs/browser-v34-batch-analysis-20261007.md)。
+> 各專案的授權及使用限制以其資料夾內 LICENSE、README 與原作者公告為準。去識別化工具的 GitHub Pages 公開可用性尚待獨立驗證，請勿直接上傳機敏資料進行未驗證的測試。
 
-- 2026-10-07｜上帝之眼・台灣版 v33：四個交通範例驗證、規劃表格、路線／模型點擊關閉、勾選圖資跨工作區分析與紀錄整合審計分析。詳見 [v33 驗收紀錄](gods-eye-taiwan-desktop/docs/browser-v33-joint-analysis-20261007.md)。
-
-- 2026-10-07｜上帝之眼・台灣版 v32：視窗統一三個圖示、獨立說明視窗、真實額度血條、文字標籤工具入口及空拍 1.5～3 倍加速。詳見 [v32 檢查與限制](gods-eye-taiwan-desktop/docs/browser-v32-ui-aerial-20261007.md)。
-
-- 2026-10-07｜上帝之眼・台灣版 v31：TDX 無可靠方案改查臺鐵官方公開班表，支援中繼停留與核實道路／鐵路路廊；工作中分階段回報、確認後自動結論與 3D 示意，AI 說明改為垂直雙入口。67/67 測試通過，真實宜蘭縣政府→羅東停留→臺北 12:25 抵達。詳見 [v31 驗收與限制](gods-eye-taiwan-desktop/docs/browser-v31-official-transit-20261007.md)。
-
-這個倉庫目前收錄 **4 套開源程式**，方便集中下載、比較與由 Agent 協助安裝。
-
-## 倉庫結構
+## 📁 倉庫結構
 
 ```text
 good-open-source-collection/
-├─ 上帝之眼/                  # God's Eye View 原版
+├─ 上帝之眼/                  # 3D 地球與即時 GIS 觀察原版
 ├─ gods-eye-taiwan-desktop/  # 上帝之眼・台灣版
-├─ GeoLibre/                 # GeoLibre 原版
-├─ 去識別化開源工具/           # 文件去識別化工具（Dean Lin）
-└─ README.md
+├─ GeoLibre/                 # 地理空間資料處理工具
+├─ 去識別化開源工具/           # 文件個資遮罩與去識別化
+├─ .github/workflows/         # 必要的自動化工作流程
+└─ README.md                 # 本專案總覽
 ```
 
-本倉庫另外保留必要的 GitHub Actions、自建圖層及其他現存檔案；新增工具不影響原有專案，去識別化工具的匯入與 GitHub Pages 部署狀態需另外驗證。
+**整理紀錄（2026-10-17）**：已刪除「全台灣3D建物基本資訊圖層」及專用批次擷取工作流程；不再列為本倉庫收錄項目。
 
 ---
+
+## 各程式詳細介紹
 
 ## 1. 上帝之眼原版
 
@@ -124,7 +122,7 @@ GeoLibre/README.md
 - **授權方式**：MIT（應保留原作者授權與版權聲明）
 - **主要功能**：於瀏覽器內對 PDF（含 OCR 掃描檔）、Word、Excel 與文字內容偵測和遮蔽個資，提供人工覆核與部分模式的編碼表還原。
 
-**部署狀態**：已建立此資料夾及 README，並新增隔離匯入／建置 GitHub Actions；程式碼匯入、建置是否成功與 GitHub Pages 公開網址尚未完成確認，請勿將其視為已上線。個資文件使用前務必人工複核遮罩結果。
+**收錄狀態**：本倉庫已收錄前端靜態資產、LICENSE 及 `source/` 程式碼；GitHub Pages 是否正式啟用、網站是否可正常使用，仍需另外驗證。處理真實個資前請以虛構測試資料檢驗並人工覆核。
 
 ---
 
@@ -162,3 +160,21 @@ git clone https://github.com/ymguan3-boop/good-open-source-collection.git
 - **去識別化開源工具**：原作者 Dean Lin，依 [MIT 授權](https://github.com/dean9703111/data-deidentification/blob/main/LICENSE) 使用，並保留其來源及版權聲明。
 
 第三方地圖、影像、API、模型、CCTV、OpenStreetMap、Cesium、Google、Gemini 等服務仍須遵守各自的授權與使用條款。
+
+---
+
+## 歷次更新摘要（上帝之眼・台灣版）
+
+- **2026-10-08｜上帝之眼・台灣版 v37**：缺口分類彙整、依實際成果產生可執行追蹤，首次安裝自動下載官方 DTM；[檢查與補裝說明](gods-eye-taiwan-desktop/docs/browser-v37-analysis-dtm-20261008.md)。
+
+- **2026-10-08｜上帝之眼・台灣版 v36**：確認建議後直接回報成果，停止建議迴圈，過期方案有限重查與重複確認保護；[檢查與限制](gods-eye-taiwan-desktop/docs/browser-v36-confirmed-execution-20261008.md)。
+
+- **2026-10-08｜上帝之眼・台灣版 v35**：工具列按鈕改用緊湊行高，紀錄恢復時序垂直MD清單；[改版說明](gods-eye-taiwan-desktop/docs/browser-v35-compact-toolbar-20261008.md)。
+
+- **2026-10-07｜上帝之眼・台灣版 v34**：空間索引＋批次運算＋一次 AI 解讀，SQLite／FTS5 紀錄摘要檢索，分析中可插話、補充條件與停止；[驗收紀錄與限制](gods-eye-taiwan-desktop/docs/browser-v34-batch-analysis-20261007.md)。
+
+- 2026-10-07｜上帝之眼・台灣版 v33：四個交通範例驗證、規劃表格、路線／模型點擊關閉、勾選圖資跨工作區分析與紀錄整合審計分析。詳見 [v33 驗收紀錄](gods-eye-taiwan-desktop/docs/browser-v33-joint-analysis-20261007.md)。
+
+- 2026-10-07｜上帝之眼・台灣版 v32：視窗統一三個圖示、獨立說明視窗、真實額度血條、文字標籤工具入口及空拍 1.5～3 倍加速。詳見 [v32 檢查與限制](gods-eye-taiwan-desktop/docs/browser-v32-ui-aerial-20261007.md)。
+
+- 2026-10-07｜上帝之眼・台灣版 v31：TDX 無可靠方案改查臺鐵官方公開班表，支援中繼停留與核實道路／鐵路路廊；工作中分階段回報、確認後自動結論與 3D 示意，AI 說明改為垂直雙入口。67/67 測試通過，真實宜蘭縣政府→羅東停留→臺北 12:25 抵達。詳見 [v31 驗收與限制](gods-eye-taiwan-desktop/docs/browser-v31-official-transit-20261007.md)。
