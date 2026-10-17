@@ -14,7 +14,7 @@
 
 - 2026-10-07｜上帝之眼・台灣版 v31：TDX 無可靠方案改查臺鐵官方公開班表，支援中繼停留與核實道路／鐵路路廊；工作中分階段回報、確認後自動結論與 3D 示意，AI 說明改為垂直雙入口。67/67 測試通過，真實宜蘭縣政府→羅東停留→臺北 12:25 抵達。詳見 [v31 驗收與限制](gods-eye-taiwan-desktop/docs/browser-v31-official-transit-20261007.md)。
 
-這個倉庫目前只保留 **3 套開源程式**，方便集中下載、比較與由 Agent 協助安裝。
+這個倉庫目前收錄 **4 套開源程式**，方便集中下載、比較與由 Agent 協助安裝。
 
 ## 倉庫結構
 
@@ -23,10 +23,11 @@ good-open-source-collection/
 ├─ 上帝之眼/                  # God's Eye View 原版
 ├─ gods-eye-taiwan-desktop/  # 上帝之眼・台灣版
 ├─ GeoLibre/                 # GeoLibre 原版
+├─ 去識別化開源工具/           # 文件去識別化工具（Dean Lin）
 └─ README.md
 ```
 
-除上述三個程式資料夾與本 README 外，不再保留其他部署輸出、分析暫存、測試成果或舊腳本。
+本倉庫另外保留必要的 GitHub Actions、自建圖層及其他現存檔案；新增工具不影響原有專案，去識別化工具的匯入與 GitHub Pages 部署狀態需另外驗證。
 
 ---
 
@@ -112,6 +113,21 @@ GeoLibre/README.md
 
 ---
 
+## 4. 去識別化開源工具
+
+[進入「去識別化開源工具」資料夾與使用說明](去識別化開源工具/README.md)
+
+- **原始作者**：Dean Lin
+- **原始專案**：[dean9703111/data-deidentification](https://github.com/dean9703111/data-deidentification)
+- **原作者線上版**：https://deanlin.net/data-deidentification/
+- **影片介紹**：[YouTube 操作影片](https://youtu.be/Mx7d0nSF61k?si=H4T6W59ZNNS0X08y)
+- **授權方式**：MIT（應保留原作者授權與版權聲明）
+- **主要功能**：於瀏覽器內對 PDF（含 OCR 掃描檔）、Word、Excel 與文字內容偵測和遮蔽個資，提供人工覆核與部分模式的編碼表還原。
+
+**部署狀態**：已建立此資料夾及 README，並新增隔離匯入／建置 GitHub Actions；程式碼匯入、建置是否成功與 GitHub Pages 公開網址尚未完成確認，請勿將其視為已上線。個資文件使用前務必人工複核遮罩結果。
+
+---
+
 ## 下載整個倉庫
 
 ### Download ZIP
@@ -132,7 +148,7 @@ Code → Download ZIP
 git clone https://github.com/ymguan3-boop/good-open-source-collection.git
 ```
 
-下載後只需要依需求進入三個程式資料夾之一。
+下載後請依需求進入對應的程式資料夾。
 
 ---
 
@@ -143,5 +159,6 @@ git clone https://github.com/ymguan3-boop/good-open-source-collection.git
 - **上帝之眼原版**：授權依原 God's Eye View 專案。
 - **上帝之眼・台灣版**：自有 overlay 依其資料夾內 `LICENSE` 與 `THIRD_PARTY_NOTICES.md`。
 - **GeoLibre**：授權依原 GeoLibre 專案。
+- **去識別化開源工具**：原作者 Dean Lin，依 [MIT 授權](https://github.com/dean9703111/data-deidentification/blob/main/LICENSE) 使用，並保留其來源及版權聲明。
 
 第三方地圖、影像、API、模型、CCTV、OpenStreetMap、Cesium、Google、Gemini 等服務仍須遵守各自的授權與使用條款。
