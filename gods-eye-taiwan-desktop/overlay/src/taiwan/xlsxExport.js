@@ -83,10 +83,12 @@ function notesSheet(lines) {
 const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Microsoft JhengHei"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Microsoft JhengHei"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F4E79"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right><top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="3" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf><xf numFmtId="4" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf></cellXfs></styleSheet>`;
 
 /** Builds the workbook Blob from an assistant reply; throws when there is no table. */
-export async function buildXlsxFromMarkdown(markdown, { program = '上帝之眼・台灣版', exportedAt = new Date() } = {}) {
+export async function buildXlsxFromMarkdown(markdown, { program = '上帝之眼・台灣版', exportedAt = new Date(), extraTables = [] } = {}) {
   const { tables, notes } = extractMarkdown(markdown);
-  if (!tables.length) throw new Error('這則回覆沒有表格可匯出。');
+  if (!tables.length && !extraTables.length) throw new Error('這則回覆沒有表格可匯出。');
   const used = new Set(['說明']), sheets = tables.map(table => ({ name: sheetName(table.title, used), xml: tableSheet(table) }));
+  // Full data sets that are too long for the chat table (e.g. every building) are exported as extra sheets.
+  for (const extra of extraTables) sheets.push({ name: sheetName(extra.title, used), xml: tableSheet({ header: extra.header.map(String), rows: extra.rows.map(row => row.map(cell => cell === null || cell === undefined ? '' : String(cell))) }) });
   const info = [
     { text: '匯出說明', heading: true },
     { text: `匯出時間：${exportedAt.toLocaleString('zh-TW')}` },

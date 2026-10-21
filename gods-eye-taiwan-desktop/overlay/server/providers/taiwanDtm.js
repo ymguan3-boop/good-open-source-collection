@@ -71,6 +71,46 @@ function sample(bbox, maxSamples=8500) {
   return { points, stride };
 }
 
+/** Ground elevation (nearest 20 m cell of the official 2025 DTM) at each [lon, lat]; null where there is no data. */
+export function sampleHeights(points) {
+  requireDtm();
+  const fd = openSync(TIFF,'r'), buf = Buffer.allocUnsafe(4), out = [];
+  try {
+    for (const [lon,lat] of points) {
+      const [e,n] = proj4('EPSG:4326',TWD97,[lon,lat]);
+      const c = Math.round((e-X0)/CELL), r = Math.round((Y0-n)/CELL);
+      let height = null;
+      if (c>=0 && c<WIDTH && r>=0 && r<HEIGHT && readSync(fd,buf,0,4,8+(r*WIDTH+c)*4)===4) {
+        const value = buf.readFloatLE(0);
+        if (Number.isFinite(value) && value!==NODATA) height = value;
+      }
+      out.push(height);
+    }
+  } finally { closeSync(fd); }
+  return out;
+}
+/**
+ * Zonal statistics of the official 2025 20 m DTM inside each polygon: every 20 m cell whose centre is inside the area
+ * (a coarser stride is used, and reported, when an area would need more than maxCells cells).
+ */
+export function zonalStats(areas, maxCells = 600000) {
+  requireDtm();
+  const limits = [119.8, 21.8, 122.2, 25.6];
+  return areas.slice(0, 60).map(({ name, geometry }) => {
+    try {
+      if (!['Polygon','MultiPolygon'].includes(geometry?.type)) throw new Error('需要面積範圍');
+      const feature = turf.feature(geometry), full = turf.bbox(feature);
+      const bbox = [Math.max(full[0],limits[0]), Math.max(full[1],limits[1]), Math.min(full[2],limits[2]), Math.min(full[3],limits[3])];
+      if (bbox[0] >= bbox[2] || bbox[1] >= bbox[3]) return { name, count: 0, error: '不在官方本島 DTM 涵蓋範圍（無資料不代表高程為零）' };
+      const result = sample(bbox, maxCells);
+      const values = result.points.filter(([lon,lat]) => turf.booleanPointInPolygon([lon,lat],feature)).map(point => point[2]).sort((a,b) => a-b);
+      if (!values.length) return { name, count: 0, sampledSpacingMeters: CELL*result.stride, areaKm2: Number((turf.area(feature)/1e6).toFixed(2)) };
+      const q = p => values[Math.min(values.length-1, Math.floor(p*(values.length-1)))], round = v => Number(v.toFixed(1));
+      return { name, count: values.length, sampledSpacingMeters: CELL*result.stride, areaKm2: Number((turf.area(feature)/1e6).toFixed(2)),
+        minM: round(values[0]), p10M: round(q(0.1)), medianM: round(q(0.5)), meanM: round(values.reduce((sum,h) => sum+h, 0)/values.length), p90M: round(q(0.9)), maxM: round(values.at(-1)) };
+    } catch (error) { return { name, count: 0, error: error.message }; }
+  });
+}
 export function analyzeDtm(geometry) {
   if (!['LineString','Polygon','MultiPolygon'].includes(geometry?.type)) throw new Error('DTM 分析需使用路徑或多邊形');
   if (JSON.stringify(geometry).length > 180000) throw new Error('繪製節點過多');
@@ -136,6 +176,11 @@ export function taiwanDtmProxy() {
         if (!['GET','POST'].includes(req.method) || !local(req)) { res.statusCode=403; res.end(JSON.stringify({error:'僅允許本機同來源瀏覽器'})); return; }
         try {
           if(req.method==='GET'&&req.url.split('?')[0]==='/status'){res.end(JSON.stringify(dtmStatus()));return;}
+          if (req.method==='POST' && req.url.split('?')[0]==='/zonal') {
+            let text=''; for await (const chunk of req) { text+=chunk.toString('utf8'); if (text.length>8000000) throw new Error('分析範圍資料過大'); }
+            res.end(JSON.stringify({ source:'內政部地政司 2025 全臺 20 公尺 DTM（本機原始格網）', sourceCrs:'EPSG:3826', cellMeters:20, areas:zonalStats(JSON.parse(text).areas||[]) }));
+            return;
+          }
           if (req.method==='POST' && req.url.split('?')[0]==='/analysis') {
             const chunks=[]; let bytes=0;
             for await (const chunk of req) { bytes+=chunk.length; if (bytes>200000) throw new Error('分析範圍資料過大'); chunks.push(chunk); }

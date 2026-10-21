@@ -1,7 +1,7 @@
 import './nlscTls.js';
 import { readFileSync } from 'node:fs';
 import { analyzeNlscBuildings } from './nlscBuildingAnalysis.js';
-import { buildingInfoStatus, importBuildingPacks, listAvailablePacks, lookupBuilding, packsOverview, readTownTileset, readWhiteTile, rememberPackState, removeBuildingPack, scanPackFolder } from './taiwanBuildingInfo.js';
+import { ageCandidateBuildings, ageTrades, townDigests, buildingElevationDetail, buildingClasses, localBuildingAnalysis, buildingInfoStatus, importBuildingPacks, listAvailablePacks, lookupBuilding, packsOverview, readTownTileset, readWhiteTile, rememberPackState, removeBuildingPack, scanPackFolder } from './taiwanBuildingInfo.js';
 
 const SERVICE_LIST = 'https://3dtiles.nlsc.gov.tw/tiles3d/Service';
 const SNAPSHOT_CAPTURED_AT = '2026-09-30';
@@ -74,9 +74,32 @@ export function taiwanNlscProxy() {
           return;
         }
         // Imported township databases: list, scan a folder, import, remove, and remember what is loaded.
-        if (local(req) && ['GET', 'POST'].includes(req.method) && /^\/info\/(?:packs|state)/.test(req.url || '')) {
+        if (local(req) && ['GET', 'POST'].includes(req.method) && /^\/info\/(?:analysis|age-trades|age-elevation|building-elevation|digest)/.test(req.url || '')) {
           try {
             const url = new URL(req.url, 'http://127.0.0.1');
+            if (req.method === 'GET' && url.pathname === '/info/digest') { res.end(JSON.stringify(townDigests((url.searchParams.get('slugs') || '').split(',').filter(Boolean)))); return; }
+            if (req.method === 'GET' && url.pathname === '/info/age-elevation') { res.end(JSON.stringify(ageCandidateBuildings({ slug: url.searchParams.get('slug'), minYears: url.searchParams.get('minYears') ?? 30 }))); return; }
+            if (req.method === 'GET' && url.pathname === '/info/age-trades') { res.end(JSON.stringify(ageTrades({ town: url.searchParams.get('town'), minYears: url.searchParams.get('minYears') ?? 30, slug: url.searchParams.get('slug'), withElevation: url.searchParams.get('elevation') === '1' }))); return; }
+            if (req.method === 'POST' && url.pathname === '/info/analysis') {
+              let text = ''; for await (const chunk of req) { text += chunk.toString('utf8'); if (text.length > 8_000_000) throw new Error('分析範圍過大'); }
+              res.end(JSON.stringify(localBuildingAnalysis(JSON.parse(text)))); return;
+            }
+            if (req.method === 'POST' && url.pathname === '/info/building-elevation') {
+              let text = ''; for await (const chunk of req) { text += chunk.toString('utf8'); if (text.length > 8_000_000) throw new Error('分析範圍過大'); }
+              res.end(JSON.stringify(buildingElevationDetail(JSON.parse(text)))); return;
+            }
+            throw new Error('不支援的操作');
+          } catch (error) { res.statusCode = 400; res.end(JSON.stringify({ error:error.message })); }
+          return;
+        }
+        if (local(req) && ['GET', 'POST'].includes(req.method) && /^\/info\/(?:packs|state|classes)/.test(req.url || '')) {
+          try {
+            const url = new URL(req.url, 'http://127.0.0.1');
+            if (req.method === 'GET' && url.pathname === '/info/classes') {
+              const body = buildingClasses(url.searchParams.get('slug'));
+              res.setHeader('Content-Type', 'application/json; charset=utf-8'); res.setHeader('Content-Encoding', 'gzip'); res.setHeader('Vary', 'Accept-Encoding');
+              res.setHeader('Cache-Control', 'private, max-age=60'); res.setHeader('Content-Length', String(body.length)); res.end(body); return;
+            }
             if (req.method === 'GET' && url.pathname === '/info/packs') { res.end(JSON.stringify({ ...packsOverview(), ...(url.searchParams.get('available') === '1' ? { available: listAvailablePacks() } : {}) })); return; }
             if (req.method !== 'POST') throw new Error('不支援的操作');
             let text = ''; for await (const chunk of req) { text += chunk.toString('utf8'); if (text.length > 20000) throw new Error('要求內容過大'); }

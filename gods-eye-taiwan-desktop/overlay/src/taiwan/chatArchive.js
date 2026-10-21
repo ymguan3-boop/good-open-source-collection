@@ -77,9 +77,11 @@ export function createChatArchive({root,open,download,onStatus,manager,onAnalyze
       if(action==='export-all')await exportRecords();
       if(action==='export-selected')await exportRecords([...selectedIds]);
       if(action==='analyze-selected'||action==='analyze-all'){
-        const ids=action==='analyze-all'?await db.chatRecords.toCollection().primaryKeys():[...selectedIds],records=ids.map(id=>({id}));
-        if(!records.length)throw Error('請先勾選紀錄，或儲存對話後再分析。');
-        await onAnalyze(records);
+        const ids=action==='analyze-all'?await db.chatRecords.toCollection().primaryKeys():[...selectedIds];
+        if(!ids.length)throw Error('請先勾選紀錄，或儲存對話後再分析。');
+        // The list shown in AI 空間助理 needs names and times; the analysis itself still reads records by id.
+        const details=await db.chatRecords.bulkGet(ids),records=ids.map((id,index)=>({id,filename:details[index]?.filename,createdAt:details[index]?.createdAt,type:details[index]?.type}));
+        await onAnalyze(records,{all:action==='analyze-all'});
       }
     }catch(error){onStatus(error.message);}
   };

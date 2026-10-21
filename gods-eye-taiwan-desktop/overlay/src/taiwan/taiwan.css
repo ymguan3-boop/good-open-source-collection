@@ -780,3 +780,13 @@ body.gev-tw-aerial-capture .tw-aerial-hud,body.gev-tw-aerial-capture .tw-aerial-
 #tw-shell .tw-drawer-body .tw-ai-back{padding:.45em .65em!important}
 #tw-shell .tw-drawer-body .tw-record-filename{padding:2px 0!important}
 #tw-shell .tw-drawer-body .tw-record-summary button{padding:4px 6px!important}
+
+.tw-building-card .tw-info-title{font-size:17px;font-weight:700;margin:16px 0 8px;padding-bottom:4px;border-bottom:2px solid rgba(125,211,252,.45);color:#e0f2fe}
+.tw-building-card h3{font-size:18px;font-weight:700}
+.tw-table.tw-bordered{border-collapse:collapse;width:100%;margin:6px 0}
+.tw-table.tw-bordered th,.tw-table.tw-bordered td{border:1px solid rgba(148,163,184,.65);padding:6px 9px;text-align:left;vertical-align:top}
+.tw-table.tw-bordered thead th{background:rgba(30,64,98,.75);font-weight:700}
+.tw-table.tw-bordered tbody th{background:rgba(30,64,98,.4);font-weight:600;width:42%}
+.tw-table.tw-roads{width:auto;min-width:50%}
+.tw-class-swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;border:1px solid rgba(255,255,255,.6);vertical-align:-1px}
+.tw-info-legend summary{cursor:pointer;font-weight:700;margin:6px 0}
