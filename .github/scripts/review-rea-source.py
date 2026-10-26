@@ -84,6 +84,14 @@ for base,dirs,files in os.walk(root,followlinks=False):
                     matches[category].append(rel)
         for category,reg in secret_compiled.items():
             if reg.search(s):
+                # Manually verified: Binwalk uses literal PEM header markers in a
+                # Rust byte-string signature inventory, not actual private keys.
+                if (category=="private_key" and rel=="third_party/binwalk/src/signatures/pem.rs"
+                    and 'b"-----BEGIN PRIVATE KEY-----"' in s
+                    and 'b"-----BEGIN OPENSSH PRIVATE KEY-----"' in s
+                    and "-----END PRIVATE KEY-----" not in s):
+                    stats["reviewed_pem_signature_false_positive"]+=1
+                    continue
                 secrets.append({"category":category,"file":rel})
 try:
     lock=json.loads((root/"package-lock.json").read_text())
