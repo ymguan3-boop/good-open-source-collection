@@ -1,0 +1,400 @@
+{
+  "timestamp_utc": "2026-10-26T13:55:29.879668+00:00",
+  "source": "https://github.com/morluto/rea",
+  "pinned_commit": "4557791a2e0b77ff08afbb886b9cd3a92b6e1aef",
+  "method": "Entire source checkout with initialized pinned submodules; text static pattern scan, secret heuristic scan, symlink/large-file checks, npm production advisory check. No upstream code was executed.",
+  "stats": {
+    "all_files": 11038,
+    "text_files_scanned": 10187,
+    "execution_shell": 518,
+    "download_pipe_shell": 7,
+    "privilege_management": 64,
+    "network_io": 148,
+    "dynamic_code": 509,
+    "symlinks": 214,
+    "binary_files": 813,
+    "filesystem_destructive": 3,
+    "reviewed_pem_signature_false_positive": 1,
+    "large_files_skipped_content": 16,
+    "nontext_files": 22,
+    "download_pipe_shell_requires_review": true
+  },
+  "total_file_bytes": 384728530,
+  "file_extensions_top": [
+    [
+      ".ts",
+      4955
+    ],
+    [
+      ".txt",
+      1458
+    ],
+    [
+      ".mjs",
+      592
+    ],
+    [
+      ".rs",
+      558
+    ],
+    [
+      ".md",
+      539
+    ],
+    [
+      "",
+      524
+    ],
+    [
+      ".snap",
+      286
+    ],
+    [
+      ".py",
+      263
+    ],
+    [
+      ".json",
+      206
+    ],
+    [
+      ".js",
+      200
+    ],
+    [
+      ".mts",
+      98
+    ],
+    [
+      ".bin",
+      78
+    ],
+    [
+      ".yaffs2",
+      74
+    ],
+    [
+      ".yml",
+      69
+    ],
+    [
+      ".cjs",
+      68
+    ],
+    [
+      ".java",
+      63
+    ],
+    [
+      ".lzo",
+      59
+    ],
+    [
+      ".uncompressed",
+      47
+    ],
+    [
+      ".tar",
+      42
+    ],
+    [
+      ".unknown",
+      38
+    ],
+    [
+      ".img",
+      35
+    ],
+    [
+      ".padding",
+      34
+    ],
+    [
+      ".jffs2",
+      32
+    ],
+    [
+      ".html",
+      30
+    ],
+    [
+      ".png",
+      29
+    ],
+    [
+      ".kt",
+      29
+    ],
+    [
+      ".c",
+      28
+    ],
+    [
+      ".ar",
+      24
+    ],
+    [
+      ".tsx",
+      23
+    ],
+    [
+      ".po",
+      22
+    ]
+  ],
+  "patterns_with_paths": {
+    "execution_shell": [
+      ".oxlintrc.json",
+      "bridge/android/ReaJadxBridge.java",
+      "bridge/ghidra/ReaGhidraBridge.java",
+      "scripts/verify-linux-setup-e2e.mjs",
+      "scripts/verify-evm-interface.mjs",
+      "scripts/verify-real-ghidra-m68k.mjs",
+      "scripts/test-website.py",
+      "scripts/verify-real-hopper.mjs",
+      "scripts/verify-apk-signature.mjs",
+      "scripts/prepack.mjs",
+      "scripts/electron-active-hook-boundaries.cjs",
+      "scripts/verify-conformance-fixtures.mjs",
+      "scripts/verify-real-ghidra-dos.mjs",
+      "scripts/verify-web-network-captures.mjs",
+      "scripts/verify-release-checkpoint.mjs",
+      "scripts/verify-jeb.mjs",
+      "scripts/verify-real-cutter.mjs",
+      "scripts/verify-browser-runtime.mjs",
+      "scripts/verify-pe-load-config.mjs",
+      "scripts/verify-node-sea.mjs",
+      "scripts/build-windows-native.mjs",
+      "scripts/verify-native-calls.mjs",
+      "scripts/verify-packet-capture.mjs",
+      "scripts/verify-real-kuna.mjs",
+      "scripts/verify-il2cpp-metadata.mjs",
+      "scripts/verify-wasm-artifact.mjs",
+      "scripts/verify-real-hopper-fat.mjs",
+      "scripts/verify-binary-layout.mjs",
+      "scripts/generate-completion-ledger.mjs",
+      "scripts/verify-real-browser.mjs",
+      "scripts/audit-website-links.py",
+      "scripts/verify-go-binary.mjs",
+      "scripts/verify-real-ida.mjs",
+      "scripts/verify-real-ghidra-mips.mjs",
+      "scripts/verify-real-ghidra-mips-relocatable.mjs",
+      "scripts/build-ghidra-nativeaot.mjs",
+      "scripts/run-exclusive.mjs",
+      "scripts/verify-real-ghidra-dol.mjs",
+      "scripts/verify-flutter.mjs",
+      "scripts/verify-real-ghidra-mips-shared.mjs"
+    ],
+    "download_pipe_shell": [
+      "install.sh",
+      "tests/boundary/filesystem/installScript.test.ts",
+      "website/public/get-started/index.html",
+      "third_party/wakaru/.github/workflows/playground.yml",
+      "third_party/binwalk/Dockerfile",
+      "docs/installation.md",
+      "docs/releases/6.5.0.contributions.json"
+    ],
+    "privilege_management": [
+      "SECURITY.md",
+      ".github/workflows/ci.yml",
+      ".github/workflows/real-cutter.yml",
+      ".github/workflows/real-signal-recording.yml",
+      ".github/workflows/website-check.yml",
+      ".github/workflows/real-hopper-linux.yml",
+      ".github/workflows/real-binary-layout.yml",
+      ".github/workflows/real-termux.yml",
+      ".github/workflows/real-ghidra-windows.yml",
+      ".github/workflows/real-agentenv.yml",
+      ".github/workflows/real-packet-capture.yml",
+      ".github/workflows/website-pages.yml",
+      "scripts/verify/termux/emulator.sh",
+      "tests/process-global/configurationWriteDiagnostics.test.ts",
+      "tests/boundary/providers/hopper/bridgeLauncher.test.ts",
+      "website/README.md",
+      "website/public/get-started/index.html",
+      "website/locales/messages.pot",
+      "website/locales/el/messages.po",
+      "website/locales/zh-TW/messages.po",
+      "website/locales/ur-Latn/messages.po",
+      "website/locales/zh-CN/messages.po",
+      "website/locales/tr/messages.po",
+      "website/locales/ml/messages.po",
+      "website/locales/vi/messages.po",
+      "website/locales/ar/messages.po",
+      "website/locales/pl/messages.po",
+      "website/locales/th/messages.po",
+      "website/locales/ja/messages.po",
+      "website/locales/es/messages.po",
+      "website/locales/ru/messages.po",
+      "website/locales/pt-BR/messages.po",
+      "website/locales/id/messages.po",
+      "website/locales/de/messages.po",
+      "website/locales/ko/messages.po",
+      "website/locales/uk/messages.po",
+      "website/locales/fr/messages.po",
+      "website/locales/ro/messages.po",
+      "website/locales/it/messages.po",
+      "website/locales/fa/messages.po"
+    ],
+    "network_io": [
+      "bridge/ghidra/ReaGhidraBridge.java",
+      "scripts/verify-package-update.mjs",
+      "scripts/build-windows-native.mjs",
+      "scripts/verify-wasm-artifact.mjs",
+      "scripts/verify-real-browser.mjs",
+      "scripts/fixtures/page-cdp-proxy.mjs",
+      "scripts/fixtures/browser-network-site.mjs",
+      "scripts/fixtures/browser-verifier-site.mjs",
+      "scripts/fixtures/browser-runtime-site.mjs",
+      "scripts/fixtures/harmony/fetch.mjs",
+      "scripts/fixtures/android/fetch.mjs",
+      "scripts/lib/browser-socket-e2e.mjs",
+      "scripts/lib/browser-url-userinfo-e2e.mjs",
+      "scripts/lib/browser-runtime-e2e.mjs",
+      "scripts/lib/browser-runtime-termination-e2e.mjs",
+      "scripts/lib/browser-scenario-environment-e2e.mjs",
+      "scripts/lib/browser-network-e2e.mjs",
+      "scripts/lib/browser-scenario-service-workers-e2e.mjs",
+      "scripts/lib/browser-nested-source-map-e2e.mjs",
+      "scripts/lib/browser-capture-metadata-budget-e2e.mjs",
+      "scripts/lib/browser-screenshot-e2e.mjs",
+      "scripts/lib/browser-scenario-service-worker-setup-e2e.mjs",
+      "scripts/lib/browser-scenario-storage-e2e.mjs",
+      "scripts/verify/inspector/runtime-observation.mjs",
+      "tests/fixtures/javascriptArtifactApplication.ts",
+      "tests/fixtures/processReactiveScenario.mjs",
+      "tests/evaluation/model-evals/openAiModelFixture.test.ts",
+      "tests/boundary/mcp/webBundleContainmentMcp.test.ts",
+      "tests/boundary/mcp/environmentServeMcp.test.ts",
+      "tests/boundary/mcp/javascriptEndpointCandidate.test.ts",
+      "tests/boundary/mcp/environmentServeWritesMcp.test.ts",
+      "tests/boundary/process/modelFixtureShutdown.test.ts",
+      "tests/boundary/process/packageUpdateRegistryFailure.test.ts",
+      "tests/boundary/browser/cdpCleanupCancellation.test.ts",
+      "tests/boundary/browser/cdpProviderCleanupOwnership.test.ts",
+      "tests/boundary/browser/cdpBrowserProvider.network.test.ts",
+      "tests/boundary/providers/jebFixtureCompletion.test.ts",
+      "tests/boundary/filesystem/javascriptArtifactReconstruction.test.ts",
+      "tests/boundary/filesystem/javascriptHtmlEntrypoints.test.ts",
+      "tests/boundary/filesystem/browserFixtureRequestFailures.test.ts"
+    ],
+    "dynamic_code": [
+      "bridge/ghidra/ReaGhidraNoReturnFix.java",
+      "scripts/verify-qwen-client.mjs",
+      "scripts/lib/ida-feature-trace.mjs",
+      "tests/support/failFileReadAfterAbort.ts",
+      "tests/support/holdFirstFileRead.ts",
+      "tests/fixtures/cliJsonStdinProbe.mjs",
+      "tests/fixtures/processCleanupCancellation.mjs",
+      "tests/fixtures/artifactMcpVerifierProbe.mjs",
+      "tests/process-global/apkSignatureLifecycle.test.ts",
+      "tests/process-global/firmwarePublicationDeadline.test.ts",
+      "tests/process-global/idaWorkspaceCleanup.test.ts",
+      "tests/process-global/managedBundleReadGuards.test.ts",
+      "tests/process-global/sourceToBundleReferenceGuards.test.ts",
+      "tests/process-global/firmwareFileLifetime.test.ts",
+      "tests/process-global/commandFinalizationCancellation.test.ts",
+      "tests/process-global/gpuFileLifetime.test.ts",
+      "tests/conformance/ghidra/ReaNoReturnProbe.java",
+      "tests/conformance/swift/ReaSwiftDecoderRegressions.java",
+      "tests/boundary/javascript/mainModuleSource.test.ts",
+      "tests/boundary/javascript/javascriptSourceAnalysisWorker.test.ts",
+      "tests/boundary/javascript/javascriptApplicationCancellation.test.ts",
+      "tests/boundary/mcp/electronMcp.test.ts",
+      "tests/boundary/mcp/sessionFixtureCleanup.test.ts",
+      "tests/boundary/mcp/evidenceImportCancellation.test.ts",
+      "tests/boundary/mcp/nativeSignatureTargetBindingMcp.test.ts",
+      "tests/boundary/mcp/modelArtifactPartialCancellation.test.ts",
+      "tests/boundary/mcp/evidenceImportLifecycle.test.ts",
+      "tests/boundary/mcp/selectedSnapshotCleanupMcp.test.ts",
+      "tests/boundary/mcp/browserSourceMapCancellationMcp.test.ts",
+      "tests/boundary/mcp/bundleComparisonCancellation.test.ts",
+      "tests/boundary/mcp/reverseDebuggerMcpHarnessLifecycle.test.ts",
+      "tests/boundary/mcp/processCleanupRetryMcp.test.ts",
+      "tests/boundary/go/goBinaryFinalization.test.ts",
+      "tests/boundary/process/filesystemObservationRaceCli.test.ts",
+      "tests/boundary/process/jadxIntegration.test.ts",
+      "tests/boundary/process/processSnapshotCleanupCli.test.ts",
+      "tests/boundary/process/artifactProducerCancellation.test.ts",
+      "tests/boundary/process/jadxHashCleanup.test.ts",
+      "tests/boundary/process/ownedCommand.test.ts",
+      "tests/boundary/process/verifierFileResources.test.ts"
+    ],
+    "filesystem_destructive": [
+      "third_party/binwalk/dependencies/src.sh",
+      "src/application/environment/environmentBundle.test.ts",
+      "src/application/environment/environmentBundle.ts"
+    ]
+  },
+  "potential_secrets": [],
+  "oversized_files": [],
+  "unsafe_symlinks": [],
+  "submodules": {
+    "binwalk": {
+      "source_present": true,
+      "root_license_files": [
+        "LICENSE"
+      ]
+    },
+    "ghidra-nativeaot": {
+      "source_present": true,
+      "root_license_files": [
+        "LICENSE.md"
+      ]
+    },
+    "jadx-headless-mcp": {
+      "source_present": true,
+      "root_license_files": [
+        "LICENSE"
+      ]
+    },
+    "unblob": {
+      "source_present": true,
+      "root_license_files": [
+        "LICENSE"
+      ]
+    },
+    "wakaru": {
+      "source_present": true,
+      "root_license_files": [
+        "LICENSE"
+      ]
+    }
+  },
+  "lock_package_count": 964,
+  "dependencies_declaring_install_scripts": [
+    {
+      "name": "node_modules/esbuild",
+      "version": "0.28.2"
+    },
+    {
+      "name": "node_modules/frida",
+      "version": "17.23.2"
+    },
+    {
+      "name": "node_modules/fsevents",
+      "version": "2.3.3"
+    },
+    {
+      "name": "node_modules/vitepress/node_modules/esbuild",
+      "version": "0.25.12"
+    }
+  ],
+  "npm_audit": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 1,
+      "high": 0,
+      "critical": 0,
+      "total": 1
+    },
+    "error": null,
+    "affected_packages": [
+      "fast-uri"
+    ]
+  },
+  "blocking_findings": [],
+  "review_passed_automated_gates": true,
+  "limits": "Pattern checks produce false positives and miss obfuscated or runtime-only behavior. npm audit has partial ecosystem coverage. No independent sandbox execution, full line-by-line human code review, or proof of harmlessness."
+}

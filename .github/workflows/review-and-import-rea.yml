@@ -1,0 +1,147 @@
+name: Review and import pinned REA source
+on:
+  push:
+    branches: [rea-review-20261026]
+    paths:
+      - .github/workflows/review-and-import-rea.yml
+      - .github/scripts/review-rea-source.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rea-import-review
+  cancel-in-progress: false
+
+jobs:
+  static-review-and-vendor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      REA_SHA: 4557791a2e0b77ff08afbb886b9cd3a92b6e1aef
+      TARGET: REA-萬物逆向工程
+    steps:
+      - name: Checkout owned collection
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 1
+
+      - name: Fetch immutable upstream snapshot and referenced submodules
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p rea-audit-out
+          git -c core.hooksPath=/dev/null clone --filter=blob:none --no-checkout https://github.com/morluto/rea.git "$RUNNER_TEMP/rea-source"
+          git -C "$RUNNER_TEMP/rea-source" -c core.hooksPath=/dev/null checkout --detach "$REA_SHA"
+          test "$(git -C "$RUNNER_TEMP/rea-source" rev-parse HEAD)" = "$REA_SHA"
+          git -C "$RUNNER_TEMP/rea-source" -c core.hooksPath=/dev/null submodule update --init --recursive --jobs 4
+          git -C "$RUNNER_TEMP/rea-source" submodule status --recursive > rea-audit-out/submodules.txt
+          cat rea-audit-out/submodules.txt
+          if grep -Eq '^[+-U]' rea-audit-out/submodules.txt; then
+            echo 'Uninitialized or mismatched submodule; aborting' >&2
+            exit 1
+          fi
+
+      - name: Set up Node for npm advisory query only
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Check published npm production advisories without installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rea-source"
+          timeout 240 npm audit --omit=dev --package-lock-only --json > "$GITHUB_WORKSPACE/rea-audit-out/npm-audit.json" 2> "$GITHUB_WORKSPACE/rea-audit-out/npm-error.txt" || true
+          if [ ! -s "$GITHUB_WORKSPACE/rea-audit-out/npm-audit.json" ]; then
+            printf '{"error":"npm audit returned no JSON"}\n' > "$GITHUB_WORKSPACE/rea-audit-out/npm-audit.json"
+          fi
+
+      - name: Examine entire source tree without executing REA
+        id: scan
+        continue-on-error: true
+        shell: bash
+        run: |
+          python3 .github/scripts/review-rea-source.py --source "$RUNNER_TEMP/rea-source" --report rea-audit-out/static-scan.json --npm-audit rea-audit-out/npm-audit.json --commit "$REA_SHA"
+
+      - name: Archive checks regardless of scan outcome
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rea-review-result
+          path: rea-audit-out/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Fail closed if any blocking check failed
+        if: steps.scan.outcome != 'success'
+        run: |
+          echo 'BLOCKED: security checks reported unresolved risks; no REA source imported.'
+          exit 1
+
+      - name: Copy pinned upstream source and all five submodules
+        if: steps.scan.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e "$TARGET" || { echo "Target exists; refusing overwrite"; exit 1; }
+          mkdir "$TARGET"
+          rsync -a --exclude='.git' "$RUNNER_TEMP/rea-source/" "$TARGET/"
+          printf '%s\n' "$REA_SHA" > "$TARGET/UPSTREAM_COMMIT"
+          cp rea-audit-out/submodules.txt "$TARGET/UPSTREAM_SUBMODULES"
+          mkdir -p "$TARGET/collection-review"
+          cp rea-audit-out/static-scan.json "$TARGET/collection-review/static-scan.json"
+          cp rea-audit-out/npm-audit.json "$TARGET/collection-review/npm-production-audit.json"
+          cat > "$TARGET/collection-review/README.md" <<'EOF'
+          # REA 來源與檢核紀錄（2026-10-26）
+
+          - 官方來源：https://github.com/morluto/rea
+          - 固定版本：參考上層 UPSTREAM_COMMIT 與 UPSTREAM_SUBMODULES。
+          - 檢查範圍：主專案與五個子模組全樹；非執行式模式掃描、敏感資訊啟發式檢查、符號連結與大檔案檢查、正式 npm 依賴弱點資料庫查詢、授權文件存在檢查。
+          - 未執行上游程式、安裝腳本或第三方二進位檔；未做沙箱行為分析與人工逐行複核。
+          - 自動化檢核通過不代表沒有惡意程式或未知弱點。不得視為安全保證。
+          - 本目錄是固定 Commit 的原始碼鏡像，不會自動更新、執行或部署。
+          - 保留主專案 LICENSE、THIRD_PARTY_NOTICES.md 及子模組授權；商業工具另行授權。
+          EOF
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("README.md")
+          s=p.read_text()
+          assert "目前收錄 **4 套開源程式**" in s
+          assert "## 📚 收錄程式一覽（4 套）" in s
+          assert "## 下載整個倉庫" in s
+          s=s.replace("目前收錄 **4 套開源程式**","目前收錄 **5 套開源程式**",1)
+          s=s.replace("## 📚 收錄程式一覽（4 套）","## 📚 收錄程式一覽（5 套）",1)
+          anchor="> 各專案的授權"
+          assert anchor in s
+          s=s.replace(anchor,"5. **[REA－萬物逆向工程](REA-萬物逆向工程/)** — AI Agent／MCP 逆向分析工具，可分析 JavaScript、網站、桌面應用和二進位檔。此處僅為原始碼備份；使用前請閱讀[風險檢核](REA-萬物逆向工程/collection-review/README.md)。\n\n"+anchor,1)
+          lines=s.splitlines(True)
+          for i,line in enumerate(lines):
+              if "├─ 去識別化開源工具/" in line:
+                  lines.insert(i+1,"├─ REA-萬物逆向工程/        # REA 原始碼與子模組備份\n")
+                  break
+          s="".join(lines)
+          s=s.replace("## 下載整個倉庫", """## 5. REA－萬物逆向工程
+
+          - **原作者**：morluto；[官方 GitHub](https://github.com/morluto/rea)。
+          - **授權**：REA 主程式為 MIT；第三方元件依原有授權與聲明。
+          - **收錄內容**：[REA－萬物逆向工程](REA-萬物逆向工程/)。
+          - **檢核資訊**：[來源與風險檢核](REA-萬物逆向工程/collection-review/README.md)。
+          - **注意**：這是固定版本的原始碼鏡像，非自動更新、非官方發行，未啟動部署；模型與商業軟體可能另外收費。
+
+          ---
+
+          ## 下載整個倉庫""".replace("\n          ","\n"),1)
+          anchor="- **去識別化開源工具**：原作者"
+          assert anchor in s
+          s=s.replace(anchor,"- **REA－萬物逆向工程**：原作者 morluto，主程式 MIT，第三方元件保留各自授權文件。\n"+anchor,1)
+          p.write_text(s)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- "$TARGET" README.md
+          git diff --cached --stat | tail -n 10
+          git commit -m "Vendor reviewed pinned REA source and submodules"
+          git push origin "HEAD:$GITHUB_REF_NAME"
