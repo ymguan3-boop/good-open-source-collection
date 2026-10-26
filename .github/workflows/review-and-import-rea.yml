@@ -4,6 +4,7 @@ on:
     branches: [rea-review-20261026]
     paths:
       - .github/workflows/review-and-import-rea.yml
+      - .github/scripts/review-rea-source.py
   workflow_dispatch:
 
 permissions:
