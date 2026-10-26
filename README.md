@@ -1,13 +1,15 @@
 # 好用開源程式收集
 
-本倉庫集中整理可自由檢視原始碼的程式，方便查閱功能、授權、使用說明與下載位置。目前收錄 **4 套開源程式**。
+本倉庫集中整理可自由檢視原始碼的程式，方便查閱功能、授權、使用說明與下載位置。目前收錄 **5 套開源程式**。
 
-## 📚 收錄程式一覽（4 套）
+## 📚 收錄程式一覽（5 套）
 
 1. **[上帝之眼（原版）](上帝之眼/)** — 以 CesiumJS 為核心的 3D 地球與即時地理資訊觀察工具，整合交通、衛星、CCTV 與其他空間資料，供全球場景探索與延伸開發。
 2. **[上帝之眼・台灣版](gods-eye-taiwan-desktop/)** — 在 3D 地球基礎上整合臺灣地形、建物、道路、圖資套疊、AI 空間助理、交通規劃、CCTV 辨識及電影式空拍，適用於空間觀察與 GIS 查核。
 3. **[GeoLibre](GeoLibre/)** — 開源地理資訊分析與資料處理工具，可搭配瀏覽器、桌面及 Jupyter 工作流程，進行地圖呈現、空間分析與地理資料處理。
 4. **[去識別化開源工具](去識別化開源工具/)** — 由 Dean Lin 開發的瀏覽器端個資遮罩工具，可處理 PDF、Word、Excel、文字及掃描文件（OCR），支援偵測、人工覆核、遮罩與部分模式下的編碼還原。**[影片介紹](https://youtu.be/Mx7d0nSF61k?si=H4T6W59ZNNS0X08y)**。
+
+5. **[REA－萬物逆向工程](REA-萬物逆向工程/)** — AI Agent／MCP 逆向分析工具，可分析 JavaScript、網站、桌面應用和二進位檔。此處僅為原始碼備份；使用前請閱讀[風險檢核](REA-萬物逆向工程/collection-review/README.md)。
 
 > 各專案的授權及使用限制以其資料夾內 LICENSE、README 與原作者公告為準。去識別化工具的 GitHub Pages 公開可用性尚待獨立驗證，請勿直接上傳機敏資料進行未驗證的測試。
 
@@ -19,6 +21,7 @@ good-open-source-collection/
 ├─ gods-eye-taiwan-desktop/  # 上帝之眼・台灣版
 ├─ GeoLibre/                 # 地理空間資料處理工具
 ├─ 去識別化開源工具/           # 文件個資遮罩與去識別化
+├─ REA-萬物逆向工程/        # REA 原始碼與子模組備份
 ├─ .github/workflows/         # 必要的自動化工作流程
 └─ README.md                 # 本專案總覽
 ```
@@ -126,6 +129,16 @@ GeoLibre/README.md
 
 ---
 
+## 5. REA－萬物逆向工程
+
+- **原作者**：morluto；[官方 GitHub](https://github.com/morluto/rea)。
+- **授權**：REA 主程式為 MIT；第三方元件依原有授權與聲明。
+- **收錄內容**：[REA－萬物逆向工程](REA-萬物逆向工程/)。
+- **檢核資訊**：[來源與風險檢核](REA-萬物逆向工程/collection-review/README.md)。
+- **注意**：這是固定版本的原始碼鏡像，非自動更新、非官方發行，未啟動部署；模型與商業軟體可能另外收費。
+
+---
+
 ## 下載整個倉庫
 
 ### Download ZIP
@@ -157,6 +170,7 @@ git clone https://github.com/ymguan3-boop/good-open-source-collection.git
 - **上帝之眼原版**：授權依原 God's Eye View 專案。
 - **上帝之眼・台灣版**：自有 overlay 依其資料夾內 `LICENSE` 與 `THIRD_PARTY_NOTICES.md`。
 - **GeoLibre**：授權依原 GeoLibre 專案。
+- **REA－萬物逆向工程**：原作者 morluto，主程式 MIT，第三方元件保留各自授權文件。
 - **去識別化開源工具**：原作者 Dean Lin，依 [MIT 授權](https://github.com/dean9703111/data-deidentification/blob/main/LICENSE) 使用，並保留其來源及版權聲明。
 
 第三方地圖、影像、API、模型、CCTV、OpenStreetMap、Cesium、Google、Gemini 等服務仍須遵守各自的授權與使用條款。
