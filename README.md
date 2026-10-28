@@ -7,7 +7,7 @@
 1. **[上帝之眼（原版）](上帝之眼/)** — 以 CesiumJS 為核心的 3D 地球與即時地理資訊觀察工具，整合交通、衛星、CCTV 與其他空間資料，供全球場景探索與延伸開發。
 2. **[上帝之眼・台灣版](gods-eye-taiwan-desktop/)** — 在 3D 地球基礎上整合臺灣地形、建物、道路、圖資套疊、AI 空間助理、交通規劃、CCTV 辨識及電影式空拍，適用於空間觀察與 GIS 查核。
 3. **[GeoLibre](GeoLibre/)** — 開源地理資訊分析與資料處理工具，可搭配瀏覽器、桌面及 Jupyter 工作流程，進行地圖呈現、空間分析與地理資料處理。
-4. **[去識別化開源工具](去識別化開源工具/)** — 由 Dean Lin 開發的瀏覽器端個資遮罩工具，可處理 PDF、Word、Excel、文字及掃描文件（OCR），支援偵測、人工覆核、遮罩與部分模式下的編碼還原。**[影片介紹](https://youtu.be/Mx7d0nSF61k?si=H4T6W59ZNNS0X08y)**。 [安全檢核](去識別化開源工具/collection-review/README.md)。
+4. **[去識別化開源工具](去識別化開源工具/)** — 由 Dean Lin 開發的瀏覽器端個資遮罩工具，可處理 PDF、Word、Excel、文字及掃描文件（OCR），支援偵測、人工覆核、遮罩與部分模式下的編碼還原。**[影片介紹](https://youtu.be/Mx7d0nSF61k?si=H4T6W59ZNNS0X08y)**。 [安全檢核](去識別化開源工具/collection-review/README.md)。 [安全檢核](去識別化開源工具/collection-review/README.md)。
 5. **[REA－萬物逆向工程](REA-萬物逆向工程/)** — AI Agent／MCP 逆向分析工具，可分析 JavaScript、網站、桌面應用和二進位檔。此處僅為原始碼備份；使用前請閱讀[風險檢核](REA-萬物逆向工程/collection-review/README.md)。
 
 > 各專案的授權及使用限制以其資料夾內 LICENSE、README 與原作者公告為準。去識別化工具的 GitHub Pages 公開可用性尚待獨立驗證，請勿直接上傳機敏資料進行未驗證的測試。

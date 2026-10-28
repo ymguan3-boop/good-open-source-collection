@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2026-10-28T07:12:43.145171+00:00",
+  "timestamp_utc": "2026-10-28T07:14:33.457838+00:00",
   "upstream_url": "https://github.com/dean9703111/data-deidentification",
   "pinned_commit": "1f7b9298f94a9728cf6d181f84cfcce48c39d968",
   "method": "Pinned complete upstream checkout. All files enumerated; text contents scanned for network, executable, dynamic code, browser storage, hardcoded credential and suspicious instruction patterns. npm production advisory check without running upstream code.",
@@ -199,19 +199,29 @@
         "preview": "- 瀏覽器只會儲存「偵測規則設定」（localStorage）；文件內容與編碼表不落地。"
       },
       {
-        "file": ".specify/memory/constitution.md",
-        "line": 23,
-        "preview": "- 敏感資料（原文、對照表）僅存在於記憶體與使用者主動下載的檔案中；若使用瀏覽器儲存（localStorage 等），僅得存放 pattern 設定，不得存放文件內容或對照表。"
-      },
-      {
         "file": "specs/002-partial-retention-shared-codes/plan.md",
         "line": 13,
         "preview": "- **Storage**: 保留設定存入現有的 `deid.patternConfig.v1`（localStorage）並新增選填欄位 `retention`；匯入的編碼表只放在記憶體"
       },
       {
+        "file": "specs/004-scanned-pdf-ocr/research.md",
+        "line": 42,
+        "preview": "- **Decision**: `cacheMethod: 'none'`，模型不寫入 IndexedDB，只靠瀏覽器 HTTP 快取。"
+      },
+      {
+        "file": "specs/004-scanned-pdf-ocr/plan.md",
+        "line": 56,
+        "preview": "| 安全：瀏覽器儲存只放 pattern | ✅ `cacheMethod: 'none'`，模型不寫入 IndexedDB。 |"
+      },
+      {
         "file": "specs/001-doc-deidentify/research.md",
         "line": 72,
         "preview": "- **Decision**: `localStorage` 僅存規則設定（自訂規則＋各規則啟用狀態）；文件內容與對照表一律不落地。"
+      },
+      {
+        "file": "specs/001-doc-deidentify/data-model.md",
+        "line": 5,
+        "preview": "所有實體僅存在於瀏覽器記憶體（例外：`PatternConfig` 持久化於 localStorage）。"
       },
       {
         "file": "specs/001-doc-deidentify/plan.md",
@@ -239,11 +249,6 @@
         "preview": "- [X] T044 [P] [US4] **(Sonnet)** 單元測試 `tests/unit/pattern-store.test.ts`（jsdom localStorage）：預設全啟用、停用後 `getEffectivePatterns` 不含該規則、自訂規則 save→load round-trip、無效 regex 拒絕、壞 JSON/未知"
       },
       {
-        "file": "specs/001-doc-deidentify/data-model.md",
-        "line": 5,
-        "preview": "所有實體僅存在於瀏覽器記憶體（例外：`PatternConfig` 持久化於 localStorage）。"
-      },
-      {
         "file": "specs/001-doc-deidentify/contracts/pattern-schema.md",
         "line": 1,
         "preview": "# Contract: 規則設定持久化 Schema（localStorage）"
@@ -254,14 +259,34 @@
         "preview": "| 4 | 偵測規則管理（US4） | ✅ | 「偵測規則」頁籤列出全部 6 條內建規則（中文姓名、台灣身分證字號、手機號碼、市話號碼、台灣地址、電子郵件），各自附 regex、範例與啟用核取方塊。停用「手機號碼」後新增自訂規則「員工編號」（類別：識別碼，regex `EMP-\\d{6}`，範例 `EMP-004521`）；測試文字「承辦 EMP-00452"
       },
       {
-        "file": "specs/004-scanned-pdf-ocr/research.md",
-        "line": 42,
-        "preview": "- **Decision**: `cacheMethod: 'none'`，模型不寫入 IndexedDB，只靠瀏覽器 HTTP 快取。"
+        "file": "src/core/pattern-store.ts",
+        "line": 13,
+        "preview": "    return typeof localStorage !== 'undefined' ? localStorage : null;"
       },
       {
-        "file": "specs/004-scanned-pdf-ocr/plan.md",
-        "line": 56,
-        "preview": "| 安全：瀏覽器儲存只放 pattern | ✅ `cacheMethod: 'none'`，模型不寫入 IndexedDB。 |"
+        "file": "tests/unit/patterns-view.test.ts",
+        "line": 13,
+        "preview": "  localStorage.clear();"
+      },
+      {
+        "file": "tests/unit/patterns-view.test.ts",
+        "line": 27,
+        "preview": "const stored = () => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');"
+      },
+      {
+        "file": "tests/unit/patterns-view.test.ts",
+        "line": 93,
+        "preview": "    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();"
+      },
+      {
+        "file": "tests/unit/patterns-view.test.ts",
+        "line": 116,
+        "preview": "    localStorage.setItem(STORAGE_KEY, JSON.stringify({"
+      },
+      {
+        "file": "tests/unit/patterns-view.test.ts",
+        "line": 138,
+        "preview": "    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!);"
       },
       {
         "file": "tests/unit/output-panel.test.ts",
@@ -304,46 +329,21 @@
         "preview": "    const raw = localStorage.getItem(STORAGE_KEY)!;"
       },
       {
-        "file": "tests/unit/patterns-view.test.ts",
-        "line": 13,
-        "preview": "  localStorage.clear();"
-      },
-      {
-        "file": "tests/unit/patterns-view.test.ts",
-        "line": 27,
-        "preview": "const stored = () => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');"
-      },
-      {
-        "file": "tests/unit/patterns-view.test.ts",
-        "line": 93,
-        "preview": "    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();"
-      },
-      {
-        "file": "tests/unit/patterns-view.test.ts",
-        "line": 116,
-        "preview": "    localStorage.setItem(STORAGE_KEY, JSON.stringify({"
-      },
-      {
-        "file": "tests/unit/patterns-view.test.ts",
-        "line": 138,
-        "preview": "    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!);"
-      },
-      {
-        "file": "src/core/pattern-store.ts",
-        "line": 13,
-        "preview": "    return typeof localStorage !== 'undefined' ? localStorage : null;"
+        "file": ".specify/memory/constitution.md",
+        "line": 23,
+        "preview": "- 敏感資料（原文、對照表）僅存在於記憶體與使用者主動下載的檔案中；若使用瀏覽器儲存（localStorage 等），僅得存放 pattern 設定，不得存放文件內容或對照表。"
       }
     ],
     "file_handling": [
       {
-        "file": "src/ui/components.ts",
-        "line": 30,
-        "preview": "  const url = URL.createObjectURL(blob);"
-      },
-      {
         "file": "src/ui/preview.ts",
         "line": 26,
         "preview": "  if (!url) pictureUrls.set(p, (url = URL.createObjectURL(new Blob([p.jpeg as BlobPart], { type: 'image/jpeg' }))));"
+      },
+      {
+        "file": "src/ui/components.ts",
+        "line": 30,
+        "preview": "  const url = URL.createObjectURL(blob);"
       }
     ],
     "network_api": [
