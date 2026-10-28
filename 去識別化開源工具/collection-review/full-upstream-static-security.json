@@ -1,0 +1,408 @@
+{
+  "timestamp_utc": "2026-10-28T07:12:43.145171+00:00",
+  "upstream_url": "https://github.com/dean9703111/data-deidentification",
+  "pinned_commit": "1f7b9298f94a9728cf6d181f84cfcce48c39d968",
+  "method": "Pinned complete upstream checkout. All files enumerated; text contents scanned for network, executable, dynamic code, browser storage, hardcoded credential and suspicious instruction patterns. npm production advisory check without running upstream code.",
+  "counts": {
+    "files": 254,
+    "bytes": 25635394,
+    "text_files_scanned": 207,
+    "network_endpoint_lines": 473,
+    "browser_storage_lines": 28,
+    "binary_files": 47,
+    "file_handling_lines": 2,
+    "network_api_lines": 2,
+    "lockfile_packages": 231
+  },
+  "patterns": {
+    "network_endpoint": [
+      {
+        "file": "package-lock.json",
+        "line": 33,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@asamuzakjp/css-color/-/css-color-5.1.11.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 50,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@asamuzakjp/dom-selector/-/dom-selector-7.1.1.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 67,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@asamuzakjp/generational-cache/-/generational-cache-1.0.1.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 77,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@asamuzakjp/nwsapi/-/nwsapi-2.3.9.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 84,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@bramus/specificity/-/specificity-2.4.2.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 97,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@csstools/color-helpers/-/color-helpers-6.1.1.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 103,
+        "preview": "          \"url\": \"https://github.com/sponsors/csstools\""
+      },
+      {
+        "file": "package-lock.json",
+        "line": 107,
+        "preview": "          \"url\": \"https://opencollective.com/csstools\""
+      },
+      {
+        "file": "package-lock.json",
+        "line": 117,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@csstools/css-calc/-/css-calc-3.3.0.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 123,
+        "preview": "          \"url\": \"https://github.com/sponsors/csstools\""
+      },
+      {
+        "file": "package-lock.json",
+        "line": 127,
+        "preview": "          \"url\": \"https://opencollective.com/csstools\""
+      },
+      {
+        "file": "package-lock.json",
+        "line": 141,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@csstools/css-color-parser/-/css-color-parser-4.2.2.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 147,
+        "preview": "          \"url\": \"https://github.com/sponsors/csstools\""
+      },
+      {
+        "file": "package-lock.json",
+        "line": 151,
+        "preview": "          \"url\": \"https://opencollective.com/csstools\""
+      },
+      {
+        "file": "package-lock.json",
+        "line": 169,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@csstools/css-parser-algorithms/-/css-parser-algorithms-4.0.0.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 175,
+        "preview": "          \"url\": \"https://github.com/sponsors/csstools\""
+      },
+      {
+        "file": "package-lock.json",
+        "line": 179,
+        "preview": "          \"url\": \"https://opencollective.com/csstools\""
+      },
+      {
+        "file": "package-lock.json",
+        "line": 192,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@csstools/css-syntax-patches-for-csstree/-/css-syntax-patches-for-csstree-1.1.12.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 198,
+        "preview": "          \"url\": \"https://github.com/sponsors/csstools\""
+      },
+      {
+        "file": "package-lock.json",
+        "line": 202,
+        "preview": "          \"url\": \"https://opencollective.com/csstools\""
+      },
+      {
+        "file": "package-lock.json",
+        "line": 217,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@csstools/css-tokenizer/-/css-tokenizer-4.0.0.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 223,
+        "preview": "          \"url\": \"https://github.com/sponsors/csstools\""
+      },
+      {
+        "file": "package-lock.json",
+        "line": 227,
+        "preview": "          \"url\": \"https://opencollective.com/csstools\""
+      },
+      {
+        "file": "package-lock.json",
+        "line": 237,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.28.2.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 254,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@esbuild/android-arm/-/android-arm-0.28.2.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 271,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@esbuild/android-arm64/-/android-arm64-0.28.2.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 288,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@esbuild/android-x64/-/android-x64-0.28.2.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 305,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.28.2.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 322,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.28.2.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 339,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@esbuild/freebsd-arm64/-/freebsd-arm64-0.28.2.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 356,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@esbuild/freebsd-x64/-/freebsd-x64-0.28.2.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 373,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.28.2.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 390,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.28.2.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 407,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.28.2.tgz\","
+      },
+      {
+        "file": "package-lock.json",
+        "line": 424,
+        "preview": "      \"resolved\": \"https://registry.npmjs.org/@esbuild/linux-loong64/-/linux-loong64-0.28.2.tgz\","
+      }
+    ],
+    "browser_storage": [
+      {
+        "file": "README.md",
+        "line": 79,
+        "preview": "- 瀏覽器只會儲存「偵測規則設定」（localStorage）；文件內容與編碼表不落地。"
+      },
+      {
+        "file": ".specify/memory/constitution.md",
+        "line": 23,
+        "preview": "- 敏感資料（原文、對照表）僅存在於記憶體與使用者主動下載的檔案中；若使用瀏覽器儲存（localStorage 等），僅得存放 pattern 設定，不得存放文件內容或對照表。"
+      },
+      {
+        "file": "specs/002-partial-retention-shared-codes/plan.md",
+        "line": 13,
+        "preview": "- **Storage**: 保留設定存入現有的 `deid.patternConfig.v1`（localStorage）並新增選填欄位 `retention`；匯入的編碼表只放在記憶體"
+      },
+      {
+        "file": "specs/001-doc-deidentify/research.md",
+        "line": 72,
+        "preview": "- **Decision**: `localStorage` 僅存規則設定（自訂規則＋各規則啟用狀態）；文件內容與對照表一律不落地。"
+      },
+      {
+        "file": "specs/001-doc-deidentify/plan.md",
+        "line": 17,
+        "preview": "**Storage**: localStorage 僅存偵測規則設定；文件內容與對照表僅存在記憶體（constitution 限制）"
+      },
+      {
+        "file": "specs/001-doc-deidentify/plan.md",
+        "line": 42,
+        "preview": "| Security Requirements | localStorage 僅存規則設定；隨機編碼不可反推（R6）；PDF 採重建法杜絕隱藏文字殘留（R2）；beforeunload 提醒 | ✅ PASS |"
+      },
+      {
+        "file": "specs/001-doc-deidentify/plan.md",
+        "line": 59,
+        "preview": "│   └── pattern-schema.md# 規則設定（localStorage）schema 契約"
+      },
+      {
+        "file": "specs/001-doc-deidentify/plan.md",
+        "line": 75,
+        "preview": "│   ├── pattern-store.ts # 規則啟用狀態與自訂規則的 localStorage 存取"
+      },
+      {
+        "file": "specs/001-doc-deidentify/tasks.md",
+        "line": 130,
+        "preview": "- [X] T044 [P] [US4] **(Sonnet)** 單元測試 `tests/unit/pattern-store.test.ts`（jsdom localStorage）：預設全啟用、停用後 `getEffectivePatterns` 不含該規則、自訂規則 save→load round-trip、無效 regex 拒絕、壞 JSON/未知"
+      },
+      {
+        "file": "specs/001-doc-deidentify/data-model.md",
+        "line": 5,
+        "preview": "所有實體僅存在於瀏覽器記憶體（例外：`PatternConfig` 持久化於 localStorage）。"
+      },
+      {
+        "file": "specs/001-doc-deidentify/contracts/pattern-schema.md",
+        "line": 1,
+        "preview": "# Contract: 規則設定持久化 Schema（localStorage）"
+      },
+      {
+        "file": "specs/001-doc-deidentify/checklists/e2e-validation.md",
+        "line": 15,
+        "preview": "| 4 | 偵測規則管理（US4） | ✅ | 「偵測規則」頁籤列出全部 6 條內建規則（中文姓名、台灣身分證字號、手機號碼、市話號碼、台灣地址、電子郵件），各自附 regex、範例與啟用核取方塊。停用「手機號碼」後新增自訂規則「員工編號」（類別：識別碼，regex `EMP-\\d{6}`，範例 `EMP-004521`）；測試文字「承辦 EMP-00452"
+      },
+      {
+        "file": "specs/004-scanned-pdf-ocr/research.md",
+        "line": 42,
+        "preview": "- **Decision**: `cacheMethod: 'none'`，模型不寫入 IndexedDB，只靠瀏覽器 HTTP 快取。"
+      },
+      {
+        "file": "specs/004-scanned-pdf-ocr/plan.md",
+        "line": 56,
+        "preview": "| 安全：瀏覽器儲存只放 pattern | ✅ `cacheMethod: 'none'`，模型不寫入 IndexedDB。 |"
+      },
+      {
+        "file": "tests/unit/output-panel.test.ts",
+        "line": 23,
+        "preview": "  localStorage.clear();"
+      },
+      {
+        "file": "tests/unit/pattern-store.test.ts",
+        "line": 18,
+        "preview": "  localStorage.clear();"
+      },
+      {
+        "file": "tests/unit/pattern-store.test.ts",
+        "line": 33,
+        "preview": "    localStorage.setItem(STORAGE_KEY, '{not valid json!!');"
+      },
+      {
+        "file": "tests/unit/pattern-store.test.ts",
+        "line": 38,
+        "preview": "    localStorage.setItem("
+      },
+      {
+        "file": "tests/unit/pattern-store.test.ts",
+        "line": 62,
+        "preview": "    localStorage.setItem("
+      },
+      {
+        "file": "tests/unit/pattern-store.test.ts",
+        "line": 206,
+        "preview": "  it('leaves exactly one localStorage key with only version/disabledBuiltins/customPatterns fields', () => {"
+      },
+      {
+        "file": "tests/unit/pattern-store.test.ts",
+        "line": 219,
+        "preview": "    expect(Object.keys(localStorage)).toEqual([STORAGE_KEY]);"
+      },
+      {
+        "file": "tests/unit/pattern-store.test.ts",
+        "line": 220,
+        "preview": "    const raw = localStorage.getItem(STORAGE_KEY)!;"
+      },
+      {
+        "file": "tests/unit/patterns-view.test.ts",
+        "line": 13,
+        "preview": "  localStorage.clear();"
+      },
+      {
+        "file": "tests/unit/patterns-view.test.ts",
+        "line": 27,
+        "preview": "const stored = () => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');"
+      },
+      {
+        "file": "tests/unit/patterns-view.test.ts",
+        "line": 93,
+        "preview": "    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();"
+      },
+      {
+        "file": "tests/unit/patterns-view.test.ts",
+        "line": 116,
+        "preview": "    localStorage.setItem(STORAGE_KEY, JSON.stringify({"
+      },
+      {
+        "file": "tests/unit/patterns-view.test.ts",
+        "line": 138,
+        "preview": "    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!);"
+      },
+      {
+        "file": "src/core/pattern-store.ts",
+        "line": 13,
+        "preview": "    return typeof localStorage !== 'undefined' ? localStorage : null;"
+      }
+    ],
+    "file_handling": [
+      {
+        "file": "src/ui/components.ts",
+        "line": 30,
+        "preview": "  const url = URL.createObjectURL(blob);"
+      },
+      {
+        "file": "src/ui/preview.ts",
+        "line": 26,
+        "preview": "  if (!url) pictureUrls.set(p, (url = URL.createObjectURL(new Blob([p.jpeg as BlobPart], { type: 'image/jpeg' }))));"
+      }
+    ],
+    "network_api": [
+      {
+        "file": "src/ui/samples.ts",
+        "line": 33,
+        "preview": "  const res = await fetch(sampleUrl(s.file));"
+      },
+      {
+        "file": "src/formats/pdf.ts",
+        "line": 146,
+        "preview": "    fontBytesPromise = fetch(FONT_URL).then((r) => {"
+      }
+    ]
+  },
+  "credential_flags": [],
+  "escaping_symlinks": [],
+  "too_large_for_git": [],
+  "checks": {
+    "source_license": true,
+    "source_readme": true,
+    "lockfile": true,
+    "source_src": true,
+    "source_tests": true,
+    "source_scripts": true,
+    "source_agent_docs": true
+  },
+  "install_script_dependencies": [
+    {
+      "package": "node_modules/esbuild",
+      "version": "0.28.2"
+    },
+    {
+      "package": "node_modules/fsevents",
+      "version": "2.3.3"
+    },
+    {
+      "package": "node_modules/tesseract.js",
+      "version": "7.0.0"
+    }
+  ],
+  "npm_production": {
+    "advisory_counts": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "affected_packages": [],
+    "error": null
+  },
+  "blockers": [],
+  "automated_gates_passed": true,
+  "limitations": [
+    "Heuristic static scanning cannot prove absence of malware, exfiltration, or zero-day vulnerabilities.",
+    "HTML/JS embedded in binary files and minified dependencies outside Git were not comprehensively reversed.",
+    "No upstream scripts, installs, tests, or web app were executed. Browser network observation and penetration tests were not performed.",
+    "Potential test fixture and documentation privacy may require contextual review."
+  ]
+}
