@@ -1,0 +1,114 @@
+name: Review full upstream de-identification source and archive
+on:
+  push:
+    branches: [deidentification-security-review-20261028]
+    paths:
+      - .github/workflows/audit-deidentification-full.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  static-audit-and-archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      UPSTREAM_SHA: 1f7b9298f94a9728cf6d181f84cfcce48c39d968
+      TARGET: 去識別化開源工具
+    steps:
+      - name: Checkout own repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 1
+
+      - name: Fetch pinned upstream without running its scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p review-output
+          git -c core.hooksPath=/dev/null clone --filter=blob:none --no-checkout https://github.com/dean9703111/data-deidentification.git "$RUNNER_TEMP/deid-src"
+          git -C "$RUNNER_TEMP/deid-src" -c core.hooksPath=/dev/null checkout --detach "$UPSTREAM_SHA"
+          test "$(git -C "$RUNNER_TEMP/deid-src" rev-parse HEAD)" = "$UPSTREAM_SHA"
+          cmp "$TARGET/UPSTREAM_COMMIT" <(printf '%s\n' "$UPSTREAM_SHA")
+
+      - name: Use Node for audit query only
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Query npm production dependency advisory database
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/deid-src"
+          timeout 180 npm audit --omit=dev --package-lock-only --json > "$GITHUB_WORKSPACE/review-output/npm-production-audit.json" 2> "$GITHUB_WORKSPACE/review-output/npm-audit-stderr.txt" || true
+          if test ! -s "$GITHUB_WORKSPACE/review-output/npm-production-audit.json"; then
+            printf '{"error":"npm audit did not return JSON"}\n' > "$GITHUB_WORKSPACE/review-output/npm-production-audit.json"
+          fi
+
+      - name: Scan entire upstream working tree without executing code
+        id: scan
+        continue-on-error: true
+        shell: bash
+        run: |
+          python3 .github/scripts/review-deidentification-source.py --source "$RUNNER_TEMP/deid-src" --dest review-output --commit "$UPSTREAM_SHA" --npm-audit review-output/npm-production-audit.json
+
+      - name: Preserve scan evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deidentification-audit
+          path: review-output/
+          retention-days: 30
+
+      - name: Stop import if unresolved blockers remain
+        if: steps.scan.outcome != 'success'
+        run: |
+          echo 'Scan flagged unresolved risks; source import stopped.'
+          exit 1
+
+      - name: Copy full upstream archive without modifying existing build
+        if: steps.scan.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e "$TARGET/upstream-full" || { echo 'Refusing overwrite'; exit 1; }
+          mkdir -p "$TARGET/upstream-full"
+          rsync -a --exclude='.git' "$RUNNER_TEMP/deid-src/" "$TARGET/upstream-full/"
+          mkdir -p "$TARGET/collection-review"
+          cp review-output/static-security.json "$TARGET/collection-review/full-upstream-static-security.json"
+          cp review-output/npm-production-audit.json "$TARGET/collection-review/npm-production-audit.json"
+          cat > "$TARGET/collection-review/README.md" <<'EOF'
+          # 去識別化工具安全檢核（2026-10-28）
+
+          - 官方上游：https://github.com/dean9703111/data-deidentification
+          - 固定來源：1f7b9298f94a9728cf6d181f84cfcce48c39d968
+          - 已檢查：完整上游檔案盤點、文字程式碼靜態模式、敏感資訊、符號連結與大檔案、npm 正式依賴公開弱點、MIT 授權及必要檔案。
+          - 量化結果與具體路徑參考 full-upstream-static-security.json 和 npm-production-audit.json。
+          - upstream-full/ 是包含原作者開發工具及 AI Skill 文件的完整原始碼備份，僅當資料儲存；不自動執行、安裝或部署。原有 source/ 及網站靜態檔未變更。
+          - 未完成動態沙箱、完整人工逐行複核、全部依賴套件程式碼反編譯或正式滲透測試。自動靜態掃描無法保證沒有惡意行為。
+          - 使用真實個資前，務必以虛構資料進行離線測試，人工覆核遮罩品質，並重新檢查外部網路請求及依賴套件弱點。
+          - 原作者程式 MIT，保留 LICENSE、來源與版權資訊。
+          EOF
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("去識別化開源工具/README.md")
+          s=p.read_text()
+          s=s.replace("本專案尚未經獨立的完整惡意程式掃描或個資滲透測試；","已完成完整上游工作樹的非執行式靜態安全檢查（詳見 [檢核報告](collection-review/README.md)），但尚未完成動態沙箱、人工逐行複核或個資滲透測試；")
+          s=s.replace("僅收錄網站運作所需之源碼、靜態素材、依賴設定和 LICENSE；排除 .claude、.specify、.playwright-mcp、scripts、tests、examples、specs 及原開發者的 GitHub Actions，以降低複製不必要指令與測試內容的風險。","原有 source/ 保留精簡可建置程式碼；新增 upstream-full/ 保存完整原始碼及原作者開發資料，但不執行或自動部署其中的 AI 指令、測試與 CI 腳本。詳細檢查範圍與限制見 [檢核報告](collection-review/README.md)。")
+          p.write_text(s)
+          p=Path("README.md")
+          s=p.read_text()
+          old="**[影片介紹](https://youtu.be/Mx7d0nSF61k?si=H4T6W59ZNNS0X08y)**。"
+          if old in s:s=s.replace(old,old+" [安全檢核](去識別化開源工具/collection-review/README.md)。",1)
+          old="**收錄狀態**：本倉庫已收錄前端靜態資產、LICENSE 及 "
+          if old in s:s=s.replace(old,"**收錄狀態**：本倉庫已收錄前端靜態資產、LICENSE、原始碼完整備份及 ",1)
+          p.write_text(s)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- "$TARGET" README.md
+          git commit -m "Archive verified upstream de-identification source and report"
+          git push origin "HEAD:$GITHUB_REF_NAME"
