@@ -6,6 +6,7 @@ import {analyzeSelectedLayers,visibleAnalysisLayers,markdownTable} from './selec
 import {analyzeRecords} from './recordAnalysis.js';
 import {createJourneyCard} from './journeyCard.js';
 import {attachBuildingInfoPicker} from './buildingInfo.js';
+import {loadCadastreLayer,cadastreLayers,cadastreLayerOf,cadastreActive,CADASTRE_LAYER_NAME} from './cadastreLayer.js';
 import {createTransitPanel} from './transitPanel.js';
 import {SEAT_NAMES} from './farePreference.js';
 import {createJourneyDisplay} from './journeyDisplay.js';
@@ -14,6 +15,7 @@ import {requestAiAerialPlan} from './aerialAiPlanner.js';
 import {createVoiceSubtitles} from './voiceSubtitles.js';
 import {cctvResultMessage,cctvContext,cctvFrameHtml} from './cctvChatResult.js';
 import {createFloatingPanelManager} from './floatingPanelManager.js';
+import {createInventoryPanel} from './inventoryPanel.js';
 import {createCinematicCameraPanel} from './cinematicCameraPanel.js';
 import './floatingPanels.css';
 import {loadOsmLabels} from './osmLabels.js';
@@ -145,6 +147,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   const drawer = root.querySelector('.tw-drawer');
   const body = root.querySelector('.tw-drawer-body');
   const floatingPanels=createFloatingPanelManager({host:root});
+  const inventoryAi=createInventoryPanel({floatingPanels,toast:message=>toast(message),flyTo:(lon,lat)=>viewer.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(lon,lat-0.0015,260),orientation:{heading:0,pitch:Cesium.Math.toRadians(-55),roll:0},duration:2})});
   const drawerWindow=floatingPanels.enhanceExisting(drawer,{id:'toolbar-options',handle:drawer.querySelector('.tw-drawer-head'),closeButton:drawer.querySelector('[data-act="close-drawer"]')});
   const originalChatPanel=root.querySelector('.tw-chat-panel');
   const assistantWindow=floatingPanels.create({id:'ai-assistant',title:'AI 空間助理',width:570,height:570,onClose:()=>{analysisJob?.controller.abort();chatController?.abort();}});
@@ -344,7 +347,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   }});
   journeyCard=createJourneyCard({manager:floatingPanels,controller:journey,onError:error=>toast(error.message)});
   let buildingInfoPanel=null;
-  const releaseBuildingInfo=attachBuildingInfoPicker({viewer,onInfo:html=>{buildingInfoPanel??=floatingPanels.create({id:'building-info',title:'建物資訊',width:430,height:560});buildingInfoPanel.body.innerHTML=html;buildingInfoPanel.restore();}});
+  const releaseBuildingInfo=attachBuildingInfoPicker({viewer,cadastreActive,onInfo:(html,title='建物資訊')=>{buildingInfoPanel??=floatingPanels.create({id:'building-info',title:'建物資訊',width:430,height:560});buildingInfoPanel.body.innerHTML=html;const heading=document.querySelector('[data-floating-panel="building-info"] .tw-floating-header strong');if(heading)heading.textContent=title;buildingInfoPanel.restore();}});
   let transitProgressMessage=null;
   function transitProgress({busy,message}){
     if(busy){analysisSession=null;pendingAnalysisLayers=null;}
@@ -595,6 +598,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
       if(a==='ai-help-home')return renderAI('home');
       if(a==='ai-help-voice')return renderAI('voice');
       if(a==='ai-help-space')return renderAI('space');
+      if(a==='ai-inventory'){void inventoryAi.open();return;}
       if(a==='ai-help-chat'){showAssistant();return;}
       if(a==='ai-help-style'){await responseStyleReady;showAssistant();const stylePanel=chatPanel.querySelector('.tw-chat-style');stylePanel.hidden=false;stylePanel.querySelector('textarea').value=responseStyle;return;}
       if (a === 'ai-status-refresh') return await Promise.all([refreshAiStatus(),refreshGeminiQuota()]);
@@ -621,6 +625,11 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
       if (a === 'info-import-all') { const groups=new Map(); for(const pack of infoAvailable||[]){const list=groups.get(pack.root)||[];list.push(pack.slug);groups.set(pack.root,list);} if(!groups.size){infoBuildingNotice='沒有可匯入的資料庫。';return renderLayers();} return await infoImport(groups); }
       if (a === 'info-import-scan') { try{ const value=await infoApi('/info/packs/scan',{path:body.querySelector('#tw-info-folder')?.value.trim()}); infoAvailable=[...(infoAvailable||[]).filter(pack=>!value.available.some(item=>item.slug===pack.slug)),...value.available].filter(pack=>!infoMasters().some(master=>master.slug===pack.slug)); infoBuildingNotice='找到 '+value.available.length+' 個資料庫。'; }catch(error){infoBuildingNotice='掃描失敗：'+error.message;} return renderLayers(); }
       if (a === 'info-pack-remove') return await infoRemovePack(btn.dataset.slug);
+      if (a === 'cadastre-load') { setCadastreTown(btn.dataset.town,true); return renderLayers(); }
+      if (a === 'cadastre-remove') { setCadastreTown(btn.dataset.town,false); return renderLayers(); }
+      if (a === 'cadastre-goto') return flyToCadastreTown(btn.dataset.town);
+      if (a === 'cadastre-load-all') { for(const entry of cadastreTowns())if(!cadastreLayerOf(entry.town))setCadastreTown(entry.town,true); cadastreNotice='已載入全部鄉鎮市的地籍；請拉近到約 4 公里內。'; return renderLayers(); }
+      if (a === 'cadastre-all-toggle') { const group=cadastreLayers(),show=!group.some(layer=>layer.visible); for(const layer of group)setLayerVisible(layer.id,show); return renderLayers(); }
       if (a === 'info-town-goto') { flyToInfoTown(infoMasters().find(master=>master.slug===btn.dataset.slug)); return; }
       if (a === 'info-all-toggle') { const group=infoTownLayers(),show=!group.some(layer=>layer.visible); if(show)await ensureBuildingSurface(); for(const layer of group)setLayerVisible(layer.id,show); return renderLayers(); }
       if (a === 'nlsc-discover') return await discoverNlsc();
@@ -1093,6 +1102,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
           details:`<label class="tw-inline-option"><input type="checkbox" data-building-white ${buildingWhiteMode(viewer)?'checked':''}>白模模式</label><button data-act="nlsc-discover">更新官方服務清單</button>${nlscServices.length ? `<label>建物服務<select id="tw-nlsc-service">${nlscServices.map(item=>`<option value="${esc(item.url)}" ${item.url === selectedNlscUrl ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}</select></label>` : ''}<label>手動 3D Tiles 網址<input id="tw-nlsc-url" type="url" placeholder="https://…nlsc.gov.tw/…/tileset.json"></label><p id="tw-nlsc-status" class="tw-note">${esc(nlscNotice)}</p>`,children:`<div class="tw-layer-tree">${buildings.map(layer=>layerRow(layer)).join('')}</div>`})}
       </div>
       ${infoBuildingRow(layers,layerRow)}
+      ${cadastreGroup()}
       <div class="tw-catalog-group"><b class="tw-group-label">全臺參考圖</b>${catalogRow({name:'NLSC 道路、水系與鐵路參考圖',color:'#87caca',description:'全臺線上地圖圖磚，向量分析請使用上方獨立圖層。',source:'NLSC EMAP2 WMS · 非分析向量',layer:reference,load:'data-act="national-reference"',details:`<p class="tw-note">參考圖僅供判讀；下列按鈕會載入獨立向量圖層，沿用上方所選縣市／全台灣範圍，可用於相交、長度及影響範圍分析。</p><div class="tw-actions">${[['osm-roads','道路中心線'],['osm-waterways','河川／水系中心線'],['osm-water','水域面'],['osm-rail','鐵路']].map(([id,label])=>`<button data-act="builtin-load" data-builtin="${id}">載入${label}</button>`).join('')}</div><p class="tw-note">道路與水文使用內建 OSM 固定版；鐵路使用官方開放資料。圖磚不提供分析向量。</p>`})}</div>
       ${files.map(file=>`<div class="tw-catalog-group" data-layer-group>${groupHeading(`json:${file}`,`JSON 專案：${file}`)}<div class="tw-group-content" ${collapsedGroups.has(`json:${file}`)?'hidden':''}><div class="tw-layer-tree">${projectLayers.filter(layer=>layer.sourceProject === file).map(layer=>layerRow(layer)).join('')}${activeProject?.sourceFile === file ? reportRows(activeProject.metadata?.aiReports) : ''}</div></div></div>`).join('')}
       ${custom.length ? `<div class="tw-catalog-group"><b class="tw-group-label">匯入與繪製圖資</b>${custom.map(layer=>layerRow(layer)).join('')}</div>` : ''}
@@ -1186,6 +1196,47 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
       <p class="tw-note" role="status">${esc(infoBuildingNotice)}</p>
       ${masters.map(master=>infoTownRow(master,loaded.find(item=>item.infoTown===master.slug))).join('')}</div>`;
   }
+  // ---- 宜蘭縣地籍圖：獨立圖資群組，各鄉鎮市分別載入／顯示／隱藏／移除（本機匯入，資料在 data/local，不隨程式或 GitHub 發布）----
+  const CADASTRE_COLOR='#facc15';
+  let cadastreNotice='',cadastreSignature='';
+  const cadastreTowns=()=>infoBuildingStatus?.cadastre?.towns||[];
+  function cadastreTownRow(entry){
+    const layer=cadastreLayerOf(entry.town);
+    const actions=layer?`<span class="tw-badge ok">${layer.visible?'已顯示':'已載入'}</span><button data-act="layer-toggle" data-layer="${esc(layer.id)}">${layer.visible?'隱藏':'顯示'}</button>`:`<button data-act="cadastre-load" data-town="${esc(entry.town)}">載入</button>`;
+    return `<div class="tw-layer-row" ${layer?`data-style-layer="${esc(layer.id)}"`:''}><div class="tw-layer-main"><b class="tw-layer-name"><span class="tw-layer-swatch" style="--tw-layer-color:${CADASTRE_COLOR}" aria-hidden="true"></span>${esc(entry.town)}</b><small>${Number(entry.parcels||0).toLocaleString('zh-TW')} 筆地號</small>${layer?`<span class="tw-note" role="status">${esc(layer.cadastreState?.note||'')}</span>`:'<span class="tw-source-line">尚未載入</span>'}</div><div class="tw-row-actions">${actions}<button data-act="cadastre-goto" data-town="${esc(entry.town)}" title="飛到這個鄉鎮市（地號線需拉近到約 4 公里內才畫）">前往</button>${layer?`<button data-act="cadastre-remove" data-town="${esc(entry.town)}" title="移除這個鄉鎮市的地號線圖層（本機資料庫保留）">移除</button>`:''}</div></div>`;
+  }
+  function cadastreGroup(){
+    const c=infoBuildingStatus?.cadastre;
+    if(!c)return '';
+    if(!c.available)return `<div class="tw-catalog-group"><b class="tw-group-label">${CADASTRE_LAYER_NAME}</b><p class="tw-note">${esc(c.message||'尚未匯入地籍圖。')}地籍圖需自行取得（NLSC 地籍 WFS 需申請，不混用），再以 scripts/build-cadastre.mjs 匯入本機。</p></div>`;
+    const towns=cadastreTowns(),loaded=cadastreLayers(),overall=loaded.length?{id:'cadastre-all',visible:loaded.some(layer=>layer.visible),action:'data-act="cadastre-all-toggle"',countText:`${loaded.length}／${towns.length} 個鄉鎮市`}:null;
+    return `<div class="tw-catalog-group"><b class="tw-group-label">${CADASTRE_LAYER_NAME}</b>${catalogRow({name:`${CADASTRE_LAYER_NAME}（地號線）`,color:CADASTRE_COLOR,description:'本機匯入的地籍圖；各鄉鎮市可分別載入、顯示、隱藏、移除。拉近到約 4 公里內才畫畫面中心附近的貼地地號線，500 公尺內標示地號；點地面或建物可查看地號。',source:`${c.source||'內政部地政司 地籍圖'}（使用者提供，本機匯入；不含所有權人） · ${Number(c.parcels||0).toLocaleString('zh-TW')} 筆地號 · 資料日期 ${c.latestDataDate||'未記錄'}`,layer:overall,countText:overall?.countText})}
+      <div class="tw-actions">${loaded.length<towns.length?'<button data-act="cadastre-load-all">載入全部鄉鎮市</button>':''}</div>
+      <p class="tw-note" role="status">${esc(cadastreNotice)}</p>
+      ${towns.map(cadastreTownRow).join('')}</div>`;
+  }
+  function persistCadastre(){
+    const state={};for(const layer of cadastreLayers())state[layer.cadastreTown]={visible:layer.visible!==false};
+    const signature=JSON.stringify(state);if(signature===cadastreSignature)return;cadastreSignature=signature;
+    try{localStorage.setItem('gev.tw.cadastreTowns',signature);}catch{/* storage unavailable */}
+  }
+  window.addEventListener('gev-tw:layers-changed',persistCadastre);
+  function setCadastreTown(town,on){
+    const c=infoBuildingStatus?.cadastre;
+    if(on){if(!c?.available){cadastreNotice='尚未匯入地籍圖。';return;}const layer=loadCadastreLayer(viewer,c,town);cadastreNotice=`已載入${town}地籍；請拉近到約 4 公里內（可按「前往」）。`;return layer;}
+    const layer=cadastreLayerOf(town);if(layer)removeLayer(layer.id);cadastreNotice=`已移除${town}地號線圖層（本機地籍資料庫保留）。`;
+  }
+  function restoreCadastre(){
+    try{
+      const saved=JSON.parse(localStorage.getItem('gev.tw.cadastreTowns')||'{}'),c=infoBuildingStatus?.cadastre;
+      if(!c?.available)return;
+      for(const [town,state] of Object.entries(saved)){if(!c.towns?.some(entry=>entry.town===town)||cadastreLayerOf(town))continue;const layer=loadCadastreLayer(viewer,c,town);if(state?.visible===false)setLayerVisible(layer.id,false);}
+    }catch{/* storage unavailable or malformed */}
+  }
+  function flyToCadastreTown(town){
+    const entry=cadastreTowns().find(item=>item.town===town);if(!entry?.center)return;
+    viewer.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(entry.center.lon,entry.center.lat-0.006,1500),orientation:{heading:0,pitch:Cesium.Math.toRadians(-50),roll:0},duration:2});
+  }
   async function loadInfoTownLayer(master,visible=true){
     const mode=infoWhite&&master.hasWhite?'white':'nlsc';
     const layer=await loadNlscBuildings(`/api/taiwan/nlsc-buildings/town-tileset?slug=${encodeURIComponent(master.slug)}&mode=${mode}`,viewer,{name:`${INFO_LAYER_NAME}｜${master.towns}`,flyTo:false,extra:{infoLayer:true,infoTown:master.slug,infoTownName:master.towns,infoMode:mode,localTileset:true,serviceUrl:INFO_TILESET_URL,
@@ -1227,6 +1278,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
       await refreshInfoStatus(false);
       const remembered=infoMasters().filter(master=>master.loaded);
       if(remembered.length)await loadInfoTowns(remembered,{restoring:true});
+      restoreCadastre();
     }catch(error){infoBuildingNotice='還原上次載入的圖資失敗：'+error.message;infoBuildingStatus??={error:true,imported:[]};}
     finally{infoPersistPaused=false;persistInfoState();if(infoLayersOpen())renderLayers();}
   }
@@ -1935,7 +1987,7 @@ export function mountShell({ viewer, governor, styleManager, dataManager, mapSta
   function renderAI(view=aiHelpView) {
     aiHelpView=view;
     const back='<button class="tw-ai-back" data-act="ai-help-home">返回</button>';
-    if(view==='home'){open('AI 功能說明',`<div class="tw-ai-help-menu"><button class="tw-ai-voice-entry" data-act="ai-help-voice"><b>AI語音助理說明</b><small>語音操作、回覆角色與風格、Gemini Live 連線及額度</small></button><button class="tw-ai-space-entry" data-act="ai-help-space"><b>AI空間助理說明</b><small>空間分析、交通規劃、官方資料擷取、對話風格與 OpenRouter 額度</small></button></div>`);return;}
+    if(view==='home'){open('AI 功能說明',`<div class="tw-ai-help-menu"><button class="tw-ai-voice-entry" data-act="ai-help-voice"><b>AI語音助理說明</b><small>語音操作、回覆角色與風格、Gemini Live 連線及額度</small></button><button class="tw-ai-space-entry" data-act="ai-help-space"><b>AI空間助理說明</b><small>空間分析、交通規劃、官方資料擷取、對話風格與 OpenRouter 額度</small></button><button class="tw-ai-space-entry tw-ai-inventory-entry" data-act="ai-inventory"><b>AI 清冊與航照智慧勾稽</b><small>匯入變異點清冊或輸入地號，本機比對地籍、航照與查證照片並產生 AI 候選清冊</small></button></div>`);return;}
     if(view==='voice'){
       open('AI語音助理說明',`<section class="tw-ai-voice-help">${back}${voiceHelp()}<article class="tw-card"><b>Gemini Live（僅供語音助理）</b><label>語音模型<select id="tw-voice-model"><option value="gemini-3.8-live" ${voiceSettings.model==='gemini-3.8-live'?'selected':''}>gemini-3.8-live（預設）</option><option value="gemini-3.1-flash-live-preview" ${voiceSettings.model==='gemini-3.1-flash-live-preview'?'selected':''}>gemini-3.1-flash-live-preview</option></select></label><div class="tw-actions"><button data-act="voice-model-save">儲存語音模型</button></div><div id="tw-gemini-quota" class="tw-quota-card" aria-live="polite">讀取額度中…</div><a href="https://aistudio.google.com/usage" target="_blank" rel="noopener noreferrer">查看 Google AI Studio 專案額度</a><div id="tw-voice-sources" class="tw-voice-sources"></div><p id="tw-live-status-banner" class="tw-note">${esc(lastGeminiStatus)}</p><p id="tw-gemini-connection" class="tw-note">尚未檢查</p><p class="tw-note">實際免費用量依 Google AI Studio 顯示。</p><p class="tw-note">可說：「載入飛機即時動態」、「隱藏道路中心線」、「切換到 NLSC 臺灣通用正射影像」、「一鍵載入所有內建圖資」、「一鍵隱藏所有圖資」。</p></article><div class="tw-actions"><button data-act="open-original-keys">服務與 API 金鑰設定</button></div></section>`);
       body.querySelector('.tw-voice-help').open=true;

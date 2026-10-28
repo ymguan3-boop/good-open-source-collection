@@ -34,13 +34,32 @@ export function buildingInfoHtml(tile, info) {
       ${b.e97 ? row('中心座標（TWD97 TM2）', `${Number(b.e97).toFixed(3)}, ${Number(b.n97).toFixed(3)}`) : ''}
     </table>
     ${stored}
-    <h4 class="tw-info-title">地籍</h4><p class="tw-note">尚未建立。需取得地籍圖向量（地政單位）才能判定建物所在地號；NLSC 地籍 WFS 需申請，不混用。</p>
+    <h4 class="tw-info-title">地籍（建物中心所在地號）</h4>${cadastreHtml(info?.cadastre)}
     <h4 class="tw-info-title">建管資料</h4><p class="tw-note">尚未建立。</p>
     <h4 class="tw-info-title">實價登錄（同路名候選）</h4>${lvrHtml(info?.lvr)}
     <p class="tw-note">來源：內政部國土測繪中心三維建物模型。中心點座標非建物足跡；只代表該模型版本，非建物清冊或現況。</p>
   </section>`;
 }
 
+function cadastreHtml(cadastre) {
+  if (!cadastre) return '<p class="tw-note">尚未取得地籍資料（查詢中或本機服務無回應）。</p>';
+  if (!cadastre.available) return `<p class="tw-note">${esc(cadastre.message || '尚未匯入地籍圖。')}地籍圖需自行取得（NLSC 地籍 WFS 需申請，不混用），再以 scripts/build-cadastre.mjs 匯入本機。</p>`;
+  if (!cadastre.parcel) return `<p class="tw-note">${esc(cadastre.message || '建物中心不在任何一筆地號內。')}</p>`;
+  const p = cadastre.parcel;
+  return `<table class="tw-table tw-bordered">
+      ${row('地段與地號', p.sectionName ? `${p.sectionTown || ''}${p.sectionName}${p.landNumber}地號` : null)}${row('地號', p.landNumber)}${row('地段', p.sectionName ? `${p.sectionName}（代碼 ${p.sectionCode}）` : `代碼 ${p.sectionCode}（尚無段名對照，可執行 scripts/fetch-cadastre-sections.mjs）`)}${row('地政事務所代碼', p.officeCode)}
+      ${row('地號面積（平方公尺）', p.areaM2 === null || p.areaM2 === undefined ? null : Number(p.areaM2).toLocaleString('zh-TW', { maximumFractionDigits: 2 }))}${row('地籍資料日期', p.dataDate)}
+      ${row('地號識別碼', p.parcelId)}
+    </table>
+    <p class="tw-note">來源：${esc(cadastre.source || '內政部地政司地籍圖')}（使用者提供、本機匯入；資料日期 ${esc(cadastre.latestDataDate || '未記錄')}）。以建物中心點判定所在地號，建物跨多筆地號時只顯示中心所在的一筆；地號面積是登記面積，不是建物面積。地籍資料不含所有權人。</p>`;
+}
+
+/** Card for a click on open ground while the 地籍圖 layer is shown. */
+export function parcelInfoHtml(result) {
+  const p = result?.parcel;
+  if (!p) return `<section class="tw-card tw-building-card"><h3>地籍</h3><p class="tw-note">${esc(result?.error || '此處沒有地號（可能是道路、水域，或不在本機地籍圖範圍內）。')}</p></section>`;
+  return `<section class="tw-card tw-building-card"><h3>${esc(p.sectionName ? `${p.sectionTown || ''}${p.sectionName} ` : '')}${esc(p.landNumber)} 地號</h3><h4 class="tw-info-title">地籍</h4>${cadastreHtml({ available: true, parcel: p, source: result.source, latestDataDate: result.latestDataDate })}</section>`;
+}
 const FLOOR_LABEL = { match: '層數相符', differ: '層數不符', unknown: '層數未知' };
 function lvrHtml(lvr) {
   if (!lvr) return '<p class="tw-note">尚未建立。</p>';
@@ -92,7 +111,7 @@ function roofTipHeight(viewer, lon, lat, heightM, clickedHeight) {
 }
 
 /** Click a building of an NLSC tileset to open its information card. */
-export function attachBuildingInfoPicker({ viewer, onInfo }) {
+export function attachBuildingInfoPicker({ viewer, onInfo, cadastreActive }) {
   const handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
   const marker = createMarker(viewer);
   let highlighted = null, previousColor = null, sequence = 0;
@@ -107,7 +126,22 @@ export function attachBuildingInfoPicker({ viewer, onInfo }) {
       if (picked?.id instanceof Cesium.Entity) picked = viewer.scene.drillPick(click.position, 6).find(item => item instanceof Cesium.Cesium3DTileFeature);
     } catch { return; }
     // Only the 宜蘭縣OSM+實價登錄 3D建物 layer opens the card; the plain NLSC 3D 建物 layer is untouched.
-    if (!(picked instanceof Cesium.Cesium3DTileFeature) || !picked.tileset?.__gevInfoLayer) return;
+    if (!(picked instanceof Cesium.Cesium3DTileFeature) || !picked.tileset?.__gevInfoLayer) {
+      // 地籍圖顯示中：點空地／道路時回報該點所在的地號。
+      if (!cadastreActive?.()) return;
+      let where = null;
+      try { where = viewer.scene.pickPositionSupported ? viewer.scene.pickPosition(click.position) : null; where ||= viewer.camera.pickEllipsoid(click.position, viewer.scene.globe.ellipsoid); } catch { /* depth not available */ }
+      if (!where) return;
+      const c = Cesium.Cartographic.fromCartesian(where), lon = Cesium.Math.toDegrees(c.longitude), lat = Cesium.Math.toDegrees(c.latitude), current = ++sequence;
+      restore(); marker.show(lon, lat, (Number.isFinite(c.height) ? c.height : 0) + MARKER_CLEARANCE_M);
+      let result;
+      try {
+        const [at, status] = await Promise.all([fetch(`/api/taiwan/nlsc-buildings/info/cadastre/at?lon=${lon}&lat=${lat}`, { cache: 'no-store' }).then(r => r.json()), fetch('/api/taiwan/nlsc-buildings/info/cadastre/status', { cache: 'no-store' }).then(r => r.json())]);
+        result = { parcel: at.parcel, source: status.source, latestDataDate: status.latestDataDate, error: at.error };
+      } catch (error) { result = { error: error.message }; }
+      if (current === sequence) onInfo(parcelInfoHtml(result), '地籍資訊');
+      return;
+    }
     const tile = featureAttributes(picked);
     if (!tile) return;
     restore();

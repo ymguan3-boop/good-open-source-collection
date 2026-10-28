@@ -7,6 +7,7 @@ import { DatabaseSync } from 'node:sqlite';
 import * as turf from '@turf/turf';
 import { gunzipSync } from 'node:zlib';
 import { sampleHeights } from './taiwanDtm.js';
+import { cadastreStatus, parcelAt, parcelsAtPoints } from './taiwanCadastre.js';
 import { SLUG, availablePacks, dataDirectory, importPacks, importedPacks, packRoot, readRegistry, removePack, saveState, scanFolder } from './taiwanBuildingPacks.js';
 
 // Local-only building information: township databases made by scripts/build-building-master.mjs and
@@ -120,7 +121,7 @@ export function buildingClasses(slug) {
   load();
   const master = (masters || []).find(item => item.slug === slug);
   if (!master) throw new Error('此鄉鎮市尚未匯入');
-  const source = lvrDb(), stamp = `${slug}:${master.meta.updated_at}:${source?.meta?.quarters || ''}:${source ? 1 : 0}`, cached = classCache.get(slug);
+  const source = lvrDb(), stamp = `${slug}:${master.meta.updated_at}:${source?.meta?.quarters || ''}:${source ? 1 : 0}:${cadastreStatus().importedAt || ''}`, cached = classCache.get(slug);
   if (cached?.stamp === stamp) return cached.body;
   const town = String(master.meta.towns || '').split('、')[0], classes = {}, counts = { total: 0, flagged: 0, lvr: 0, cadastre: 0, permit: 0 };
   const flags = new Map();
@@ -146,9 +147,11 @@ export function buildingClasses(slug) {
       for (const k of keys) { if (!grid.has(k)) grid.set(k, []); grid.get(k).push(entry); }
     }
   }
-  for (const row of master.db.prepare('SELECT build_id, lon, lat FROM buildings').all()) {
+  // 地籍：建物中心落在已匯入地籍圖的某一筆地號內即標示（本機 data/local/cadastre-yilan.sqlite）。
+  const buildingRows = master.db.prepare('SELECT build_id, lon, lat FROM buildings').all(), parcelIds = parcelsAtPoints(buildingRows.map(row => [row.lon, row.lat]));
+  buildingRows.forEach((row, index) => {
     counts.total++;
-    let mask = flags.get(row.build_id) || 0;
+    let mask = (flags.get(row.build_id) || 0) | (parcelIds?.[index] ? 1 : 0);
     if (grid && tradeKeys.size) {
       const near = new Map(), seen = new Set(), cx = Math.floor(row.lon / 0.001), cy = Math.floor(row.lat / 0.001);
       for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (const road of grid.get(`${cx + dx},${cy + dy}`) || []) {
@@ -162,11 +165,11 @@ export function buildingClasses(slug) {
       if (facing.some(item => tradeKeys.has(item.key))) mask |= 4;
     }
     if (mask) { classes[row.build_id] = mask; counts.flagged++; if (mask & 1) counts.cadastre++; if (mask & 2) counts.permit++; if (mask & 4) counts.lvr++; }
-  }
+  });
   const body = gzipSync(JSON.stringify({
     slug, town, counts, classes,
-    available: { cadastre: hasFlags, permit: hasFlags, lvr: !!tradeKeys?.size },
-    note: '實價登錄為「同路名候選」（交易只有門牌、沒有座標），不代表該棟確有交易；地籍、建管目前沒有資料來源，不標示。',
+    available: { cadastre: hasFlags || !!parcelIds, permit: hasFlags, lvr: !!tradeKeys?.size },
+    note: '實價登錄為「同路名候選」（交易只有門牌、沒有座標），不代表該棟確有交易；地籍為建物中心所在的地號（本機地籍圖）；建管目前沒有資料來源，不標示。',
   }), { level: 6 });
   classCache.set(slug, { stamp, body });
   return body;
@@ -432,7 +435,7 @@ export function packsOverview() {
       buildings: item.db.prepare('SELECT COUNT(*) AS n FROM buildings').get().n, inArea: item.db.prepare('SELECT SUM(in_area) AS n FROM buildings').get().n || 0,
       hasWhite: existsSync(join(entry.root, `${item.slug}-white`)) && existsSync(join(entry.root, `${item.slug}-tileset-white.json`)) };
   }).sort((a, b) => a.towns.localeCompare(b.towns, 'zh-TW'));
-  return { imported, whiteMode: registry.whiteMode !== false, lvr: lvrSummary(), dataFolder: dataDirectory() };
+  return { imported, whiteMode: registry.whiteMode !== false, lvr: lvrSummary(), cadastre: cadastreStatus(), dataFolder: dataDirectory() };
 }
 export const listAvailablePacks = () => availablePacks();
 export const scanPackFolder = path => scanFolder(path);
@@ -444,6 +447,14 @@ export function removeBuildingPack(slug, deleteFiles) {
   const result = removePack(slug, deleteFiles);
   indexCache.clear(); centers.delete(slug);
   return result;
+}
+
+// 地籍：建物中心所在的地號。中心點判定，建物跨多筆地號時只顯示中心所在的那一筆。
+function cadastreLookup(lon, lat) {
+  const status = cadastreStatus();
+  if (!status.available) return { available: false, message: status.message };
+  const parcel = parcelAt(lon, lat);
+  return { available: true, source: status.source, latestDataDate: status.latestDataDate, parcel, message: parcel ? null : '建物中心不在任何一筆地號內（可能在道路、水域或地籍圖範圍外）。' };
 }
 
 export function lookupBuilding(id) {
@@ -461,6 +472,7 @@ export function lookupBuilding(id) {
       },
       admin,
       lvr: lvrCandidates(row, admin),
+      cadastre: cadastreLookup(row.lon, row.lat),
       source: { name: master.meta.source, tileset: master.meta.tileset, updatedAt: master.meta.updated_at, rule: master.meta.rule, pendingTiles: Number(master.meta.pending_tiles) || 0 },
     };
   }

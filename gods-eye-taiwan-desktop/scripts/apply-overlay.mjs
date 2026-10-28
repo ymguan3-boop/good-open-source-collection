@@ -58,11 +58,11 @@ const localProvidersPath = resolve(dest, 'server', 'providers', 'local.js');
 let localProviders = readFileSync(localProvidersPath, 'utf8');
 localProviders = replaceRequired(localProviders,
   "import { openSkyProxy } from './aircraft/opensky.js';",
-  "import { openSkyProxy } from './aircraft/opensky.js';\nimport { taiwanResourcesProxy } from './taiwanResources.js';\nimport { taiwanAiProxy } from './taiwanAi.js';\nimport { taiwanNlscProxy } from './taiwanNlsc.js';\nimport { taiwanDtmProxy } from './taiwanDtm.js';\nimport { taiwanCctvWallProxy } from './taiwanCctvWall.js';",
+  "import { openSkyProxy } from './aircraft/opensky.js';\nimport { taiwanResourcesProxy } from './taiwanResources.js';\nimport { taiwanAiProxy } from './taiwanAi.js';\nimport { taiwanNlscProxy } from './taiwanNlsc.js';\nimport { taiwanDtmProxy } from './taiwanDtm.js';\nimport { taiwanCctvWallProxy } from './taiwanCctvWall.js';\nimport { taiwanInventoryProxy } from './taiwanInventory.js';",
   'Taiwan local resource import');
 localProviders = replaceRequired(localProviders,
   '    openSkyProxy(),',
-  '    taiwanResourcesProxy(),\n    taiwanAiProxy(),\n    taiwanNlscProxy(),\n    taiwanDtmProxy(),\n    taiwanCctvWallProxy(),\n    openSkyProxy(),',
+  '    taiwanResourcesProxy(),\n    taiwanAiProxy(),\n    taiwanNlscProxy(),\n    taiwanDtmProxy(),\n    taiwanCctvWallProxy(),\n    taiwanInventoryProxy(),\n    openSkyProxy(),',
   'Taiwan local resource endpoint');
 writeFileSync(localProvidersPath, localProviders);
 let cctvCatalog = readFileSync(cctvCatalogPath, 'utf8');
