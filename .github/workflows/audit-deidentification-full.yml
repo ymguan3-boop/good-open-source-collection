@@ -117,7 +117,8 @@ jobs:
           p=Path("README.md")
           s=p.read_text()
           old="**[影片介紹](https://youtu.be/Mx7d0nSF61k?si=H4T6W59ZNNS0X08y)**。"
-          if old in s:s=s.replace(old,old+" [安全檢核](去識別化開源工具/collection-review/README.md)。",1)
+          if old in s and "[安全檢核](去識別化開源工具/collection-review/README.md)" not in s:
+            s=s.replace(old,old+" [安全檢核](去識別化開源工具/collection-review/README.md)。",1)
           old="**收錄狀態**：本倉庫已收錄前端靜態資產、LICENSE 及 "
           if old in s:s=s.replace(old,"**收錄狀態**：本倉庫已收錄前端靜態資產、LICENSE、原始碼完整備份及 ",1)
           p.write_text(s)
