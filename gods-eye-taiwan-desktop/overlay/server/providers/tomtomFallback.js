@@ -30,7 +30,10 @@ async function photon(query, signal) {
   return (data.features || []).map((f, i) => ({ name:f.properties?.name || query, address:[f.properties?.state, f.properties?.city, f.properties?.street, f.properties?.housenumber].filter(Boolean).join(''), municipality:f.properties?.city || '', lat:f.geometry?.coordinates?.[1], lon:f.geometry?.coordinates?.[0], id:f.properties?.osm_id ? `osm:${f.properties.osm_type}:${f.properties.osm_id}` : `photon:${i}`, type:'POI' }));
 }
 export async function publicGeocode(query, signal) {
-  const variants = [...new Set([query, ...abbreviations.map(([from, to]) => query.replace(from, to)), query.replace(/^[^縣市]{1,3}[縣市]/, '')])].filter(Boolean);
+  // OSM writes 臺 (not 台) and 校區 (not 分校/分部); retry with those spellings, then without the campus suffix.
+  const spellings = [...new Set([query, query.replace(/台/g, '臺')])];
+  const campus = spellings.flatMap(text => [text, text.replace(/(分校|分部|分院)$/, '校區'), text.replace(/(分校|分部|分院|校區|校園)$/, '')]);
+  const variants = [...new Set([...campus, ...campus.flatMap(text => abbreviations.map(([from, to]) => text.replace(from, to))), query.replace(/^[^縣市]{1,3}[縣市]/, '')])].filter(Boolean).slice(0, 14);
   for (const variant of variants) {
     for (const search of [nominatim, photon]) {
       try { const found = (await search(variant, signal)).filter(item => inTaiwan(item.lat, item.lon)); if (found.length) return found; }

@@ -19,6 +19,9 @@ export function selectOfficialFare(rows,segment,profile,seat,fareMedia='single')
   if(segment.mode==='TRA'){
     if(!traClass(segment.transportType))return null;
     const label={adult:/全票|成人/,child:/孩童|兒童/,senior:/敬老/,disabled:/愛心(?!陪)/,companion:/愛陪|愛心陪/}[profile.type];
+    // TDX's TRA OD fare table uses short ticket names: 成＝成人全票, 孩＝孩童, 自＝自強(含3000／普悠瑪／太魯閣), 莒＝莒光, 區＝區間；"折" rows are discounts and never match.
+    const short=(()=>{const kind={'tze-chiang':'自','chu-kuang':'莒',local:'區'}[traClass(segment.transportType)],who={adult:'成',child:'孩'}[profile.type];return kind&&who&&seat!=='premium'?unique(rows.filter(r=>r.TicketType===`${who}${kind}`&&Number.isFinite(Number(r.Price)))):null;})();
+    if(short)return short;
     return label?unique(rows.filter(r=>traClass(r.TicketType)===traClass(segment.transportType)&&label.test(r.TicketType)&&!/(?:折|優惠|團體|早鳥)/.test(r.TicketType)&&((seat==='premium')===/商務|騰雲/.test(r.TicketType))&&(profile.type!=='adult'||!/孩童|兒童|敬老|愛心|愛陪/.test(r.TicketType)))):null;
   }
   return unique(rows.filter(r=>(segment.mode!=='HSR'||Number(r.Price)>0)&&Number(r.TicketType)===media[fareMedia]&&Number(r.FareClass)===fareClass[profile.type]&&(segment.mode!=='HSR'||Number(r.CabinClass)===cabin[seat])&&!r.CitizenCode&&!(r.DiscountPeriods||[]).length));
@@ -119,7 +122,8 @@ export function createFareService({basic,stations,fetcher=fetch,now=Date.now,cac
     let raw=null,amount=null,info=null,failure=null;
     try{
       info=s.mode==='BUS'?await busRows(s,signal,refresh):s.mode==='BIKE'?null:await railRows(s,signal,refresh);
-      if(info){raw=info.free?info.rows[0]:selectOfficialFare(info.rows,s,p,seat,fm);if(raw){amount=Number(raw.Price)*(info.sections||1);info.source=`TDX ${s.mode==='HSR'?'高鐵':s.mode==='TRA'?'臺鐵':s.railSystem||'公車'}官方票價`;}}
+      if(info){raw=info.free?info.rows[0]:selectOfficialFare(info.rows,s,p,seat,fm);if(raw){amount=Number(raw.Price)*(info.sections||1);info.source=`TDX ${s.mode==='HSR'?'高鐵':s.mode==='TRA'?'臺鐵':s.railSystem||'公車'}官方票價`;}else if(s.mode==='TRA')failure=`TDX 臺鐵票價表沒有可唯一對應「${s.transportType||'未知車種'}」的${PASSENGER_NAMES[p.type]||'票種'}（表內票種：${[...new Set((info.rows||[]).map(r=>r.TicketType))].slice(0,14).join('、')}）`;}
+      else if(s.mode==='TRA')failure=`TDX 臺鐵票價表查無 ${s.from?.id||s.from?.name}→${s.to?.id||s.to?.name} 的唯一紀錄`;
     }catch(e){if(signal?.aborted)throw e;failure=e.message;}
     if(amount===null&&['TRA','METRO'].includes(s.mode)&&fm==='single'){
       try{const quoted=await web.lookup(s,{signal,date:String(s.departureTime).slice(0,10),passengerType:p.type,seatClass:seat,fareMedia:fm,refresh});if(quoted){amount=quoted.amount;raw=quoted;info={row:{},rows:[],sourceUrl:quoted.sourceUrl,source:quoted.source,method:'official-web',effectiveFrom:quoted.effectiveFrom||null};}}catch(e){if(signal?.aborted)throw e;failure=e.message;}

@@ -2,6 +2,7 @@
 import { installTraditionalChinese } from './i18n.js';
 import { ResourceGovernor } from './resourceGovernor.js';
 import { mountShell } from './ui.js';
+import { installGlobalBackdrop } from './globalBackdrop.js';
 import { ensureCounties, configureDataScopeStorage } from './dataScope.js';
 
 // Restore saved scope before the application starts fetching portable sources.
@@ -34,6 +35,7 @@ export function installTaiwanEdition({ components }) {
       if (manager.isEnabled(id)) void manager.setEnabled(id, false, { origin:'taiwan-startup-idle' }).catch(error => console.warn('啟動時停止圖層失敗', id, error));
     }
   }
+  const disposeBackdrop = installGlobalBackdrop(viewer);
   const governor = new ResourceGovernor(viewer, components?.scene?.tileset || null);
   const disposeI18n = installTraditionalChinese();
   const disposeUi = mountShell({ viewer, governor, dataManager:manager, mapStackController:components?.scene?.mapStackController, stopLegacyWork:async ({reset=false}={}) => {
@@ -48,5 +50,5 @@ export function installTaiwanEdition({ components }) {
   }, styleManager:components?.controls?.styleManager });
   components?.controls?.styleManager?.setHudVisible?.('off');
   const removeMapListener=components?.scene?.mapStackController?.subscribe?.(()=>governor.setTileset(components.scene.mapStackController.getImageryHostTileset()));
-  return () => { removeMapListener?.();disposeUi?.(); disposeI18n?.(); if (originalIntent) manager._setEnabledWithIntent = originalIntent; };
+  return () => { removeMapListener?.();disposeBackdrop?.();disposeUi?.(); disposeI18n?.(); if (originalIntent) manager._setEnabledWithIntent = originalIntent; };
 }

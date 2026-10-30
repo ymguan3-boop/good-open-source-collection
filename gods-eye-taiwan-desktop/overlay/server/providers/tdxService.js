@@ -9,6 +9,7 @@ import {parseTransitText} from './tdxParse.js';
 import {createTdxGeometry} from './tdxGeometry.js';
 import {createOfficialFareLookup,TRA_TRAIN_TYPES,TRA_FARE_URL,traClass,selectTraFare} from './tdxFareWeb.js';
 import {createOfficialTransit} from './officialTransit.js';
+import {createOfficialRailGeometry} from './officialRailGeometry.js';
 
 const AUTH='https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token';
 const BASE='https://tdx.transportdata.tw/api/basic';
@@ -72,7 +73,21 @@ export function createTdxService({fetcher=tomtomFetch,credential=getCredential,n
     }
     throw tdxError('TDX_AUTH_FAILED','TDX 金鑰無法存取此服務',401);
   }
-  async function api(url,{ttl=0,signal,refresh=false}={}){
+  // TDX answers a burst limit with "retry in N seconds". Wait that long (cancellable) and ask again, at most twice, instead of reporting fares/shapes as unavailable.
+  let progressSink=()=>{};
+  async function api(url,options={}){
+    for(let attempt=0;;attempt++){
+      try{return await apiOnce(url,options);}
+      catch(error){
+        const limit=error?.code==='TDX_RATE_LIMITED'&&error.rateLimit?.kind!=='quota'?error.rateLimit:null,wait=limit?Date.parse(limit.retryAt)-now():NaN;
+        if(!limit||attempt>=3||!(wait<=65000)||options.signal?.aborted)throw error;
+        // TDX limits per minute (the window reopens on the next minute); tell the user why the plan is paused.
+        progressSink(`工作中... TDX 每分鐘查詢量已滿，約 ${Math.max(1,Math.ceil(wait/1000))} 秒後自動繼續（班次、票價與線型都以官方資料核實）；可按取消停止。`);
+        await new Promise((resolve,reject)=>{const timer=setTimeout(resolve,Math.max(300,wait)+500);options.signal?.addEventListener('abort',()=>{clearTimeout(timer);reject(options.signal.reason);},{once:true});});
+      }
+    }
+  }
+  async function apiOnce(url,{ttl=0,signal,refresh=false}={}){
     abort(signal);const key=`${fingerprint()}:${url}`;
     if(!refresh&&ttl){const hit=cached(key,ttl);if(hit!==null)return hit;}
     checkLimit(url);
@@ -84,7 +99,7 @@ export function createTdxService({fetcher=tomtomFetch,credential=getCredential,n
   const basic=(path,ttl,signal,query={},refresh=false)=>{const url=new URL(`${BASE}${path}`);Object.entries({'$format':'JSON',...query}).forEach(([k,v])=>url.searchParams.set(k,String(v)));return api(url.href,{ttl,signal,refresh});};
   const stations=(mode,signal)=>basic(`/v2/Rail/${mode==='HSR'?'THSR':'TRA'}/Station`,TDX_TTL.stations,signal,{'$top':500});
   const fares=createFareService({basic,stations,fetcher,now,cacheFile,checkPolicy:checkFarePolicy});
-  const official=createOfficialTransit({fetcher,credential,now,checkPolicy:checkFarePolicy}),attempts=new Map();
+  const railGeometry=createOfficialRailGeometry(),official=createOfficialTransit({fetcher,credential,now,checkPolicy:checkFarePolicy,railGeometry}),attempts=new Map();
 
   async function resolveLocation(query,{signal}={}){
     abort(signal);query=String(query||'').trim();if(!query||query.length>200)throw tdxError('INVALID_LOCATION','請輸入 1–200 字地點名稱');
@@ -135,7 +150,7 @@ export function createTdxService({fetcher=tomtomFetch,credential=getCredential,n
     const found=await resolveLocation(typeof point==='string'?point:point.name,{signal});return found.results.length===1?found.results[0]:found;
   }
   async function enrich(plan,signal,request){
-    const parentSignal=signal;signal=AbortSignal.any([signal,AbortSignal.timeout(25000)].filter(Boolean));
+    const parentSignal=signal;signal=AbortSignal.any([signal,AbortSignal.timeout(170000)].filter(Boolean));
     const geometry=createTdxGeometry({basic,credential,fetcher,signal,ttl:TDX_TTL});
     for(const segment of plan.segments){
       if(signal.aborted){abort(parentSignal);plan.notices.push('路線線型／票價補充已達 25 秒處理上限；保留已核實資料，其餘標示缺漏，可重新查詢。');break;}
@@ -147,6 +162,10 @@ export function createTdxService({fetcher=tomtomFetch,credential=getCredential,n
         if(signal.aborted){abort(parentSignal);plan.notices.push('路線線型補充已達處理上限；未完成線型仍標示缺漏。');break;}
         const fields={};for(const key of ['geometry','geometryStatus','geometrySource','geometryUpdatedAt','railSystem','bikeRegion','bikeSystems','agency','busStops','routeId','subRouteId','operatorId','routeUid','subRouteUid','direction','busCity'])if(segment[key]!==undefined)fields[key]=segment[key];
         store(geometryKey,{fields,fromMeta:{...segment.from},toMeta:{...segment.to},missing:!ready});
+      }
+      // TDX shape unavailable (rate limit or no match): draw the TRA corridor from the official NLSC rail network between the same stations.
+      if(segment.mode==='TRA'&&!segment.geometry&&Number.isFinite(segment.from?.lat)&&Number.isFinite(segment.to?.lat)){
+        try{const stops=(segment.intermediateStops||[]).filter(s=>Number.isFinite(s.lat)&&Number.isFinite(s.lon)),official=await railGeometry.route(segment.from,segment.to,stops,parentSignal)||await railGeometry.route(segment.from,segment.to,[],parentSignal);if(official)Object.assign(segment,official);}catch{abort(parentSignal);}
       }
       segment.updatedAt=segment.sourceTime;
       if(segment.waitAfterSeconds!==undefined)segment.waitSeconds=segment.waitAfterSeconds;
@@ -171,6 +190,12 @@ export function createTdxService({fetcher=tomtomFetch,credential=getCredential,n
               const rows=await basic(`/v2/Rail/TRA/DailyTimetable/OD/${safeId(from.StationID)}/to/${safeId(to.StationID)}/${date}`,TDX_TTL.schedule,signal,{'$top':500});
               const exact=rows.filter(r=>r.TrainDate===date&&r.OriginStopTime?.StationID===from.StationID&&r.DestinationStopTime?.StationID===to.StationID&&(segment.trainNumber?String(r.DailyTrainInfo?.TrainNo)===segment.trainNumber:r.OriginStopTime?.DepartureTime?.slice(0,5)===depart&&r.DestinationStopTime?.ArrivalTime?.slice(0,5)===arrive)&&Number(r.DailyTrainInfo?.SuspendedFlag)!==1&&(!segment.trainNumber||String(r.DailyTrainInfo?.TrainNo)===segment.trainNumber));
               if(exact.length===1){actual=traClass(exact[0].DailyTrainInfo?.TrainTypeName?.Zh_tw);segment.trainNumber=String(exact[0].DailyTrainInfo.TrainNo);segment.transportType=exact[0].DailyTrainInfo.TrainTypeName?.Zh_tw||'';segment.trainTypeId=exact[0].DailyTrainInfo.TrainTypeID;segment.trainTypeSource='TDX 臺鐵起迄站時刻表';}
+            }catch{abort(parentSignal);}
+          }
+          if(!actual&&!segment.trainNumber){
+            try{
+              const found=await official.identifyTrain({date:taipeiTime(segment.departureTime).slice(0,10),fromId:from.StationID,toId:to.StationID,departureTime:taipeiTime(segment.departureTime),arrivalTime:taipeiTime(segment.arrivalTime),signal:parentSignal});
+              if(found){actual=traClass(found.transportType);segment.trainNumber=found.trainNumber;segment.transportType=found.transportType;segment.trainTypeId=found.trainTypeId;segment.trainTypeSource=found.trainTypeSource;}
             }catch{abort(parentSignal);}
           }
           segment.trainClass=actual;segment.requestedTrainClass=request.traTrainType;
@@ -259,7 +284,7 @@ export function createTdxService({fetcher=tomtomFetch,credential=getCredential,n
       const plans=await routing(points[0],points[1],request,time,reverse,signal,gc,request.timeMode==='now',refresh);
       let valid=plans.filter(p=>!request.arrivalDeadline||Date.parse(p.arrivalTime)<=Date.parse(request.arrivalDeadline));
       if(!request.traTrainType&&valid.some(p=>p.segments.some(s=>s.mode==='TRA')))return trainQuestion(request);
-      const deadline=Date.now()+45000;
+      const deadline=Date.now()+200000;
       for(const [index,p] of valid.slice(0,3).entries()){
         p.id=`tdx-${index}`;p.label=`方案 ${String.fromCharCode(65+index)}`;
         if(Date.now()<deadline)await enrich(p,signal,request);else{p.geometryStatus='missing';p.notices.push('其他方案線形補充已達時間上限，保留班次資料。');finalizePlan(p);}
@@ -310,9 +335,19 @@ export function createTdxService({fetcher=tomtomFetch,credential=getCredential,n
   }
   async function plan(input,{signal,refresh=false,onProgress=()=>{},forceOfficial=false}={}){
     const request=normalizeTripRequest(input,now()),key=createHash('sha256').update(JSON.stringify(request)).digest('hex');let result,error;
+    progressSink=onProgress;
     const prior=attempts.get(key)||{count:0,diagnostic:null},previous=prior.count;
     onProgress(forceOfficial?'工作中... 已完成旅程條件整理；正在依您的要求查詢官方公開資料。':'工作中... 已完成旅程條件整理；正在查詢 TDX 班次與路線。');
-    if(!forceOfficial&&previous<2)try{result=await planTdx(request,{signal,refresh});}catch(e){abort(signal);error=e;}
+    if(!forceOfficial&&previous<2){
+      try{result=await planTdx(request,{signal,refresh});}catch(e){abort(signal);error=e;}
+      // A short TDX rate limit states when to retry: wait for it (cancellable) and ask again, instead of giving up to the thinner fallback at once.
+      for(let round=0;round<2&&error?.code==='TDX_RATE_LIMITED'&&error.rateLimit?.kind!=='quota';round++){
+        const until=Date.parse(error.rateLimit?.retryAt)+1500;if(!(until-now()<=90000))break;
+        while(now()<until){abort(signal);onProgress(`工作中... TDX 要求暫緩查詢，${Math.max(1,Math.ceil((until-now())/1000))} 秒後自動重試（第 ${round+1}/2 次）；可按取消停止。`);await new Promise(resolve=>setTimeout(resolve,Math.min(5000,Math.max(250,until-now()))));}
+        error=null;result=undefined;
+        try{result=await planTdx(request,{signal,refresh:true});}catch(e){abort(signal);error=e;}
+      }
+    }
     if(result?.needsSelection||result?.needsClarification)return result;
     const complete=p=>p.geometryStatus==='ready'&&p.segments?.length&&p.segments.every(s=>s.geometry?.type==='LineString'&&s.geometry.coordinates?.length>=2);
     const partialPlans=result?.plans?.filter(p=>!complete(p))||[];

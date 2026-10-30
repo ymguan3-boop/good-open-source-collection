@@ -24,7 +24,8 @@ export function createOfficialTransit({fetcher=fetch,credential,now=Date.now,ttl
  async function timetable(date,signal){return cached(date,async()=>{const html=await cached('listing',()=>read(TRA_ODS_LIST,signal),signal),file=date.replaceAll('-','')+'.json',links=[...html.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>(\d{8}\.json)<\/a>/g)].filter(m=>m[2]===file);if(links.length!==1)throw tdxError('OFFICIAL_DATE_UNAVAILABLE','臺鐵官方尚未公開指定日期班表；不能以其他日期冒充',422);const sourceUrl=new URL(links[0][1],TRA_ODS_LIST).href,data=JSON.parse(await read(sourceUrl,signal));if(!Array.isArray(data.TrainInfos)||!data.UpdateTime||data.TrainInfos.length<100)throw Error('臺鐵公開班表格式驗證未通過');return {rows:data.TrainInfos,sourceUrl,sourceUpdatedAt:data.UpdateTime,fetchedAt:new Date(now()).toISOString()};},signal);}
  async function walking(from,to,signal){
   if(distance(from,to)<80)return null;
-  const key=credential('TOMTOM_API_KEY');if(!key)throw tdxError('WALK_ROUTE_UNAVAILABLE','缺少可核實的車站接駁步行路線服務；未用直線冒充道路',422);
+  // Without a TomTom key (or with a rejected one) tomtomFetch answers from OpenStreetMap's pedestrian router, still a real road route.
+  const key=credential('TOMTOM_API_KEY')||'no-key';
   const url=new URL(`https://api.tomtom.com/routing/1/calculateRoute/${from.lat},${from.lon}:${to.lat},${to.lon}/json`);url.search=new URLSearchParams({key,travelMode:'pedestrian',routeType:'shortest',traffic:'false'});
   const keyId=`walk:${from.lat},${from.lon}:${to.lat},${to.lon}`;
   return cached(keyId,async()=>{const r=await fetcher(url.href,{signal:AbortSignal.any([signal,AbortSignal.timeout(12000)].filter(Boolean))});if(!r.ok)throw tdxError('WALK_ROUTE_UNAVAILABLE',`接駁步行路線 HTTP ${r.status}`,422);const data=await r.json(),route=data.routes?.[0],coordinates=route?.legs?.flatMap(l=>l.points).map(p=>[p.longitude,p.latitude]);if(!coordinates||coordinates.length<2||coordinates.length>50000||!coordinates.every(p=>p.every(Number.isFinite))||!Number.isFinite(route.summary?.travelTimeInSeconds)||route.summary.travelTimeInSeconds<=0||distance({lon:coordinates[0][0],lat:coordinates[0][1]},from)>100||distance({lon:coordinates.at(-1)[0],lat:coordinates.at(-1)[1]},to)>100)throw Error('步行路線資料驗證未通過');return {from,to,durationSeconds:route.summary.travelTimeInSeconds,distanceMeters:route.summary.lengthInMeters,geometry:{type:'LineString',coordinates},geometryStatus:'ready',geometrySource:'TomTom 實際步行路線',geometryUpdatedAt:new Date(now()).toISOString()};},signal);
@@ -44,7 +45,8 @@ export function createOfficialTransit({fetcher=fetch,credential,now=Date.now,ttl
   if(!request.allowedModes.includes('TRA'))return {plans:[],request,notices:['官方公開班表備援目前支援臺鐵與步行接駁；所選運具不含臺鐵。']};
   onProgress('工作中... 已完成條件檢查；正在擷取臺鐵官方公開班表與車站資料。');
   const reverse=request.timeMode==='arrival',deadline=request.arrivalDeadline?Date.parse(request.arrivalDeadline):null,date=taipeiTime(reverse?request.arrivalDeadline:request.departureTime).slice(0,10),dayStart=Date.parse(`${date}T00:00:00+08:00`),start=request.departureTime?Date.parse(request.departureTime):Math.max(now(),dayStart),list=await stations(signal),data=await timetable(date,signal),points=[request.origin,...request.waypoints.map(w=>w.location),request.destination],stationMap=new Map(list.map(s=>[s.id,s]));
-  const candidates=p=>{const exact=list.filter(s=>normal(s.name)===normal(p.name)&&distance(s,p)<250);if(exact.length===1)return exact;return list.map(s=>({s,d:distance(s,p)})).filter(x=>x.d<=3500).sort((a,b)=>a.d-b.d).slice(0,3).map(x=>x.s);};
+  // Campuses and offices are often far from any TRA station; when none is within 3.5 km, widen to the nearest two within 10 km (real road route, flagged as a long connection below).
+  const candidates=p=>{const exact=list.filter(s=>normal(s.name)===normal(p.name)&&distance(s,p)<250);if(exact.length===1)return exact;const ranked=list.map(s=>({s,d:distance(s,p)})).sort((a,b)=>a.d-b.d),near=ranked.filter(x=>x.d<=3500).slice(0,3);return (near.length?near:ranked.filter(x=>x.d<=10000).slice(0,2)).map(x=>x.s);};
   let states=[{time:reverse?deadline:start,segments:[],legs:0}];const routeCache=new Map(),order=Array.from({length:points.length-1},(_,i)=>i);if(reverse)order.reverse();
   for(const index of order){
    signal?.throwIfAborted();onProgress(`工作中... 已取得官方班表；正在串接第 ${index+1}/${points.length-1} 段與車站接駁路線。`);
@@ -67,12 +69,36 @@ export function createOfficialTransit({fetcher=fetch,credential,now=Date.now,ttl
      }
     }
    }
+   // Short legs (same district, no useful TRA station): offer the real pedestrian road route itself, flagged by the long-walk notice.
+   if(!request.excludedModes.includes('WALK')&&distance(from,to)<=5000){
+    let walk=null;try{walk=await walking(from,to,signal);}catch(error){signal?.throwIfAborted();}
+    if(walk)for(const state of states){
+     const w=request.waypoints[index],stay=(w?.stayDurationMinutes||0)*60000,limit=reverse?Math.min(state.time-stay,w?.arrivalTime?Date.parse(w.arrivalTime):Infinity):null,leave=reverse?limit-walk.durationSeconds*1000:state.time;
+     if(leave<now()||leave<start)continue;const arrival=leave+walk.durationSeconds*1000;if(!reverse&&w?.arrivalTime&&arrival>Date.parse(w.arrivalTime))continue;
+     const time=reverse?leave:Math.max(arrival+stay,w?.departureTime?Date.parse(w.departureTime):0);if(!reverse&&deadline&&time>deadline)continue;
+     const segment={...walk,mode:'WALK',routeName:'步行',departureTime:taipeiTime(new Date(leave).toISOString()),arrivalTime:taipeiTime(new Date(arrival).toISOString()),fare:{amount:0,currency:'TWD',complete:true},realtimeStatus:'scheduled',source:'TomTom 實際道路',sourceTime:new Date(now()).toISOString()};
+     next.push({time,segments:reverse?[segment,...state.segments]:[...state.segments,segment],arrival,legs:state.legs+1});
+    }
+   }
    const signature=s=>JSON.stringify(s.segments.map(x=>[x.mode,x.trainNumber,x.from.id,x.to.id,x.departureTime]));states=[...new Map(next.sort((a,b)=>reverse?b.time-a.time:a.time-b.time).map(s=>[signature(s),s])).values()].slice(0,request.preference==='cheapest'?8:3);if(!states.length)break;
   }
-  const plans=states.filter(s=>s.segments.length&&s.legs===points.length-1).map((s,index)=>finalizePlan({id:`official-${index}`,label:index?'官方班表備援 '+(index+1):'官方班表推薦方案',segments:s.segments,departureTime:s.segments[0].departureTime,arrivalTime:s.segments.at(-1).arrivalTime,durationSeconds:(Date.parse(s.segments.at(-1).arrivalTime)-Date.parse(s.segments[0].departureTime))/1000,transfers:s.segments.filter(x=>x.mode==='TRA').length-1,walkDistanceMeters:s.segments.filter(x=>x.mode==='WALK').reduce((n,x)=>n+x.distanceMeters,0),geometryStatus:'ready',sources:['臺鐵官方 ODS 每日班表',TRA_ODS_LIST,TRA_ODS_STATIONS,'https://data.gov.tw/dataset/73220','TomTom 實際步行路線'],notices:['以指定日期官方公開班表及核實道路串接；保留中繼點、停留時間與乘客設定。','備援比較臺鐵直達班次及步行接駁，未窮舉其他運具或鐵路轉乘；班表不是即時餘票、延誤或營運股道。']}));
+  const plans=states.filter(s=>s.segments.length&&s.legs===points.length-1).map((s,index)=>finalizePlan({id:`official-${index}`,label:index?'官方班表備援 '+(index+1):'官方班表推薦方案',segments:s.segments,departureTime:s.segments[0].departureTime,arrivalTime:s.segments.at(-1).arrivalTime,durationSeconds:(Date.parse(s.segments.at(-1).arrivalTime)-Date.parse(s.segments[0].departureTime))/1000,transfers:Math.max(0,s.segments.filter(x=>x.mode==='TRA').length-1),walkDistanceMeters:s.segments.filter(x=>x.mode==='WALK').reduce((n,x)=>n+x.distanceMeters,0),geometryStatus:'ready',sources:['臺鐵官方 ODS 每日班表',TRA_ODS_LIST,TRA_ODS_STATIONS,'https://data.gov.tw/dataset/73220','TomTom 實際步行路線'],notices:['以指定日期官方公開班表及核實道路串接；保留中繼點、停留時間與乘客設定。','備援比較臺鐵直達班次及步行接駁，未窮舉其他運具或鐵路轉乘；班表不是即時餘票、延誤或營運股道。']}));
   if(reverse)for(const [i,p]of plans.entries()){p.departureTime=taipeiTime(new Date(states[i].time).toISOString());p.latestLeaveTime=p.departureTime;p.durationSeconds=(Date.parse(p.arrivalTime)-Date.parse(p.departureTime))/1000;p.notices.push('以指定日期官方班表反向核實抵達期限；步行接駁預留 5 分鐘進站時間，非即時延誤保證。');}
+  for(const p of plans){const far=p.segments.filter(s=>s.mode==='WALK'&&s.distanceMeters>2000);if(far.length)p.notices.push(`車站接駁含長距離道路步行：${far.map(s=>`${(s.distanceMeters/1000).toFixed(1)} 公里、約 ${Math.round(s.durationSeconds/60)} 分鐘`).join('；')}。此備援未含接駁公車；公車資料需 TDX 恢復後才能核實，實際可改搭公車或計程車縮短該段。`);}
   onProgress(plans.length?'工作中... 已完成班次、停留與完整路線查核；正在核實乘客票價。':'官方班表查核已結束，目前條件沒有取得可核實完整路徑。');
   return {plans,request,sourceStatus:{tdx:'fallback',officialTimetable:'ready',geometry:plans.length?'ready':'missing',realtime:'scheduled'},notices:plans.length?['已改用臺鐵官方公開班表備援。']:['公開班表備援未取得符合期限及完整線型的方案；未自行放寬您的限制。']};
  }
- return {plan,stations,timetable};
+ // MaaS names a TRA leg only "TRA". Identify the train from the official daily timetable by its two stations and clock times (unique match only), so the right fare class can be priced.
+ async function identifyTrain({date,fromId,toId,departureTime,arrivalTime,signal}){
+  // MaaS clock times can differ from the timetable by a few minutes: accept departure within 3 min and arrival within 10 min, and only when exactly one train fits.
+  const data=await timetable(date,signal),minutes=t=>{const m=String(t).match(/(\d\d):(\d\d)/);return m?Number(m[1])*60+Number(m[2]):NaN;},dep=minutes(String(departureTime).slice(11,16)),arr=minutes(String(arrivalTime).slice(11,16)),found=[];
+  for(const train of data.rows){
+   const stops=[...(train.TimeInfos||[])].sort((a,b)=>Number(a.Order)-Number(b.Order)),a=stops.findIndex(s=>s.Station===fromId),b=stops.findIndex(s=>s.Station===toId);
+   if(a<0||b<=a||train.Type!=='1'||!classes[train.CarClass])continue;
+   const d=minutes(stops[a].DEPTime),z=minutes(stops[b].ARRTime),cross=(z-arr+1440)%1440;
+   if(Math.abs(d-dep)<=3&&(cross<=10||cross>=1430))found.push({trainNumber:String(train.Train),transportType:classes[train.CarClass],trainTypeId:train.CarClass});
+  }
+  return found.length===1?{...found[0],trainTypeSource:'臺鐵官方 ODS 每日班表（MaaS 時刻容許數分鐘誤差，唯一車次相符）',sourceUrl:data.sourceUrl}:null;
+ }
+ return {plan,stations,timetable,identifyTrain};
 }

@@ -101,7 +101,7 @@ export function taiwanAiProxy() {
             res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-store','X-Accel-Buffering':'no'});
             const send=(event,value)=>{if(!res.destroyed&&!res.writableEnded)res.write(`event: ${event}\ndata: ${JSON.stringify(value)}\n\n`);};
             const heartbeat=setInterval(()=>{if(!res.destroyed)res.write(': waiting\n\n');},10000);
-            try{const result=await tdxService.handle(route==='/tdx-plan-stream'?{...data,action:'plan'}:{action:'parse',text:data.text,request:data.request},{signal:route==='/tdx-plan-stream'?AbortSignal.any([controller.signal,AbortSignal.timeout(180000)]):controller.signal,onProgress:message=>send('status',{message})});if(!controller.signal.aborted)send('done',{result});}
+            try{const result=await tdxService.handle(route==='/tdx-plan-stream'?{...data,action:'plan'}:{action:'parse',text:data.text,request:data.request},{signal:route==='/tdx-plan-stream'?AbortSignal.any([controller.signal,AbortSignal.timeout(300000)]):controller.signal,onProgress:message=>send('status',{message})});if(!controller.signal.aborted)send('done',{result});}
             catch(error){if(!controller.signal.aborted)send('error',{message:error.code?error.message:'運輸查詢連線中斷或逾時，原條件已保留。',code:error.code||'TRANSIT_REQUEST_FAILED',status:error.status,rateLimit:error.rateLimit||null,upstreamStatus:error.upstreamStatus||null});}
             finally{clearInterval(heartbeat);res.removeListener('close',cancel);if(!res.destroyed)res.end();}return;
           }
@@ -111,7 +111,7 @@ export function taiwanAiProxy() {
             try{
               if(req.aborted||res.destroyed)controller.abort();
               const data=await body(req);controller.signal.throwIfAborted();
-              const result=await tdxService.handle(data,{signal:data.action==='parse'?controller.signal:AbortSignal.any([controller.signal,AbortSignal.timeout(90000)])});
+              const result=await tdxService.handle(data,{signal:data.action==='parse'?controller.signal:AbortSignal.any([controller.signal,AbortSignal.timeout(300000)])});
               if(!res.destroyed)return json(res,200,result);
             }catch(error){if(!res.destroyed)return json(res,error.status||400,{error:error.code?'TDX 大眾運輸服務：'+error.message:'大眾運輸查詢中斷或逾時；請重新查詢',code:error.code||'TRANSIT_REQUEST_FAILED',rateLimit:error.rateLimit||null,upstreamStatus:error.upstreamStatus||null});}
             finally{res.removeListener('close',cancel);}

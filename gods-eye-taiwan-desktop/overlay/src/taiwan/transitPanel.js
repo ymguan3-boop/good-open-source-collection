@@ -158,11 +158,9 @@ export function createTransitPanel({manager,viewer,onPlan=()=>{},onExplain=()=>{
       if(response.request)request=normalizeTripRequest(response.request);
       pending=null;root.querySelector('[data-transit-candidates]').hidden=true;renderForm();renderUnderstanding();renderResults();
       if(!results.plans.length){lastIssue=response.diagnostic||{message:(response.notices||[]).join('；')};const issue={...lastIssue,message:(response.notices||[]).join('；')||'TDX及官方公開班表均未提供符合已確認條件的完整旅程。'};if(confirmedExecution)return await reportConfirmedFailure(issue);proposeRecovery(issue);return clone(results);}
-      if(executionRequested){finish(work);return await executeConfirmed(executionPlanIndex);}
-      await choosePlan(0);if(!live(work))return {cancelled:true};
-      await onExplain(clone(results),{signal:work.signal});if(live(work))status(`已取得 ${results.plans.length} 個可靠資料方案，結果已送至 AI 空間助理。`);
-      recovery={...buildTransitPlanConfirmation(results),id:String(++recoverySequence),revision};onRecovery(clone(recovery));
-      return clone(results);
+      // A plan with reliable data is executed right away (confirm, fare check, conclusion, 3D demo); the user is not asked for a 旅程執行建議.
+      if(!executionRequested){confirmedExecution=true;confirmedResult=null;renewalAttempts=0;executionPlanIndex=0;}
+      finish(work);return await executeConfirmed(executionPlanIndex);
     }finally{finish(work);}
   }
   async function executePlan(index=0){
