@@ -1,0 +1,3 @@
+[submodule "FreeLLMAPI-免費AI統一管理工具/原始碼"]
+	path = FreeLLMAPI-免費AI統一管理工具/原始碼
+	url = https://github.com/tashfeenahmed/freellmapi.git

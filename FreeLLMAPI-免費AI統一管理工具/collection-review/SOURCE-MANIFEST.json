@@ -1,0 +1,19 @@
+{
+  "title": "FreeLLMAPI fixed-source collection manifest",
+  "collected_at": "2026-10-31",
+  "upstream_repository": "https://github.com/tashfeenahmed/freellmapi",
+  "upstream_tag": "v0.16.14",
+  "upstream_tag_commit": "5127fee51ba97ad112915ebe227ba13df461a266",
+  "released_at": "2026-10-30T10:40:02Z",
+  "license": "MIT",
+  "source_mode": "git-submodule (gitlink), not independent vendor copy",
+  "source_path": "FreeLLMAPI-免費AI統一管理工具/原始碼",
+  "archive_independent_of_upstream": false,
+  "deployment": "none",
+  "github_pages": false,
+  "scripts_executed": false,
+  "dynamic_malware_scan_completed": false,
+  "dependency_audit_completed": false,
+  "risk_status": "conditional-source-collection",
+  "review": "collection-review/SECURITY-REVIEW.md"
+}
