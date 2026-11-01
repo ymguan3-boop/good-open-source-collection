@@ -10,7 +10,7 @@
 4. **[去識別化開源工具](去識別化開源工具/)** — 由 Dean Lin 開發的瀏覽器端個資遮罩工具，可處理 PDF、Word、Excel、文字及掃描文件（OCR），支援偵測、人工覆核、遮罩與部分模式下的編碼還原。**[影片介紹](https://youtu.be/Mx7d0nSF61k?si=H4T6W59ZNNS0X08y)**。 [安全檢核](去識別化開源工具/collection-review/README.md)。
 5. **[REA－萬物逆向工程](REA-萬物逆向工程/)** — AI Agent／MCP 逆向分析工具，可分析 JavaScript、網站、桌面應用和二進位檔。此處僅為原始碼備份；使用前請閱讀[風險檢核](REA-萬物逆向工程/collection-review/README.md)。
 6. **[FreeLLMAPI－免費AI統一管理工具](FreeLLMAPI-免費AI統一管理工具/)** — 統一管理多家免費 LLM 供應商、OpenAI 相容 API 與模型故障轉移；以固定 v0.16.14 Git 子模組方式收錄原始碼指標（非獨立原始碼鏡像），不部署服務。使用前請閱讀[風險評估](FreeLLMAPI-免費AI統一管理工具/collection-review/SECURITY-REVIEW.md)。
-7. **[提升 Agent 效率及降低 Token 技能集](提升Agent效率及降低 token 技能集/)** — 集中收錄 [andrej-karpathy-skills](提升Agent效率及降低 token 技能集/andrej-karpathy-skills/)、[Ponytail](提升Agent效率及降低 token 技能集/ponytail/) 與 [MarkItDown](提升Agent效率及降低 token 技能集/markitdown/) 三個上游專案，以固定版本 Git 子模組保存；前兩者提升程式 Agent 的精簡與查核品質，後者將文件轉成適合 LLM 處理的 Markdown。
+7. **[提升 Agent 效率及降低 Token 技能集](提升Agent效率及降低%20token%20技能集/)** — 集中收錄 [andrej-karpathy-skills](提升Agent效率及降低%20token%20技能集/andrej-karpathy-skills/)、[Ponytail](提升Agent效率及降低%20token%20技能集/ponytail/) 與 [MarkItDown](提升Agent效率及降低%20token%20技能集/markitdown/) 三個上游專案，以固定版本 Git 子模組保存；前兩者提升程式 Agent 的精簡與查核品質，後者將文件轉成適合 LLM 處理的 Markdown。
 
 > 各專案的授權及使用限制以其資料夾內 LICENSE、README 與原作者公告為準。去識別化工具的 GitHub Pages 公開可用性尚待獨立驗證，請勿直接上傳機敏資料進行未驗證的測試。
 
@@ -157,15 +157,15 @@ GeoLibre/README.md
 
 ## 7. 提升 Agent 效率及降低 Token 技能集
 
-三套專案同置於 [提升Agent效率及降低 token 技能集/](提升Agent效率及降低 token 技能集/)，**收錄方式為固定版本 Git 子模組**，因此是完整上游原始碼的可重現來源指標，**不是獨立的離線程式碼鏡像**。一般 GitHub「Download ZIP」不包含子模組完整檔案；請以 `git clone --recurse-submodules` 下載，或在既有 clone 執行 `git submodule update --init --recursive`。單純收藏不會在本倉庫自動啟用技能。
+三套專案同置於 [提升Agent效率及降低 token 技能集/](提升Agent效率及降低%20token%20技能集/)，**收錄方式為固定版本 Git 子模組**，因此是完整上游原始碼的可重現來源指標，**不是獨立的離線程式碼鏡像**。一般 GitHub「Download ZIP」不包含子模組完整檔案；請以 `git clone --recurse-submodules` 下載，或在既有 clone 執行 `git submodule update --init --recursive`。單純收藏不會在本倉庫自動啟用技能。
 
 | 專案 | 功能摘要 | 上游授權 | 主要注意事項 |
 | --- | --- | --- | --- |
-| [andrej-karpathy-skills](提升Agent效率及降低 token 技能集/andrej-karpathy-skills/) | Claude/Codex 等 Agent 的精準修改、簡化設計與驗證導向原則 | 上游自稱 MIT，根目錄未見獨立 LICENSE | 屬指令／技能，需由使用者選擇性套用 |
-| [Ponytail](提升Agent效率及降低 token 技能集/ponytail/) | 優先重用既有程式、精簡變更、程式審查與 Token/成本觀測 | MIT | 插件可能安裝 Hook，執行本機 Node.js 程式與寫入設定 |
-| [MarkItDown](提升Agent效率及降低 token 技能集/markitdown/) | PDF、Office、HTML、圖片等轉 Markdown，改善 Agent 文件讀取 | MIT | 需 Python；存取檔案、網址與部分外部雲端服務；付費功能須自行選用 |
+| [andrej-karpathy-skills](提升Agent效率及降低%20token%20技能集/andrej-karpathy-skills/) | Claude/Codex 等 Agent 的精準修改、簡化設計與驗證導向原則 | 上游自稱 MIT，根目錄未見獨立 LICENSE | 屬指令／技能，需由使用者選擇性套用 |
+| [Ponytail](提升Agent效率及降低%20token%20技能集/ponytail/) | 優先重用既有程式、精簡變更、程式審查與 Token/成本觀測 | MIT | 插件可能安裝 Hook，執行本機 Node.js 程式與寫入設定 |
+| [MarkItDown](提升Agent效率及降低%20token%20技能集/markitdown/) | PDF、Office、HTML、圖片等轉 Markdown，改善 Agent 文件讀取 | MIT | 需 Python；存取檔案、網址與部分外部雲端服務；付費功能須自行選用 |
 
-完整版本 SHA、安裝方式、風險範圍及實際啟用方式見 [分類 README](提升Agent效率及降低 token 技能集/README.md) 與 [安全與授權評估](提升Agent效率及降低 token 技能集/SECURITY-REVIEW.md)。Token 效益取決於任務與模型，不能保證固定節省比例。
+完整版本 SHA、安裝方式、風險範圍及實際啟用方式見 [分類 README](提升Agent效率及降低%20token%20技能集/README.md) 與 [安全與授權評估](提升Agent效率及降低%20token%20技能集/SECURITY-REVIEW.md)。Token 效益取決於任務與模型，不能保證固定節省比例。
 
 ---
 
