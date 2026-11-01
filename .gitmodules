@@ -1,3 +1,15 @@
 [submodule "FreeLLMAPI-免費AI統一管理工具/原始碼"]
 	path = FreeLLMAPI-免費AI統一管理工具/原始碼
 	url = https://github.com/tashfeenahmed/freellmapi.git
+
+[submodule "提升Agent效率及降低 token 技能集/andrej-karpathy-skills"]
+	path = 提升Agent效率及降低 token 技能集/andrej-karpathy-skills
+	url = https://github.com/multica-ai/andrej-karpathy-skills.git
+
+[submodule "提升Agent效率及降低 token 技能集/ponytail"]
+	path = 提升Agent效率及降低 token 技能集/ponytail
+	url = https://github.com/DietrichGebert/ponytail.git
+
+[submodule "提升Agent效率及降低 token 技能集/markitdown"]
+	path = 提升Agent效率及降低 token 技能集/markitdown
+	url = https://github.com/microsoft/markitdown.git
