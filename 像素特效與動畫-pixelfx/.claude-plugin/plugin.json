@@ -1,0 +1,25 @@
+{
+  "name": "pixelfx",
+  "displayName": "像素特效與動畫庫（pixelfx）",
+  "version": "0.3.0",
+  "description": "程式化像素視覺特效與動畫：244 款現成特效、逐格圖匯出與 Claude Code 創作技能。",
+  "author": {
+    "name": "Patch",
+    "url": "https://patch.gg"
+  },
+  "homepage": "https://github.com/patch-gg/pixelfx",
+  "repository": "https://github.com/patch-gg/pixelfx",
+  "license": "MIT",
+  "keywords": [
+    "pixel-art",
+    "vfx",
+    "effects",
+    "animation",
+    "sprite-sheet",
+    "gamedev",
+    "canvas",
+    "godot",
+    "unity",
+    "phaser"
+  ]
+}
