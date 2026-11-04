@@ -1,8 +1,8 @@
 # 好用開源程式收集
 
-本倉庫集中整理可自由檢視原始碼的程式，方便查閱功能、授權、使用說明與下載位置。目前收錄 **8 組、共 10 套開源程式／Agent 技能**。
+本倉庫集中整理可自由檢視原始碼的程式，方便查閱功能、授權、使用說明與下載位置。目前收錄 **9 組、共 12 套程式／Agent 技能／上游參考資源**（其中 THREE Particles Editor 授權待確認，僅保存上游參照）。
 
-## 📚 收錄程式一覽（8 組／10 套）
+## 📚 收錄程式一覽（9 組／12 套）
 
 1. **[上帝之眼（原版）](上帝之眼/)** — 以 CesiumJS 為核心的 3D 地球與即時地理資訊觀察工具，整合交通、衛星、CCTV 與其他空間資料，供全球場景探索與延伸開發。
 2. **[上帝之眼・台灣版](gods-eye-taiwan-desktop/)** — 在 3D 地球基礎上整合臺灣地形、建物、道路、圖資套疊、AI 空間助理、交通規劃、CCTV 辨識及電影式空拍，適用於空間觀察與 GIS 查核。
@@ -13,6 +13,8 @@
 7. **[提升 Agent 效率及降低 Token 技能集](提升Agent效率及降低%20token%20技能集/)** — 集中收錄 [andrej-karpathy-skills](提升Agent效率及降低%20token%20技能集/andrej-karpathy-skills/)、[Ponytail](提升Agent效率及降低%20token%20技能集/ponytail/) 與 [MarkItDown](提升Agent效率及降低%20token%20技能集/markitdown/) 三個上游專案，以固定版本 Git 子模組保存；前兩者提升程式 Agent 的精簡與查核品質，後者將文件轉成適合 LLM 處理的 Markdown。
 
 8. **[像素特效與動畫庫（pixelfx）](像素特效與動畫-pixelfx/)** — 244 種程式化像素視覺特效、12 套完整攻擊招式與 Claude Code Skill；支援網頁、Godot、Unity 與 Sprite Sheet 匯出。**完整原始碼副本**，中文 README；已移除非 MIT 的專有字型、限制本機展示伺服器。詳見[安全與授權檢核](像素特效與動畫-pixelfx/SECURITY-REVIEW.md)。
+
+9. **[3D 粒子特效引擎與編輯器（THREE Particles + Editor）](3D粒子特效-THREE-Particles/)** — 3D Mesh 粒子、火球、命中、Ribbon 光軌與粒子視覺化編輯器；主引擎為 MIT，Editor 無獨立 LICENSE，僅以固定 SHA Git 子模組保存上游**來源指標**。**尚不相容現有《幻靈奇旅》的 Three.js r128，不能直接複製使用**。閱讀 [繁體中文 README](3D粒子特效-THREE-Particles/README.md)、[安全檢核](3D粒子特效-THREE-Particles/SECURITY-REVIEW.md) 與 [六套方案比較](3D粒子特效-THREE-Particles/COMPATIBILITY-6-PROJECTS.md)。
 
 > 各專案的授權及使用限制以其資料夾內 LICENSE、README 與原作者公告為準。去識別化工具的 GitHub Pages 公開可用性尚待獨立驗證，請勿直接上傳機敏資料進行未驗證的測試。
 
@@ -28,6 +30,7 @@ good-open-source-collection/
 ├─ FreeLLMAPI-免費AI統一管理工具/ # 固定版本 FreeLLMAPI 子模組與安全檢核
 ├─ 提升Agent效率及降低 token 技能集/ # 三項 Agent 效率與文件轉換工具（固定版本子模組）
 ├─ 像素特效與動畫-pixelfx/ # pixelfx 原始碼、繁中說明與安全檢核
+├─ 3D粒子特效-THREE-Particles/ # 引擎、Editor 固定子模組來源與風險報告
 ├─ .github/workflows/         # 必要的自動化工作流程
 └─ README.md                 # 本專案總覽
 ```
@@ -184,6 +187,16 @@ GeoLibre/README.md
 
 ---
 
+## 9. 3D 粒子特效引擎與編輯器（THREE Particles + Editor）
+
+- **主引擎**：[NewKrok/three-particles](https://github.com/NewKrok/three-particles)，固定 `f54737cabfec5668ac654c712aff0593162ca4ef`，MIT。
+- **Editor**：[NewKrok/three-particles-editor](https://github.com/NewKrok/three-particles-editor)，固定 `b6b03b757559236b47eafaf8465176564011a5b6`；原始倉庫未見 LICENSE，本收藏僅保存上游來源參照，不能宣稱已取得修改／再散布授權。
+- **使用限制**：遊戲現有 Three.js r128 與引擎 v3.0.0 的 r182 要求不符，先做隔離 PoC，禁止整包複製直接上線。
+- **下載子模組**：GitHub ZIP 不含子模組完整內容；使用 `git submodule update --init -- "3D粒子特效-THREE-Particles/引擎原始碼"`。Editor 同理可用對應路徑下載上游來源參照。
+- **檢核**：[繁體中文 README](3D粒子特效-THREE-Particles/README.md)、[資安授權評估](3D粒子特效-THREE-Particles/SECURITY-REVIEW.md) 及 [六套特效方案矩陣](3D粒子特效-THREE-Particles/COMPATIBILITY-6-PROJECTS.md)。本次未完成獨立瀏覽器動態驗證。
+
+---
+
 ## 下載整個倉庫
 
 ### Download ZIP
@@ -222,6 +235,8 @@ git clone https://github.com/ymguan3-boop/good-open-source-collection.git
 - **Agent 技能集**：andrej-karpathy-skills 專案 README/技能資訊標示 MIT（根目錄未見單獨 LICENSE）；Ponytail 與 MarkItDown 為 MIT，原作者保有版權，需遵循其原始授權條款；三者均為固定 Git 子模組，不自動執行。
 
 - **pixelfx 像素特效與動畫庫**：原作者 Patch，程式與特效為 MIT；Patch Pixel 字型不在 MIT 範圍內，本收錄版未重新散布；兩個官方展示 GIF 僅以外部連結提供。
+
+- **THREE Particles**：MIT 主引擎，固定子模組來源參照，並保留原作者 LICENSE；Editor 未見 LICENSE、僅保存上游引用，不等於取得編輯器內容的再散布權。
 
 第三方地圖、影像、API、模型、CCTV、OpenStreetMap、Cesium、Google、Gemini 等服務仍須遵守各自的授權與使用條款。
 
