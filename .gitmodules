@@ -14,10 +14,10 @@
 	path = 提升Agent效率及降低 token 技能集/markitdown
 	url = https://github.com/microsoft/markitdown.git
 
-[submodule "3D粒子特效-THREE-Particles/引擎原始碼"]
-	path = 3D粒子特效-THREE-Particles/引擎原始碼
+[submodule "遊戲特效/3D粒子特效-THREE-Particles/引擎原始碼"]
+	path = 遊戲特效/3D粒子特效-THREE-Particles/引擎原始碼
 	url = https://github.com/NewKrok/three-particles.git
 
-[submodule "3D粒子特效-THREE-Particles/編輯器上游參照"]
-	path = 3D粒子特效-THREE-Particles/編輯器上游參照
+[submodule "遊戲特效/3D粒子特效-THREE-Particles/編輯器上游參照"]
+	path = 遊戲特效/3D粒子特效-THREE-Particles/編輯器上游參照
 	url = https://github.com/NewKrok/three-particles-editor.git

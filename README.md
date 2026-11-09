@@ -12,9 +12,9 @@
 6. **[FreeLLMAPI－免費AI統一管理工具](FreeLLMAPI-免費AI統一管理工具/)** — 統一管理多家免費 LLM 供應商、OpenAI 相容 API 與模型故障轉移；以固定 v0.16.14 Git 子模組方式收錄原始碼指標（非獨立原始碼鏡像），不部署服務。使用前請閱讀[風險評估](FreeLLMAPI-免費AI統一管理工具/collection-review/SECURITY-REVIEW.md)。
 7. **[提升 Agent 效率及降低 Token 技能集](提升Agent效率及降低%20token%20技能集/)** — 集中收錄 [andrej-karpathy-skills](提升Agent效率及降低%20token%20技能集/andrej-karpathy-skills/)、[Ponytail](提升Agent效率及降低%20token%20技能集/ponytail/) 與 [MarkItDown](提升Agent效率及降低%20token%20技能集/markitdown/) 三個上游專案，以固定版本 Git 子模組保存；前兩者提升程式 Agent 的精簡與查核品質，後者將文件轉成適合 LLM 處理的 Markdown。
 
-8. **[像素特效與動畫庫（pixelfx）](像素特效與動畫-pixelfx/)** — 244 種程式化像素視覺特效、12 套完整攻擊招式與 Claude Code Skill；支援網頁、Godot、Unity 與 Sprite Sheet 匯出。**完整原始碼副本**，中文 README；已移除非 MIT 的專有字型、限制本機展示伺服器。詳見[安全與授權檢核](像素特效與動畫-pixelfx/SECURITY-REVIEW.md)。
+8. **[像素特效與動畫庫（pixelfx）](遊戲特效/像素特效與動畫-pixelfx/)** — 244 種程式化像素視覺特效、12 套完整攻擊招式與 Claude Code Skill；支援網頁、Godot、Unity 與 Sprite Sheet 匯出。**完整原始碼副本**，中文 README；已移除非 MIT 的專有字型、限制本機展示伺服器。詳見[安全與授權檢核](遊戲特效/像素特效與動畫-pixelfx/SECURITY-REVIEW.md)。
 
-9. **[3D 粒子特效引擎與編輯器（THREE Particles + Editor）](3D粒子特效-THREE-Particles/)** — 3D Mesh 粒子、火球、命中、Ribbon 光軌與粒子視覺化編輯器；主引擎為 MIT，Editor 無獨立 LICENSE，僅以固定 SHA Git 子模組保存上游**來源指標**。**尚不相容現有《幻靈奇旅》的 Three.js r128，不能直接複製使用**。閱讀 [繁體中文 README](3D粒子特效-THREE-Particles/README.md)、[安全檢核](3D粒子特效-THREE-Particles/SECURITY-REVIEW.md) 與 [六套方案比較](3D粒子特效-THREE-Particles/COMPATIBILITY-6-PROJECTS.md)。
+9. **[3D 粒子特效引擎與編輯器（THREE Particles + Editor）](遊戲特效/3D粒子特效-THREE-Particles/)** — 3D Mesh 粒子、火球、命中、Ribbon 光軌與粒子視覺化編輯器；主引擎為 MIT，Editor 無獨立 LICENSE，僅以固定 SHA Git 子模組保存上游**來源指標**。**尚不相容現有《幻靈奇旅》的 Three.js r128，不能直接複製使用**。閱讀 [繁體中文 README](遊戲特效/3D粒子特效-THREE-Particles/README.md)、[安全檢核](遊戲特效/3D粒子特效-THREE-Particles/SECURITY-REVIEW.md) 與 [六套方案比較](遊戲特效/3D粒子特效-THREE-Particles/COMPATIBILITY-6-PROJECTS.md)。
 
 > 各專案的授權及使用限制以其資料夾內 LICENSE、README 與原作者公告為準。去識別化工具的 GitHub Pages 公開可用性尚待獨立驗證，請勿直接上傳機敏資料進行未驗證的測試。
 
@@ -29,8 +29,9 @@ good-open-source-collection/
 ├─ REA-萬物逆向工程/         # REA 原始碼與子模組備份
 ├─ FreeLLMAPI-免費AI統一管理工具/ # 固定版本 FreeLLMAPI 子模組與安全檢核
 ├─ 提升Agent效率及降低 token 技能集/ # 三項 Agent 效率與文件轉換工具（固定版本子模組）
-├─ 像素特效與動畫-pixelfx/ # pixelfx 原始碼、繁中說明與安全檢核
-├─ 3D粒子特效-THREE-Particles/ # 引擎、Editor 固定子模組來源與風險報告
+├─ 遊戲特效/                 # 遊戲／即時視覺特效相關專案
+│  ├─ 像素特效與動畫-pixelfx/       # pixelfx 原始碼、繁中說明與安全檢核
+│  └─ 3D粒子特效-THREE-Particles/   # 引擎、Editor 固定子模組來源與風險報告
 ├─ .github/workflows/         # 必要的自動化工作流程
 └─ README.md                 # 本專案總覽
 ```
@@ -178,12 +179,12 @@ GeoLibre/README.md
 ## 8. 像素特效與動畫庫（pixelfx）
 
 - **原作者**：Patch；[官方原始碼](https://github.com/patch-gg/pixelfx)；[官方特效展示館](https://patch-gg.github.io/pixelfx/)。
-- **收錄名稱／資料夾**：[像素特效與動畫-pixelfx/](像素特效與動畫-pixelfx/)。
+- **收錄名稱／資料夾**：[像素特效與動畫-pixelfx/](遊戲特效/像素特效與動畫-pixelfx/)。
 - **收錄方式**：固定 2026-10-31 上游 commit `a84159688af3ca37a4be05a0d422b94451b2e24e` 的**完整文字原始碼副本**，不是 Git 子模組；GitHub ZIP 可直接下載程式碼。二個示範 GIF 改由官方網址提供。
 - **中文化範圍**：繁體中文專案 README、功能及使用說明；保留原始英文 README 供比對；程式匯入名稱 pixelfx 及效果 ID 維持原樣。
 - **授權**：MIT（保留 LICENSE／NOTICE），原作者專有 Patch Pixel 字型未收錄，改用系統字型。
 - **安全措施**：修正本機展示伺服器監聽範圍及目錄白名單；不自動啟用 Agent 技能、不部署服務、不自動更新。**僅完成靜態檢核，未經動態惡意程式掃描。**
-- **詳細說明**：[繁中 README](像素特效與動畫-pixelfx/README.md) 與 [SECURITY-REVIEW](像素特效與動畫-pixelfx/SECURITY-REVIEW.md)。
+- **詳細說明**：[繁中 README](遊戲特效/像素特效與動畫-pixelfx/README.md) 與 [SECURITY-REVIEW](遊戲特效/像素特效與動畫-pixelfx/SECURITY-REVIEW.md)。
 
 ---
 
@@ -192,8 +193,8 @@ GeoLibre/README.md
 - **主引擎**：[NewKrok/three-particles](https://github.com/NewKrok/three-particles)，固定 `f54737cabfec5668ac654c712aff0593162ca4ef`，MIT。
 - **Editor**：[NewKrok/three-particles-editor](https://github.com/NewKrok/three-particles-editor)，固定 `b6b03b757559236b47eafaf8465176564011a5b6`；原始倉庫未見 LICENSE，本收藏僅保存上游來源參照，不能宣稱已取得修改／再散布授權。
 - **使用限制**：遊戲現有 Three.js r128 與引擎 v3.0.0 的 r182 要求不符，先做隔離 PoC，禁止整包複製直接上線。
-- **下載子模組**：GitHub ZIP 不含子模組完整內容；使用 `git submodule update --init -- "3D粒子特效-THREE-Particles/引擎原始碼"`。Editor 同理可用對應路徑下載上游來源參照。
-- **檢核**：[繁體中文 README](3D粒子特效-THREE-Particles/README.md)、[資安授權評估](3D粒子特效-THREE-Particles/SECURITY-REVIEW.md) 及 [六套特效方案矩陣](3D粒子特效-THREE-Particles/COMPATIBILITY-6-PROJECTS.md)。本次未完成獨立瀏覽器動態驗證。
+- **下載子模組**：GitHub ZIP 不含子模組完整內容；使用 `git submodule update --init -- "遊戲特效/3D粒子特效-THREE-Particles/引擎原始碼"`。Editor 同理可用對應路徑下載上游來源參照。
+- **檢核**：[繁體中文 README](遊戲特效/3D粒子特效-THREE-Particles/README.md)、[資安授權評估](遊戲特效/3D粒子特效-THREE-Particles/SECURITY-REVIEW.md) 及 [六套特效方案矩陣](遊戲特效/3D粒子特效-THREE-Particles/COMPATIBILITY-6-PROJECTS.md)。本次未完成獨立瀏覽器動態驗證。
 
 ---
 
